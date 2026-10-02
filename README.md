@@ -1,9 +1,25 @@
-# llama.cpp-decide
+# llama.cpp-decide — a universal decision engine for GGUF models
 
-A one-pass decision endpoint for llama.cpp: `POST /v1/decide` lets an ordinary open-weights chat model (GGUF) answer
-many typed questions about a text or an image (choice, score, yes/no) with a full probability distribution per
-question, from one batched scoring pass and without generating text. The answer is chosen among the allowed values by
-reading next-token probabilities, so the output always matches the schema. It ships as a patch series on a pinned
+**Turn an ordinary GGUF chat model into a decision engine.** No fine-tuning, no special decision model, no text
+generation: one request, one batched scoring pass, a probability for every allowed answer.
+
+| Task | Example question | Answer |
+|---|---|---|
+| True / false | "Is the customer angry?" | the probability of `true` and of `false` |
+| Classification | "Which queue: billing, technical, sales, feedback?" | a probability per label |
+| Scoring | "How urgent, 0 to 3?" | a probability per level |
+| Many questions at once | all of the above about the same text | every answer from the same pass |
+| Image classification | "Is there a person in this photo? A dog? A car?" | the same, on a vision model with its projector |
+| Dependent questions | "Given the queue chosen above: how urgent?" | later fields see earlier answers (`after`) |
+| Batches | many texts or images in one request | one batched pass for all of them |
+
+The answer is always one of the allowed values: it is read from next-token probabilities, not generated, so the output
+cannot leave the schema. "Universal" refers to the tasks and to the model not being fixed in advance; the engine has
+been checked on the model families listed under "How it works", and it refuses a model whose tokenizer fails its
+start-up check instead of serving it wrongly.
+
+In llama.cpp terms: `POST /v1/decide` lets an open-weights chat model answer many typed questions about a text or an
+image (choice, score, yes/no) with a full probability distribution per question. It ships as a patch series on a pinned
 upstream llama.cpp commit, with evaluation scripts, a synthetic triage dataset and the recorded results.
 
 It started as a local reproduction of the "System One" decision model idea of TypeSafe AI's **Jev**, and also serves
