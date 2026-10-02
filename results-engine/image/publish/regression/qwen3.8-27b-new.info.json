@@ -1,0 +1,47 @@
+{
+ "decide_seqs": 64,
+ "n_ctx": 4096,
+ "n_batch": 2048,
+ "kv_unified": true,
+ "n_parallel": 1,
+ "memory": {
+  "recurrent": true,
+  "swa": false
+ },
+ "prefix": {
+  "hash": "6462224defad50d8",
+  "tokens": 254,
+  "assistant_prefix": "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+  "valid": true
+ },
+ "prefixes": [
+  {
+   "slot": 0,
+   "hash": "6462224defad50d8",
+   "tokens": 254,
+   "valid": true
+  }
+ ],
+ "prefix_cache": {
+  "capacity": 8,
+  "entries": 3,
+  "bytes": 510750292
+ },
+ "temperature": 0.8992,
+ "scoring_modes": [
+  "tree",
+  "full_path"
+ ],
+ "vision": {
+  "available": false,
+  "reason": "no_projector"
+ },
+ "server_build": {
+  "path": "engine/build/bin/llama-server",
+  "version": [
+   "version: 0.4.1-dev (build 2336, commit 185e9e0a7)",
+   "built with GNU 16.2.1 for Linux x86_64"
+  ],
+  "engine_commit": "185e9e0a76bd512d22f2b2b1a30c032fe97fd987"
+ }
+}

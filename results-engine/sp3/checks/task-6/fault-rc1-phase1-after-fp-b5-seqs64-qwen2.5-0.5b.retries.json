@@ -1,0 +1,29 @@
+{
+  "resp": "results-engine/sp3/checks/task-6/fault-rc1-phase1-after-fp-b5-seqs64-qwen2.5-0.5b.jsonl",
+  "min": 1,
+  "retries": [
+    4,
+    4,
+    4,
+    4
+  ],
+  "rounds": [
+    4,
+    4,
+    4,
+    4
+  ],
+  "states_per_round": [
+    1,
+    1,
+    1,
+    1
+  ],
+  "decodes": [
+    21,
+    20,
+    20,
+    20
+  ],
+  "pass": true
+}

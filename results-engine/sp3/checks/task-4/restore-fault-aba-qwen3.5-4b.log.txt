@@ -1,0 +1,2 @@
+# LLAMA_DECIDE_FAULT=restore llama-decide ... --decide-prefix-cache 8 < aba-requests-qwen3.5-4b.jsonl: llama.cpp log lines of the failed restore
+0.01.984.650 E state_seq_set_data: error loading state: failed to restore kv cache

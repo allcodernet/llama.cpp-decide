@@ -1,0 +1,588 @@
+From 55959ff4060f4d84e7bdbc4dcc764b60525d9280 Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 20:57:38 +0200
+Subject: [PATCH 20/45] decide-schema: after, scoring/order_debias/temperature
+ options, catalogue variants
+
+Fields accept "after": 1 to 8 distinct names of other fields. compile
+rejects with 400 invalid_schema and error.field = the dependent field:
+not an array, an empty or too long array, a non-string entry, a
+duplicate, an unknown name, the field itself, a cycle (reported at its
+first field in declaration order, "after: cycle a -> b -> a") and a
+dependency level above 8. field gains after, ancestors (indices of the
+transitive closure, declaration order) and level; max_level gives the
+deepest level.
+
+options.scoring takes "tree" or "full_path", options.order_debias an
+integer 0..8 (read as int64, so 2^32 + 2 does not wrap to 2) and
+options.temperature a number in [0.05, 20] (0 in the struct = not
+given), with the messages of spec 3.1.
+
+render_catalogue(cs, variant, variants) lists each choice field's
+options rotated left by floor(v * n / variants); (0, 1) gives the same
+bytes as before (golden taken from the build before this change).
+effective_variants gives K_eff = min(K, largest choice option count),
+1 when K < 2 or without a choice field. The engine renders (cs, 0, 1).
+
+handle_decide and handle_info return 500 engine "not implemented yet:
+<feature>" for full_path, after, K_eff > 1 and temperature (first found,
+in that order) until the engine implements them; request validation
+errors still come first.
+---
+ tests/test-decide-schema.cpp   | 241 ++++++++++++++++++++++++++++++++-
+ tools/decide/decide-api.cpp    |  11 ++
+ tools/decide/decide-engine.cpp |   2 +-
+ tools/decide/decide-schema.cpp | 114 ++++++++++++++--
+ tools/decide/decide-schema.h   |  15 +-
+ 5 files changed, 364 insertions(+), 19 deletions(-)
+
+diff --git a/tests/test-decide-schema.cpp b/tests/test-decide-schema.cpp
+index 65c37029b..7d7455bc6 100644
+--- a/tests/test-decide-schema.cpp
++++ b/tests/test-decide-schema.cpp
+@@ -4,6 +4,8 @@
+ #include <cstdio>
+ #include <cstdlib>
+ #include <string>
++#include <utility>
++#include <vector>
+ 
+ static int failures = 0;
+ #define CHECK(cond) do { if (!(cond)) { std::fprintf(stderr, "FAIL %s:%d: %s\n", __FILE__, __LINE__, #cond); failures++; } } while (0)
+@@ -35,6 +37,62 @@ static const char * GOLDEN =
+ "    1: Normal: a real problem for one user without time pressure\n"
+ "- \"angry\": The text itself shows anger. true or false.\n";
+ 
++// two choice fields (4 and 3 options) around a score field, then a bool; K = 4
++static const char * VARIANTS = R"({
++  "fields": {
++    "queue":   {"type": "choice", "description": "Which team must act first?",
++                "options": ["billing", "technical", "sales", "feedback"]},
++    "urgency": {"type": "score", "description": "How urgent is it?",
++                "levels": ["Can wait", "Normal", "Now"]},
++    "tone":    {"type": "choice", "description": "Tone of the text.",
++                "options": {"calm": "No strong feelings", "rude": "Insults or \"shouting\"", "mixed": ""}},
++    "angry":   {"type": "bool", "description": "The text itself shows anger."}
++  },
++  "states": ["x"],
++  "options": {"order_debias": 4}
++})";
++
++// VARIANTS as rendered by the build before catalogue variants existed (render_catalogue(cs, 0) before this change)
++static const char * GOLDEN_V0 =
++"Answer with one JSON object. Read the input, then fill every field below.\n\n"
++"Fields:\n"
++"- \"queue\": Which team must act first?\n"
++"  Allowed values:\n"
++"    \"billing\"\n"
++"    \"technical\"\n"
++"    \"sales\"\n"
++"    \"feedback\"\n"
++"- \"urgency\": How urgent is it? Integer level:\n"
++"    0: Can wait\n"
++"    1: Normal\n"
++"    2: Now\n"
++"- \"tone\": Tone of the text.\n"
++"  Allowed values:\n"
++"    \"calm\": No strong feelings\n"
++"    \"rude\": Insults or \"shouting\"\n"
++"    \"mixed\"\n"
++"- \"angry\": The text itself shows anger. true or false.\n";
++
++// VARIANTS with queue's option lines listed from queue_start and tone's from tone_start (rotated left); all other text fixed
++static std::string variant_text(size_t queue_start, size_t tone_start) {
++    const std::vector<std::string> queue = {"    \"billing\"\n", "    \"technical\"\n", "    \"sales\"\n", "    \"feedback\"\n"};
++    const std::vector<std::string> tone  = {"    \"calm\": No strong feelings\n", "    \"rude\": Insults or \"shouting\"\n", "    \"mixed\"\n"};
++    std::string s = "Answer with one JSON object. Read the input, then fill every field below.\n\n"
++                    "Fields:\n"
++                    "- \"queue\": Which team must act first?\n"
++                    "  Allowed values:\n";
++    for (size_t i = 0; i < queue.size(); ++i) s += queue[(queue_start + i) % queue.size()];
++    s += "- \"urgency\": How urgent is it? Integer level:\n"
++         "    0: Can wait\n"
++         "    1: Normal\n"
++         "    2: Now\n"
++         "- \"tone\": Tone of the text.\n"
++         "  Allowed values:\n";
++    for (size_t i = 0; i < tone.size(); ++i) s += tone[(tone_start + i) % tone.size()];
++    s += "- \"angry\": The text itself shows anger. true or false.\n";
++    return s;
++}
++
+ static std::string expect_error(const std::string & body, const std::string & code) {
+     try {
+         auto cs = decide::compile_request(common_json::parse(body));
+@@ -52,6 +110,57 @@ static std::string expect_error(const std::string & body, const std::string & co
+     return "";
+ }
+ 
++// compile_request must fail with exactly this code (http 400), message and error.field
++static void expect_exact(const std::string & body, const std::string & code, const std::string & msg, const std::string & field) {
++    try {
++        (void) decide::compile_request(common_json::parse(body));
++    } catch (const decide::error & e) {
++        if (e.code != code || e.http != 400 || msg != e.what() || e.field != field) {
++            std::fprintf(stderr, "FAIL wrong error for %s\n  got:  code=%s http=%d field=\"%s\" msg=%s\n  want: code=%s http=400 field=\"%s\" msg=%s\n",
++                         body.c_str(), e.code.c_str(), e.http, e.field.c_str(), e.what(), code.c_str(), field.c_str(), msg.c_str());
++            failures++;
++        }
++        return;
++    }
++    std::fprintf(stderr, "FAIL no error for %s (wanted %s)\n", body.c_str(), msg.c_str());
++    failures++;
++}
++
++// compile_request must succeed; a rejection ends the test (later checks index into the fields)
++static decide::compiled_schema accept(const std::string & body) {
++    try {
++        return decide::compile_request(common_json::parse(body));
++    } catch (const decide::error & e) {
++        std::fprintf(stderr, "FAIL rejected %s: %s\n", body.c_str(), e.what());
++        std::exit(1);
++    }
++}
++
++// body with bool fields {name, raw JSON of "after" or ""} in this order and the given options object
++static std::string bools(const std::vector<std::pair<std::string, std::string>> & fields, const std::string & options = "{}") {
++    std::string s = R"({"fields": {)";
++    for (size_t i = 0; i < fields.size(); ++i) {
++        s += (i ? ", " : "") + decide::json_string(fields[i].first) + R"(: {"type": "bool", "description": "d")";
++        if (!fields[i].second.empty()) s += R"(, "after": )" + fields[i].second;
++        s += "}";
++    }
++    return s + R"(}, "states": ["x"], "options": )" + options + "}";
++}
++
++// ["f0", ..., "f<n-1>"]
++static std::string names(int n) {
++    std::string s = "[";
++    for (int i = 0; i < n; ++i) s += (i ? ", \"f" : "\"f") + std::to_string(i) + "\"";
++    return s + "]";
++}
++
++// chain f0 <- f1 <- ... <- f<last>: f<i>.after = ["f<i-1>"], so f<i> has level i
++static std::string chain(int last) {
++    std::vector<std::pair<std::string, std::string>> f;
++    for (int i = 0; i <= last; ++i) f.push_back({"f" + std::to_string(i), i ? "[\"f" + std::to_string(i - 1) + "\"]" : ""});
++    return bools(f);
++}
++
+ int main() {
+     // compile the triage schema
+     auto cs = decide::compile_request(common_json::parse(TRIAGE));
+@@ -64,10 +173,12 @@ int main() {
+     CHECK(cs.fields[1].options[1].description.rfind("Normal", 0) == 0);
+     CHECK(cs.fields[2].type == decide::field_type::BOOL && cs.fields[2].options.size() == 2);
+     CHECK(cs.fields[2].options[0].encoded == "true" && cs.fields[2].options[1].encoded == "false");
+-    CHECK(cs.opts.scoring == "tree" && cs.opts.order_debias == 0);
++    CHECK(cs.opts.scoring == "tree" && cs.opts.order_debias == 0 && cs.opts.temperature == 0);
++    for (const auto & f : cs.fields) CHECK(f.after.empty() && f.ancestors.empty() && f.level == 0);
++    CHECK(decide::max_level(cs) == 0 && decide::effective_variants(cs) == 1);
+ 
+     // golden catalogue
+-    const std::string cat = decide::render_catalogue(cs, 0);
++    const std::string cat = decide::render_catalogue(cs, 0, 1);
+     if (cat != GOLDEN) { std::fprintf(stderr, "FAIL catalogue mismatch:\n---got---\n%s\n---want---\n%s\n", cat.c_str(), GOLDEN); failures++; }
+ 
+     // stem / branch text
+@@ -97,11 +208,7 @@ int main() {
+     expect_error(R"({"fields": {"s": {"type": "score", "description": "d", "levels": ["only one"]}}, "states": ["x"]})", "invalid_schema");
+     expect_error(R"({"fields": {"s": {"type": "score", "description": "d", "levels": ["0","1","2","3","4","5","6","7","8","9","10"]}}, "states": ["x"]})", "invalid_schema");
+     expect_error(R"({"fields": {"b": {"type": "bool", "description": "d", "options": ["a","b"]}}, "states": ["x"]})", "invalid_schema");
+-    const std::string after_msg = expect_error(R"({"fields": {"b": {"type": "bool", "description": "d", "after": ["q"]}}, "states": ["x"]})", "invalid_schema");
+-    CHECK(after_msg.find("not supported yet") != std::string::npos);
+     expect_error(R"({"fields": {"b": {"type": "bool", "description": "d"}}, "states": ["x"], "extra": 1})", "invalid_schema");
+-    expect_error(R"({"fields": {"b": {"type": "bool", "description": "d"}}, "states": ["x"], "options": {"scoring": "full_path"}})", "invalid_options");
+-    expect_error(R"({"fields": {"b": {"type": "bool", "description": "d"}}, "states": ["x"], "options": {"order_debias": 2}})", "invalid_options");
+     expect_error(R"({"fields": {"b": {"type": "bool", "description": "d"}}, "states": ["x"], "options": {"mode": "tree"}})", "invalid_options");
+     expect_error(R"({"fields": {"b": {"type": "bool", "description": "d"}}})", "invalid_states");
+     expect_error(R"({"fields": {"b": {"type": "bool", "description": "d"}}, "states": []})", "invalid_states");
+@@ -117,7 +224,7 @@ int main() {
+                            R"(}, "s": {"type": "score", "description": "d", "levels": ["0","1","2","3","4","5","6","7","8","9"]}}, "states": ["x"]})";
+         auto ok = decide::compile_request(common_json::parse(body));
+         CHECK(ok.fields[0].options.size() == 255 && ok.fields[1].options.size() == 10);
+-        CHECK(decide::render_catalogue(ok, 0).find("    \"k254\"\n") != std::string::npos);
++        CHECK(decide::render_catalogue(ok, 0, 1).find("    \"k254\"\n") != std::string::npos);
+     }
+     {
+         std::string many = "[";
+@@ -126,6 +233,126 @@ int main() {
+         expect_error(R"({"fields": {"b": {"type": "bool", "description": "d"}}, "states": )" + many + "}", "invalid_states");
+     }
+ 
++    // catalogue variants (spec 7.1): variant 0 is today's text; choice options rotate left by floor(v * n / K_eff)
++    {
++        auto vs = accept(VARIANTS);
++        CHECK(decide::effective_variants(vs) == 4);
++        CHECK(variant_text(0, 0) == GOLDEN_V0);
++        const std::string v0 = decide::render_catalogue(vs, 0, 1);
++        if (v0 != GOLDEN_V0) { std::fprintf(stderr, "FAIL variant 0 of 1:\n---got---\n%s\n---want---\n%s\n", v0.c_str(), GOLDEN_V0); failures++; }
++        const size_t queue_start[4] = {0, 1, 2, 3};   // n = 4 = K_eff
++        const size_t tone_start[4]  = {0, 0, 1, 2};   // n = 3 < K_eff
++        for (int v = 0; v < 4; ++v) {
++            const std::string got  = decide::render_catalogue(vs, v, 4);
++            const std::string want = variant_text(queue_start[v], tone_start[v]);   // score and bool text as in variant 0
++            if (got != want) { std::fprintf(stderr, "FAIL variant %d of 4:\n---got---\n%s\n---want---\n%s\n", v, got.c_str(), want.c_str()); failures++; }
++        }
++        // a variant outside 0..variants-1 is an engine error, not a crash
++        const auto engine_error = [&](int v, int k) {
++            try {
++                (void) decide::render_catalogue(vs, v, k);
++            } catch (const decide::error & e) {
++                return e.code == "engine" && e.http == 500;
++            }
++            return false;
++        };
++        CHECK(engine_error(0, 0) && engine_error(4, 4) && engine_error(-1, 4));
++
++        // effective_variants: min(K, largest choice option count); 1 when off or without a choice field
++        vs.opts.order_debias = 0; CHECK(decide::effective_variants(vs) == 1);
++        vs.opts.order_debias = 1; CHECK(decide::effective_variants(vs) == 1);
++        vs.opts.order_debias = 2; CHECK(decide::effective_variants(vs) == 2);
++        vs.opts.order_debias = 8; CHECK(decide::effective_variants(vs) == 4);
++        auto three = accept(R"({"fields": {"c3": {"type": "choice", "description": "d", "options": ["a", "b", "c"]},
++                                           "c2": {"type": "choice", "description": "d", "options": ["a", "b"]},
++                                           "s":  {"type": "score", "description": "d", "levels": ["0", "1", "2", "3", "4"]}},
++                                "states": ["x"], "options": {"order_debias": 4}})");
++        CHECK(decide::effective_variants(three) == 3);   // score levels do not count
++        auto no_choice = accept(R"({"fields": {"s": {"type": "score", "description": "d", "levels": ["0", "1", "2", "3", "4"]},
++                                               "b": {"type": "bool", "description": "d"}},
++                                    "states": ["x"], "options": {"order_debias": 4}})");
++        CHECK(decide::effective_variants(no_choice) == 1);
++    }
++
++    // after: a chain queue <- urgency <- angry
++    {
++        auto c = accept(R"({"fields": {
++            "queue":   {"type": "choice", "description": "d", "options": ["billing", "technical"]},
++            "urgency": {"type": "score", "description": "d", "levels": ["low", "high"], "after": ["queue"]},
++            "angry":   {"type": "bool", "description": "d", "after": ["urgency"]}}, "states": ["x"]})");
++        CHECK(c.fields[0].after.empty() && c.fields[0].ancestors.empty() && c.fields[0].level == 0);
++        CHECK(c.fields[1].after == std::vector<std::string>{"queue"});
++        CHECK(c.fields[1].ancestors == std::vector<int>{0} && c.fields[1].level == 1);
++        CHECK(c.fields[2].after == std::vector<std::string>{"urgency"});
++        CHECK((c.fields[2].ancestors == std::vector<int>{0, 1}) && c.fields[2].level == 2);
++        CHECK(decide::max_level(c) == 2);
++    }
++    // after: a diamond declared dependent first; ancestors in declaration order, after kept as given
++    {
++        auto c = accept(bools({{"d", R"(["c", "b"])"}, {"c", R"(["a"])"}, {"b", R"(["a"])"}, {"a", ""}, {"e", ""}}));
++        CHECK((c.fields[0].after == std::vector<std::string>{"c", "b"}));
++        CHECK((c.fields[0].ancestors == std::vector<int>{1, 2, 3}) && c.fields[0].level == 2);
++        CHECK(c.fields[1].ancestors == std::vector<int>{3} && c.fields[1].level == 1);
++        CHECK(c.fields[2].ancestors == std::vector<int>{3} && c.fields[2].level == 1);
++        CHECK(c.fields[3].ancestors.empty() && c.fields[3].level == 0);
++        CHECK(c.fields[4].ancestors.empty() && c.fields[4].level == 0);
++        CHECK(decide::max_level(c) == 2);
++    }
++    // after: 8 entries and level 8 are the limits
++    {
++        std::vector<std::pair<std::string, std::string>> f;
++        for (int i = 0; i < 9; ++i) f.push_back({"f" + std::to_string(i), ""});
++        f.push_back({"b", names(8)});
++        auto c = accept(bools(f));
++        CHECK((c.fields[9].ancestors == std::vector<int>{0, 1, 2, 3, 4, 5, 6, 7}) && c.fields[9].level == 1);
++        f.back().second = names(9);
++        expect_exact(bools(f), "invalid_schema", "field \"b\": after: must have 1 to 8 entries", "b");
++
++        auto l8 = accept(chain(8));
++        CHECK((l8.fields[8].ancestors == std::vector<int>{0, 1, 2, 3, 4, 5, 6, 7}) && l8.fields[8].level == 8);
++        CHECK(decide::max_level(l8) == 8);
++    }
++    // after: every rejection of spec 3.1 with its message and field
++    {
++        const std::string sc = "invalid_schema";
++        expect_exact(bools({{"a", ""}, {"b", R"("a")"}}),        sc, "field \"b\": after: must be an array", "b");
++        expect_exact(bools({{"a", ""}, {"b", "null"}}),           sc, "field \"b\": after: must be an array", "b");
++        expect_exact(bools({{"a", ""}, {"b", "[]"}}),             sc, "field \"b\": after: must have 1 to 8 entries", "b");
++        expect_exact(bools({{"a", ""}, {"b", R"(["a", 1])"}}),    sc, "field \"b\": after: entries must be strings", "b");
++        expect_exact(bools({{"a", ""}, {"b", R"(["a", "a"])"}}),  sc, "field \"b\": after: duplicate \"a\"", "b");
++        expect_exact(bools({{"a", ""}, {"b", R"(["a", "zz"])"}}), sc, "field \"b\": after: unknown field \"zz\"", "b");
++        expect_exact(bools({{"a", ""}, {"b", R"(["a", "b"])"}}),  sc, "field \"b\": after: names the field itself", "b");
++        expect_exact(bools({{"a", R"(["b"])"}, {"b", R"(["a"])"}}), sc, "field \"a\": after: cycle a -> b -> a", "a");
++        // the first field on the cycle in declaration order, not the first field that reaches the cycle
++        expect_exact(bools({{"x", R"(["a"])"}, {"b", R"(["a"])"}, {"a", R"(["b"])"}}), sc, "field \"b\": after: cycle b -> a -> b", "b");
++        // arrows follow "after": c is after a, a after b, b after c
++        expect_exact(bools({{"c", R"(["a"])"}, {"a", R"(["b"])"}, {"b", R"(["c"])"}}), sc, "field \"c\": after: cycle c -> a -> b -> c", "c");
++        expect_exact(chain(9), sc, "field \"f9\": after: dependency level 9 is above 8", "f9");
++    }
++
++    // options: scoring, order_debias, temperature (spec 3.1)
++    {
++        const auto with = [](const std::string & options) { return bools({{"b", ""}}, options); };
++        CHECK(accept(with(R"({"scoring": "full_path"})")).opts.scoring == "full_path");
++        CHECK(accept(with(R"({"scoring": "tree"})")).opts.scoring == "tree");
++        for (int k = 0; k <= 8; ++k) CHECK(accept(with(R"({"order_debias": )" + std::to_string(k) + "}")).opts.order_debias == k);
++        CHECK(accept(with(R"({"temperature": 0.05})")).opts.temperature == 0.05);
++        CHECK(accept(with(R"({"temperature": 20})")).opts.temperature == 20.0);
++        CHECK(accept(with(R"({})")).opts.temperature == 0);   // absent: the server default applies
++        const auto all = accept(with(R"({"scoring": "full_path", "order_debias": 4, "temperature": 2.5})")).opts;
++        CHECK(all.scoring == "full_path" && all.order_debias == 4 && all.temperature == 2.5);
++
++        const std::string io = "invalid_options";
++        expect_exact(with(R"({"scoring": "x"})"), io, "options.scoring must be \"tree\" or \"full_path\"", "");
++        expect_exact(with(R"({"scoring": 1})"),   io, "options.scoring must be \"tree\" or \"full_path\"", "");
++        for (const char * v : {"9", "-1", "1.5", "\"2\"", "4294967298"}) {   // 2^32 + 2 must not wrap to 2
++            expect_exact(with(std::string(R"({"order_debias": )") + v + "}"), io, "options.order_debias must be an integer from 0 to 8", "");
++        }
++        for (const char * v : {"0.04", "21", "\"1\"", "0"}) {   // 0 is not a temperature (absent means the default)
++            expect_exact(with(std::string(R"({"temperature": )") + v + "}"), io, "options.temperature must be a number from 0.05 to 20", "");
++        }
++    }
++
+     if (failures) { std::fprintf(stderr, "%d failure(s)\n", failures); return 1; }
+     std::printf("test-decide-schema: OK\n");
+     return 0;
+diff --git a/tools/decide/decide-api.cpp b/tools/decide/decide-api.cpp
+index a8c99706a..3777175d8 100644
+--- a/tools/decide/decide-api.cpp
++++ b/tools/decide/decide-api.cpp
+@@ -14,10 +14,20 @@ static api_result error_result(int status, const std::string & code, const std::
+     return {status, body};
+ }
+ 
++// a feature without its engine part is a clean 500, not a wrong answer; the engine change for a feature removes its line
++static void require_implemented(const compiled_schema & cs) {
++    const auto missing = [](const char * feature) { return error("engine", 500, std::string("not implemented yet: ") + feature); };
++    if (cs.opts.scoring == "full_path")  throw missing("full_path");
++    if (max_level(cs) > 0)               throw missing("after");
++    if (effective_variants(cs) > 1)      throw missing("order_debias");
++    if (cs.opts.temperature != 0)        throw missing("temperature");
++}
++
+ api_result handle_decide(engine & eng, const llama_vocab * vocab, const common_json & body, bool dump_tokens) {
+     try {
+         const compiled_schema          cs     = compile_request(body);
+         const std::vector<std::string> states = states_of(body);
++        require_implemented(cs);
+         const trie_set                 ts     = build_tries(cs, vocab);
+         return {200, eng.decide(cs, ts, states, dump_tokens)};
+     } catch (const error & e) {
+@@ -33,6 +43,7 @@ api_result handle_info(engine & eng, const llama_vocab * vocab, const common_jso
+             return {200, eng.info(nullptr, nullptr)};
+         }
+         const compiled_schema cs = compile_request(*schema_body);
++        require_implemented(cs);
+         const trie_set        ts = build_tries(cs, vocab);
+         return {200, eng.info(&cs, &ts)};
+     } catch (const error & e) {
+diff --git a/tools/decide/decide-engine.cpp b/tools/decide/decide-engine.cpp
+index 5222433e5..c3589b59b 100644
+--- a/tools/decide/decide-engine.cpp
++++ b/tools/decide/decide-engine.cpp
+@@ -52,7 +52,7 @@ engine::~engine() {
+ engine::rendered engine::render(const compiled_schema * cs) const {
+     common_chat_msg sys;
+     sys.role    = "system";
+-    sys.content = cs ? render_catalogue(*cs, 0) : "x";
++    sys.content = cs ? render_catalogue(*cs, 0, 1) : "x";
+     common_chat_msg usr;
+     usr.role    = "user";
+     usr.content = SENTINEL;
+diff --git a/tools/decide/decide-schema.cpp b/tools/decide/decide-schema.cpp
+index a7f5e041d..2571f0bb8 100644
+--- a/tools/decide/decide-schema.cpp
++++ b/tools/decide/decide-schema.cpp
+@@ -1,5 +1,7 @@
+ #include "decide-schema.h"
+ 
++#include <algorithm>
++
+ namespace decide {
+ 
+ std::string json_string(const std::string & s) {
+@@ -21,8 +23,7 @@ static field compile_field(const std::string & name, const common_json & fj) {
+     require_object(fj, ("field \"" + name + "\"").c_str());
+     field f; f.name = name;
+     for (const auto & [key, val] : fj.items()) {
+-        if (key == "type" || key == "description" || key == "options" || key == "levels") continue;
+-        if (key == "after") throw error("invalid_schema", 400, "field \"" + name + "\": \"after\" is not supported yet");
++        if (key == "type" || key == "description" || key == "options" || key == "levels" || key == "after") continue;
+         throw error("invalid_schema", 400, "field \"" + name + "\": unknown key \"" + key + "\"");
+     }
+     if (!fj.contains("type")) throw error("invalid_schema", 400, "field \"" + name + "\": missing type");
+@@ -63,9 +64,82 @@ static field compile_field(const std::string & name, const common_json & fj) {
+         if (fj.contains("options") || fj.contains("levels")) throw error("invalid_schema", 400, "field \"" + name + "\": bool has no options or levels");
+         f.options = {{"true", "", "true"}, {"false", "", "false"}};
+     }
++
++    if (fj.contains("after")) {
++        const std::string what = "field \"" + name + "\": after: ";
++        const auto & aj = fj.at("after");
++        if (!aj.is_array()) throw error("invalid_schema", 400, what + "must be an array");
++        if (aj.size() < 1 || aj.size() > 8) throw error("invalid_schema", 400, what + "must have 1 to 8 entries");
++        for (size_t i = 0; i < aj.size(); ++i) {
++            if (!aj.at(i).is_string()) throw error("invalid_schema", 400, what + "entries must be strings");
++            f.after.push_back(aj.at(i).get<std::string>());
++        }
++        for (size_t i = 0; i < f.after.size(); ++i)
++            for (size_t j = i + 1; j < f.after.size(); ++j)
++                if (f.after[i] == f.after[j]) throw error("invalid_schema", 400, what + "duplicate \"" + f.after[i] + "\"");
++    }
+     return f;
+ }
+ 
++// DFS along "after" from `from`; true when it reaches `to`, with the path appended. Marks every visited field in `seen`.
++static bool reach(const std::vector<std::vector<int>> & deps, int from, int to, std::vector<bool> & seen, std::vector<int> & path) {
++    for (int d : deps[from]) {
++        if (d == to) {
++            path.push_back(d);
++            return true;
++        }
++        if (seen[d]) continue;
++        seen[d] = true;
++        path.push_back(d);
++        if (reach(deps, d, to, seen, path)) return true;
++        path.pop_back();
++    }
++    return false;
++}
++
++static int level_of(const std::vector<std::vector<int>> & deps, int i, std::vector<int> & level) {
++    if (level[i] < 0) {
++        int l = 0;
++        for (int d : deps[i]) l = std::max(l, 1 + level_of(deps, d, level));
++        level[i] = l;
++    }
++    return level[i];
++}
++
++// names, self, cycles and levels of "after" (spec 3.1, 5.1); fills ancestors and level
++static void resolve_after(std::vector<field> & fields) {
++    const int n = (int) fields.size();
++    std::vector<std::vector<int>> deps(n);
++    for (int i = 0; i < n; ++i) {
++        const std::string what = "field \"" + fields[i].name + "\": after: ";
++        for (const auto & a : fields[i].after) {
++            int j = 0;
++            while (j < n && fields[j].name != a) j++;
++            if (j == n) throw error("invalid_schema", 400, what + "unknown field \"" + a + "\"", fields[i].name);
++            deps[i].push_back(j);
++        }
++        for (int d : deps[i])
++            if (d == i) throw error("invalid_schema", 400, what + "names the field itself", fields[i].name);
++    }
++    // a cycle is reported at its first field in declaration order; with no cycle through i, `seen` holds the ancestors of i
++    for (int i = 0; i < n; ++i) {
++        std::vector<bool> seen(n, false);
++        std::vector<int>  path = {i};
++        if (reach(deps, i, i, seen, path)) {
++            std::string text;
++            for (size_t k = 0; k < path.size(); ++k) text += (k ? " -> " : "") + fields[path[k]].name;
++            throw error("invalid_schema", 400, "field \"" + fields[i].name + "\": after: cycle " + text, fields[i].name);
++        }
++        for (int j = 0; j < n; ++j)
++            if (seen[j]) fields[i].ancestors.push_back(j);
++    }
++    std::vector<int> level(n, -1);
++    for (int i = 0; i < n; ++i) {
++        fields[i].level = level_of(deps, i, level);
++        if (fields[i].level > 8) throw error("invalid_schema", 400, "field \"" + fields[i].name + "\": after: dependency level " + std::to_string(fields[i].level) + " is above 8", fields[i].name);
++    }
++}
++
+ compiled_schema compile(const common_json & fields_j, const std::string & instructions, const common_json & opts_j) {
+     require_object(fields_j, "fields");
+     if (fields_j.size() < 1 || fields_j.size() > 64) throw error("invalid_schema", 400, "fields must have 1 to 64 entries");
+@@ -81,16 +155,21 @@ compiled_schema compile(const common_json & fields_j, const std::string & instru
+             throw;
+         }
+     }
++    resolve_after(cs.fields);
+ 
+     if (!opts_j.is_object()) throw error("invalid_options", 400, "options must be an object");
+     options opts;
+     for (const auto & [key, val] : opts_j.items()) {
+         if (key == "scoring") {
+-            if (!val.is_string() || val.get<std::string>() != "tree") throw error("invalid_options", 400, "options.scoring must be \"tree\"");
+-            opts.scoring = "tree";
++            if (!val.is_string() || (val.get<std::string>() != "tree" && val.get<std::string>() != "full_path")) throw error("invalid_options", 400, "options.scoring must be \"tree\" or \"full_path\"");
++            opts.scoring = val.get<std::string>();
+         } else if (key == "order_debias") {
+-            if (!val.is_number_integer() || val.get<int>() != 0) throw error("invalid_options", 400, "options.order_debias must be 0");
+-            opts.order_debias = 0;
++            // int64_t: get<int>() would wrap 2^32 + 2 to 2
++            if (!val.is_number_integer() || val.get<int64_t>() < 0 || val.get<int64_t>() > 8) throw error("invalid_options", 400, "options.order_debias must be an integer from 0 to 8");
++            opts.order_debias = (int) val.get<int64_t>();
++        } else if (key == "temperature") {
++            if (!val.is_number() || !(val.get<double>() >= 0.05 && val.get<double>() <= 20)) throw error("invalid_options", 400, "options.temperature must be a number from 0.05 to 20");
++            opts.temperature = val.get<double>();
+         } else {
+             throw error("invalid_options", 400, "unknown option \"" + key + "\"");
+         }
+@@ -142,7 +221,22 @@ std::string branch_text(const field & f, const option & o) {
+     return stem_text(f) + o.encoded;
+ }
+ 
+-std::string render_catalogue(const compiled_schema & cs, int /*variant*/) {
++int max_level(const compiled_schema & cs) {
++    int m = 0;
++    for (const auto & f : cs.fields) m = std::max(m, f.level);
++    return m;
++}
++
++int effective_variants(const compiled_schema & cs) {
++    if (cs.opts.order_debias < 2) return 1;
++    size_t n_max = 0;
++    for (const auto & f : cs.fields)
++        if (f.type == field_type::CHOICE) n_max = std::max(n_max, f.options.size());
++    return n_max == 0 ? 1 : (int) std::min(n_max, (size_t) cs.opts.order_debias);
++}
++
++std::string render_catalogue(const compiled_schema & cs, int variant, int variants) {
++    if (variants < 1 || variant < 0 || variant >= variants) throw error("engine", 500, "bad catalogue variant " + std::to_string(variant) + " of " + std::to_string(variants));
+     std::string out;
+     if (!cs.instructions.empty()) {
+         out += cs.instructions;
+@@ -154,7 +248,11 @@ std::string render_catalogue(const compiled_schema & cs, int /*variant*/) {
+         out += "- " + json_string(f.name) + ": " + f.description;
+         if (f.type == field_type::CHOICE) {
+             out += "\n  Allowed values:\n";
+-            for (const auto & o : f.options) {
++            // variant v lists the options rotated left by floor(v * n / variants) (spec 7.1)
++            const size_t n     = f.options.size();
++            const size_t shift = (size_t) variant * n / (size_t) variants;
++            for (size_t i = 0; i < n; ++i) {
++                const option & o = f.options[(shift + i) % n];
+                 out += "    " + json_string(o.key);
+                 if (!o.description.empty()) out += ": " + o.description;
+                 out += "\n";
+diff --git a/tools/decide/decide-schema.h b/tools/decide/decide-schema.h
+index c44e2487c..b922a0d19 100644
+--- a/tools/decide/decide-schema.h
++++ b/tools/decide/decide-schema.h
+@@ -28,11 +28,15 @@ struct field {
+     field_type            type;
+     std::string          description;
+     std::vector<option>  options;   // declaration order; ties resolve to the first
++    std::vector<std::string> after;       // field names as given in the request
++    std::vector<int>         ancestors;   // indices of every field reached through "after", in declaration order
++    int                      level = 0;   // 0 without "after", else 1 + the highest level in "after"
+ };
+ 
+ struct options {
+-    std::string scoring      = "tree";
+-    int         order_debias = 0;
++    std::string scoring      = "tree";   // "tree" or "full_path"
++    int         order_debias = 0;        // 0..8; 0 and 1 mean one catalogue
++    double      temperature  = 0;        // 0.05..20; 0 = not given (the server default applies)
+ };
+ 
+ struct compiled_schema {
+@@ -48,7 +52,12 @@ compiled_schema compile_request(const common_json & body);
+ // states: 1..256 non-empty strings. Throws error{"invalid_states", 400, msg}.
+ std::vector<std::string> states_of(const common_json & body);
+ 
+-std::string render_catalogue(const compiled_schema & cs, int variant);   // variant 0 only for now
++// highest field level (0 without "after")
++int         max_level(const compiled_schema & cs);
++// K_eff of spec 7.1: min(order_debias, largest choice option count); 1 when order_debias < 2 or without a choice field
++int         effective_variants(const compiled_schema & cs);
++
++std::string render_catalogue(const compiled_schema & cs, int variant, int variants);   // variant 0..variants-1 (spec 7.1); (0, 1) is the plain catalogue
+ std::string stem_text(const field & f);                                    // "  \"<name>\": "  (the trunk already ends with "{\n")
+ std::string branch_text(const field & f, const option & o);                // stem_text + o.encoded
+ std::string json_string(const std::string & s);                            // JSON-encode with quotes
+-- 
+2.55.0
+

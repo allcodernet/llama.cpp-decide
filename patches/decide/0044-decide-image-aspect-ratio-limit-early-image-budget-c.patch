@@ -1,0 +1,359 @@
+From 581339239ba5c1317c7cfbe4dcc542951a0bfde9 Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 2 Oct 2026 17:27:46 +0200
+Subject: [PATCH 44/45] decide: image aspect-ratio limit, early image budget
+ check, small fixes
+
+Pass 1 rejects an image whose longer side is more than 200 times its shorter side (400 invalid_states); a projector pads the short side of an extreme strip up to its patch size, so the pixel limit alone did not bound the memory of the preprocessed image. Info reports vision.max_image_aspect_ratio. prepare_inputs checks a state's cells right after each image is tokenised and ends the request with the usual 400 budget before further images are loaded; it also rejects an image part itself when vision is not available. The image SHA-256 is computed only for a dump. Comments: the n_ubatch rule is unreachable while non-causal projectors are off; slot_seqs feeds n_parallel in info and the held-cell fallback without a callback (spec rev 6).
+---
+ tests/test-decide-debias.cpp   |  3 +-
+ tests/test-decide-image.cpp    | 23 ++++++++-
+ tools/decide/decide-debias.h   |  3 +-
+ tools/decide/decide-engine.cpp | 87 ++++++++++++++++++++++------------
+ tools/decide/decide-engine.h   | 13 +++--
+ tools/decide/decide-image.cpp  | 10 +++-
+ tools/decide/decide-image.h    |  4 +-
+ 7 files changed, 103 insertions(+), 40 deletions(-)
+
+diff --git a/tests/test-decide-debias.cpp b/tests/test-decide-debias.cpp
+index 8a5c903ee..ed85c4129 100644
+--- a/tests/test-decide-debias.cpp
++++ b/tests/test-decide-debias.cpp
+@@ -121,7 +121,8 @@ int main() {
+     }
+ 
+     // 2c. sub-project 4 (spec 5.3): image cells are part of a state's cells and its 400 text names them; the n_ubatch rule of
+-    //     non-causal projectors
++    //     non-causal projectors; the n_ubatch rule is unreachable while the gate is off (NON_CAUSAL_ENABLED false);
++    //     kept so the gate can be flipped back
+     {
+         CHECK(decide::state_cells(0, 248, 1, 1100, 6, 16) == 1370);
+         CHECK(decide::state_cells_message(0, 0, 248, 1, 1100, 6, 16, 1016, 1016, 1082) ==
+diff --git a/tests/test-decide-image.cpp b/tests/test-decide-image.cpp
+index 53c62aaff..15d196299 100644
+--- a/tests/test-decide-image.cpp
++++ b/tests/test-decide-image.cpp
+@@ -187,7 +187,7 @@ int main() {
+         reject({"\"\""}, is, "", "states entries must not be empty");   // today's message and field
+     }
+ 
+-    // 5. limits: 4 images per state, 32 per request (named at the state with the 33rd image), 10 MiB, 32,000,000 pixels
++    // 5. limits: 4 images per state, 32 per request (named at the state with the 33rd image), 10 MiB, 32,000,000 pixels, 200:1
+     {
+         const std::string ok = img(url(png));
+         const std::string is = "invalid_states";
+@@ -210,6 +210,26 @@ int main() {
+         tall[JPG_SOF + 5] = (char) 0x0F; tall[JPG_SOF + 6] = (char) 0xA1;   // height 4001
+         tall[JPG_SOF + 7] = (char) 0x1F; tall[JPG_SOF + 8] = (char) 0x40;   // width 8000
+         reject({list({img(url(tall, "jpeg"))})}, is, "states[0]", "8000 x 4001 = 32008000 pixels");
++        // spec 3.1 rev 6: the longer side is at most 200 times the shorter side, in both orientations, JPEG and PNG
++        auto jpg_sized = [&](uint16_t w, uint16_t h) {
++            std::string s = jpg;
++            s[JPG_SOF + 5] = (char) (h >> 8); s[JPG_SOF + 6] = (char) h;
++            s[JPG_SOF + 7] = (char) (w >> 8); s[JPG_SOF + 8] = (char) w;
++            return s;
++        };
++        const std::string ratio = "its longer side is more than 200 times its shorter side";
++        CHECK(accept({list({img(url(png_header(200, 1)))})})[0][0].width == 200);
++        CHECK(accept({list({img(url(png_header(1, 200)))})})[0][0].height == 200);
++        CHECK(accept({list({img(url(png_header(80000, 400)))})})[0][0].width == 80000);   // 200:1 and 32,000,000 pixels
++        CHECK(accept({list({img(url(jpg_sized(400, 2), "jpeg"))})})[0][0].width == 400);
++        CHECK(accept({list({img(url(jpg_sized(2, 400), "jpeg"))})})[0][0].height == 400);
++        reject({list({img(url(png_header(201, 1)))})}, is, "states[0]", "the image is 201 x 1; " + ratio + " (at most 200)");
++        reject({list({img(url(png_header(1, 201)))})}, is, "states[0]", "the image is 1 x 201; " + ratio);
++        reject({list({img(url(jpg_sized(402, 2), "jpeg"))})}, is, "states[0]", "the image is 402 x 2; " + ratio);
++        reject({list({img(url(jpg_sized(2, 402), "jpeg"))})}, is, "states[0]", "the image is 2 x 402; " + ratio);
++        reject({"\"t\"", list({txt("a"), img(url(png_header(16000000, 2)))})}, is, "states[1]", "part 1: the image is 16000000 x 2; " + ratio);
++        reject({list({img(url(png_header(16000, 2)))})}, is, "states[0]", "the image is 16000 x 2; " + ratio);
++        reject({list({img(url(png_header(4000000000u, 1)))})}, is, "states[0]", "4000000000 x 1 = 4000000000 pixels");   // the pixel limit first
+     }
+ 
+     // 6. the URL: data:image/<subtype>;base64,<data> only, case-sensitive, no parameters; strict base64
+@@ -270,6 +290,7 @@ int main() {
+         CHECK(j.at("available").get<bool>() && j.at("mrope").get<bool>() && !j.at("non_causal").get<bool>());
+         CHECK(j.at("max_images_per_state").get<int64_t>() == 4 && j.at("max_images_per_request").get<int64_t>() == 32);
+         CHECK(j.at("max_image_bytes").get<int64_t>() == 10485760 && j.at("max_image_pixels").get<int64_t>() == 32000000);
++        CHECK(j.contains("max_image_aspect_ratio") && j.at("max_image_aspect_ratio").get<int64_t>() == 200);
+         v.reason = vision_reason::PROJECTOR_WITHOUT_VISION;
+         CHECK(decide::vision_json(v).dump() == R"({"available":false,"reason":"projector_without_vision"})");
+         v.reason = vision_reason::NON_CAUSAL_PROJECTOR;
+diff --git a/tools/decide/decide-debias.h b/tools/decide/decide-debias.h
+index 991459fdb..7a35fa137 100644
+--- a/tools/decide/decide-debias.h
++++ b/tools/decide/decide-debias.h
+@@ -40,7 +40,8 @@ std::string cell_limit_text(int64_t n_ctx, int64_t swa_cells);
+ // Sub-project 4 (spec 3.2, 5.3): `state` counts text tokens and image cells; with image_cells > 0 the text names them
+ std::string state_cells_message(size_t i, int64_t held, int64_t prefix, int K, int64_t state, int64_t tail, int64_t branches, int64_t n_ctx,
+                                 int64_t swa_cells, int64_t image_cells = 0);
+-// spec 5.3: a non-causal projector decodes an image chunk in one micro-batch; a chunk over n_ubatch is error{"budget", 400}
++// spec 5.3: a non-causal projector decodes an image chunk in one micro-batch; a chunk over n_ubatch is error{"budget", 400}.
++// Unreachable while NON_CAUSAL_ENABLED is false (non_causal is never true for an available projector); kept so the gate can be flipped back
+ void        check_image_ubatch(size_t state, bool non_causal, int64_t chunk_cells, int64_t n_ubatch);
+ 
+ // spec 8: options.temperature when given (> 0; 0 = not given), else the server default
+diff --git a/tools/decide/decide-engine.cpp b/tools/decide/decide-engine.cpp
+index 1227d06f9..e001b821e 100644
+--- a/tools/decide/decide-engine.cpp
++++ b/tools/decide/decide-engine.cpp
+@@ -588,7 +588,7 @@ int engine::branch_phase(const compiled_schema & cs, const trie_set & ts, int K,
+     }, st, inject);
+ }
+ 
+-engine::image_input engine::tokenize_image(const state_part & p, size_t state, size_t part) const {
++engine::image_input engine::tokenize_image(const state_part & p, size_t state, size_t part, bool hash) const {
+     const std::string where = "states[" + std::to_string(state) + "]";
+     std::vector<unsigned char> rgb;
+     uint32_t                   nx = 0, ny = 0;
+@@ -611,11 +611,24 @@ engine::image_input engine::tokenize_image(const state_part & p, size_t state, s
+     }
+     im.n_tokens = (int64_t) mtmd_helper_get_n_tokens(im.chunks.get());
+     im.n_pos    = mtmd_helper_get_n_pos(im.chunks.get());
+-    im.sha256   = hash_sha256_hex(p.bytes.data(), p.bytes.size());
++    if (hash) {
++        im.sha256 = hash_sha256_hex(p.bytes.data(), p.bytes.size());
++    }
+     return im;
+ }
+ 
+-std::vector<engine::state_input> engine::prepare_inputs(const std::vector<state_parts> & states, std::vector<image_input> & images) const {
++std::vector<engine::state_input> engine::prepare_inputs(const std::vector<state_parts> & states, std::vector<image_input> & images, bool hash,
++                                                        const std::function<void(size_t, const state_input &)> & after_image) const {
++    // spec 4.2: states_of rejects these first; a caller that skips it must not reach mtmd without a projector
++    if (vis.reason != vision_reason::AVAILABLE) {
++        for (size_t i = 0; i < states.size(); ++i) {
++            for (const state_part & p : states[i]) {
++                if (p.image) {
++                    throw error("vision_unavailable", 400, vision_unavailable_message(i, vis.reason), "states[" + std::to_string(i) + "]");
++                }
++            }
++        }
++    }
+     std::vector<state_input> out(states.size());
+     for (size_t i = 0; i < states.size(); ++i) {
+         const state_parts & parts = states[i];
+@@ -639,11 +652,12 @@ std::vector<engine::state_input> engine::prepare_inputs(const std::vector<state_
+                 }
+                 continue;
+             }
+-            images.push_back(tokenize_image(p, i, k));
++            images.push_back(tokenize_image(p, i, k, hash));
+             in.head.push_back({{}, (int) images.size() - 1});
+             in.image_cells     += images.back().n_tokens;
+             in.image_positions += images.back().n_pos;
+             in.images++;
++            after_image(i, in);
+         }
+     }
+     return out;
+@@ -785,10 +799,42 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+     if (ts.fields.size() != cs.fields.size()) {
+         throw error("engine", 500, "trie set does not match the schema");
+     }
+-    // spec 3.2 pass 3, 5.1: every part tokenised and every image decoded before any budget check and any model decode
+-    request_state                  rs;
+-    const std::vector<state_input> inputs   = prepare_inputs(states, rs.images);
++    request_state rs;
++    const int     K = effective_variants(cs);   // spec 7.1: catalogue variants = prefix slots of this request
++
++    // spec 5.4: per field its branch cells with the worst-case lines
++    rs.reserved          = reserved_branch_tokens(ts, worst_lines_tokens(cs, line_tokens_max(cs, vocab)));
++    int64_t branch_total = 0;
++    for (int64_t r : rs.reserved) {
++        branch_total += r;
++    }
++    std::vector<prefix_state> ps;
++    int64_t                   prefix_total = 0;
++    for (int v = 0; v < K; ++v) {
++        ps.push_back(prepare_prefix(cs, v, K));
++        prefix_total += (int64_t) ps.back().tokens.size();
++    }
++
++    // every state must fit alone before anything is decoded; slots cannot change `held` during this call
++    // spec 5.3 rev 5: the limit is min(n_ctx, SWA cells) - 16. Conservative on iSWA models: the cells of resident server slots
++    // count in full in the SWA cache although their cells outside the window could be reused
++    const int64_t n_ctx = llama_n_ctx(ctx);
++    const int64_t limit = cell_limit(n_ctx, swa_cells);
++    const int64_t tail  = (int64_t) ps[0].tail_tokens.size();
++    const int64_t held  = held_cells();
++    const auto    check_cells = [&](size_t i, const state_input & in) {
++        // spec 5.3: a state's cells are its text tokens plus its images' cells
++        const int64_t n = in.text_tokens + in.image_cells;
++        if (state_cells(held, prefix_total, K, n, tail, branch_total) > limit) {
++            throw error("budget", 400, state_cells_message(i, held, prefix_total, K, n, tail, branch_total, n_ctx, swa_cells, in.image_cells));
++        }
++    };
++
++    // spec 3.2 pass 3, 5.1: every part tokenised and every image decoded before any model decode; rev 6: the cells so far are
++    // checked after each image, so a state over the limit loads no further image
++    const std::vector<state_input> inputs   = prepare_inputs(states, rs.images, dump_tokens, check_cells);
+     const int64_t                  n_ubatch = (int64_t) llama_n_ubatch(ctx);
++    // never fires while NON_CAUSAL_ENABLED is false (no non-causal projector is available); kept so the gate can be flipped back
+     for (size_t i = 0; i < inputs.size(); ++i) {
+         for (const head_part & hp : inputs[i].head) {
+             if (hp.image < 0) {
+@@ -803,7 +849,6 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+             }
+         }
+     }
+-    const int        K              = effective_variants(cs);   // spec 7.1: catalogue variants = prefix slots of this request
+     const int        B              = ts.branches_per_state;
+     const seq_budget budget         = sequence_budget(cfg.decide_seqs, K, B);
+     const int        seqs_per_state = budget.seqs_per_state;
+@@ -815,14 +860,11 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+     // spec 4.5: logit rows per state of the scoring mode
+     const branch_counts counts = count_branches(ts);
+ 
+-    // spec 5: the phases; per field its branch sequence ids and its branch cells with the worst-case lines of spec 5.4
++    // spec 5: the phases; per field its branch sequence ids
+     rs.temperature = resolve_temperature(cs.opts.temperature, cfg.temperature);
+     rs.phases      = phase_fields(cs);
+-    rs.reserved    = reserved_branch_tokens(ts, worst_lines_tokens(cs, line_tokens_max(cs, vocab)));
+-    int64_t branch_total = 0;
+-    int     n_seqs       = 0;
++    int n_seqs     = 0;
+     for (size_t f = 0; f < ts.fields.size(); ++f) {
+-        branch_total += rs.reserved[f];
+         rs.first_seq.push_back(n_seqs);
+         n_seqs += branch_seqs(ts.fields[f], ts.mode);
+     }
+@@ -846,13 +888,9 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+     }
+ 
+     // spec 6.2: every budget check comes before a slot is evicted or filled
+-    std::vector<prefix_state> ps;
+-    int64_t                   prefix_total = 0;
+     for (int v = 0; v < K; ++v) {
+-        ps.push_back(prepare_prefix(cs, v, K));
+-        prefix_total += (int64_t) ps.back().tokens.size();
+         // the budget, the joins and the dump use one tail for every variant
+-        const bool differs  = ps.back().tail_text != ps[0].tail_text;
++        const bool differs  = ps[v].tail_text != ps[0].tail_text;
+         const bool injected = !differs && v >= 1 && fault_fires(fault_mode::TAIL_MISMATCH);
+         if (differs || injected) {
+             throw error("engine", 500, "catalogue variant " + std::to_string(v) + " renders another chat template tail" +
+@@ -866,19 +904,8 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+         wanted.push_back(p.hash);
+     }
+ 
+-    // every state must fit alone before anything is decoded; slots cannot change `held` during this call
+-    // spec 5.3 rev 5: the limit is min(n_ctx, SWA cells) - 16. Conservative on iSWA models: the cells of resident server slots
+-    // count in full in the SWA cache although their cells outside the window could be reused
+-    const int64_t n_ctx = llama_n_ctx(ctx);
+-    const int64_t limit = cell_limit(n_ctx, swa_cells);
+-    const int64_t tail  = (int64_t) ps[0].tail_tokens.size();
+-    const int64_t held  = held_cells();
+     for (size_t i = 0; i < states.size(); ++i) {
+-        // spec 5.3: a state's cells are its text tokens plus its images' cells
+-        const int64_t n = inputs[i].text_tokens + inputs[i].image_cells;
+-        if (state_cells(held, prefix_total, K, n, tail, branch_total) > limit) {
+-            throw error("budget", 400, state_cells_message(i, held, prefix_total, K, n, tail, branch_total, n_ctx, swa_cells, inputs[i].image_cells));
+-        }
++        check_cells(i, inputs[i]);
+     }
+ 
+     // spec 6.1 slot hygiene: no trunk may inherit stale cells; then slots 0..K-1 get their prefixes
+diff --git a/tools/decide/decide-engine.h b/tools/decide/decide-engine.h
+index 65283cff0..99afcd3ef 100644
+--- a/tools/decide/decide-engine.h
++++ b/tools/decide/decide-engine.h
+@@ -19,7 +19,7 @@ namespace decide {
+ struct engine_config {
+     int                       decide_seqs  = 0;     // >= 3
+     llama_seq_id              seq_base     = 0;     // first reserved seq id
+-    std::vector<llama_seq_id> slot_seqs;            // sequences owned by server slots (for the cell check); empty in the CLI
++    std::vector<llama_seq_id> slot_seqs;            // sequences owned by server slots (n_parallel in info; held cells only when held_cells is empty); empty in the CLI
+     int                       prefix_cache = 8;     // spec 6.2: LRU entries of host prefix snapshots (0 = off)
+     double                    temperature  = 1.0;   // spec 8: default when a request has no options.temperature
+     mtmd_context *            mctx         = nullptr;   // spec 4.1: the projector (--mmproj), null without one; used only for image parts
+@@ -157,7 +157,7 @@ private:
+         std::unique_ptr<mtmd_input_chunks, chunks_free> chunks;
+         int64_t     n_tokens = 0;   // KV cells
+         llama_pos   n_pos    = 0;   // positions (M-RoPE: far fewer than cells)
+-        std::string sha256;         // of the image bytes (the dump)
++        std::string sha256;         // of the image bytes; computed only for the dump
+     };
+     // spec 5.2 step 1: a text part (image < 0) or an image (an index into request_state::images)
+     struct head_part {
+@@ -209,10 +209,13 @@ private:
+     // Fills rs.answers[first + c] for every state c of the round from the K catalogue variants. fail_phase: the first decode of that phase returns 1 without decoding (spec 9; -1: none).
+     int      run_round(const compiled_schema & cs, const trie_set & ts, int K, const std::vector<state_input> & inputs, size_t first, size_t count,
+                        request_state & rs, stats & st, int fail_phase);
+-    // spec 3.2 pass 3, 5.1: every state's parts tokenised; every image decoded (stb_image), wrapped and tokenised (mtmd) into `images`
+-    std::vector<state_input> prepare_inputs(const std::vector<state_parts> & states, std::vector<image_input> & images) const;
++    // spec 3.2 pass 3, 5.1: every state's parts tokenised; every image decoded (stb_image), wrapped and tokenised (mtmd) into `images`.
++    // error{"vision_unavailable", 400} for an image part without vision. after_image(state, its input so far) runs after each image
++    // and may throw (spec 5.1 rev 6: the early budget check). hash: fill each image's SHA-256 (only the dump uses it)
++    std::vector<state_input> prepare_inputs(const std::vector<state_parts> & states, std::vector<image_input> & images, bool hash,
++                                            const std::function<void(size_t, const state_input &)> & after_image) const;
+     // spec 5.1: one image part; error{"invalid_states", 400} when stb_image cannot decode it, error{"engine", 500} when mtmd cannot tokenise it
+-    image_input tokenize_image(const state_part & p, size_t state, size_t part) const;
++    image_input tokenize_image(const state_part & p, size_t state, size_t part, bool hash) const;
+     // spec 5.2 step 1: tokens into `seq` from `pos` (advanced), no logits; returns decode_chunked's rc
+     int      decode_tokens(const std::vector<llama_token> & toks, llama_seq_id seq, llama_pos & pos, stats & st);
+     // spec 5.2 step 1: one image's chunks into `seq` from `pos` (advanced by the helper's position); 0, or 1 when a decode found no
+diff --git a/tools/decide/decide-image.cpp b/tools/decide/decide-image.cpp
+index 6518f832b..506d092c1 100644
+--- a/tools/decide/decide-image.cpp
++++ b/tools/decide/decide-image.cpp
+@@ -1,5 +1,7 @@
+ #include "decide-image.h"
+ 
++#include <algorithm>
++
+ namespace decide {
+ 
+ vision_reason vision_reason_for(bool projector, bool supports_vision, bool non_causal, bool non_causal_enabled) {
+@@ -50,6 +52,7 @@ common_json vision_json(const vision_status & v) {
+     j["max_images_per_request"] = (int64_t) MAX_IMAGES_PER_REQUEST;
+     j["max_image_bytes"]        = (int64_t) MAX_IMAGE_BYTES;
+     j["max_image_pixels"]       = (int64_t) MAX_IMAGE_PIXELS;
++    j["max_image_aspect_ratio"] = (int64_t) MAX_IMAGE_ASPECT_RATIO;
+     return j;
+ }
+ 
+@@ -166,7 +169,7 @@ static bool subtype_char(char c) {
+     return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '.' || c == '+' || c == '-';
+ }
+ 
+-// spec 3.1: the data URI of one image part -> its bytes, format and header size; pixel and size limits
++// spec 3.1: the data URI of one image part -> its bytes, format and header size; size, pixel and aspect-ratio limits
+ static state_part parse_image(const std::string & url, size_t state, const std::string & part) {
+     static const std::string scheme = "data:image/";
+     static const std::string marker = ";base64,";
+@@ -205,6 +208,11 @@ static state_part parse_image(const std::string & url, size_t state, const std::
+         throw invalid(state, part + "the image is " + std::to_string(h.width) + " x " + std::to_string(h.height) + " = " +
+                                  std::to_string(pixels) + " pixels, at most " + std::to_string(MAX_IMAGE_PIXELS));
+     }
++    if ((uint64_t) std::max(h.width, h.height) > MAX_IMAGE_ASPECT_RATIO * std::min(h.width, h.height)) {
++        throw invalid(state, part + "the image is " + std::to_string(h.width) + " x " + std::to_string(h.height) +
++                                 "; its longer side is more than " + std::to_string(MAX_IMAGE_ASPECT_RATIO) +
++                                 " times its shorter side (at most " + std::to_string(MAX_IMAGE_ASPECT_RATIO) + ")");
++    }
+     p.format = h.format;
+     p.width  = h.width;
+     p.height = h.height;
+diff --git a/tools/decide/decide-image.h b/tools/decide/decide-image.h
+index ebc831d6f..767a5e102 100644
+--- a/tools/decide/decide-image.h
++++ b/tools/decide/decide-image.h
+@@ -14,6 +14,8 @@ constexpr int      MAX_IMAGES_PER_STATE   = 4;
+ constexpr int      MAX_IMAGES_PER_REQUEST = 32;
+ constexpr size_t   MAX_IMAGE_BYTES        = 10485760;   // 10 MiB, decoded
+ constexpr uint64_t MAX_IMAGE_PIXELS       = 32000000;   // width x height
++// spec 3.1 rev 6: longer side / shorter side. A projector pads the short side up to its patch size, so pixels alone do not bound memory
++constexpr uint64_t MAX_IMAGE_ASPECT_RATIO = 200;
+ // spec 9.5: the gate failed on gemma-3-4b (results-engine/image/gate.json), so non-causal projectors are not available
+ constexpr bool     NON_CAUSAL_ENABLED     = false;
+ 
+@@ -43,7 +45,7 @@ struct image_header {
+ // spec 3.1: "" and `h` filled from the magic bytes and the header, or why the bytes are not a readable JPEG/PNG header
+ std::string read_image_header(const std::string & bytes, image_header & h);
+ 
+-// spec 3.1, 3.2 pass 1 for one array state: parts, limits, URL, base64, format, header pixels. `images` counts the
++// spec 3.1, 3.2 pass 1 for one array state: parts, limits, URL, base64, format, header pixels and aspect ratio. `images` counts the
+ // request's images so far (the limit of 32). Throws error{"invalid_states", 400, msg, "states[<state>]"}.
+ state_parts parse_parts(const common_json & parts, size_t state, int & images);
+ 
+-- 
+2.55.0
+

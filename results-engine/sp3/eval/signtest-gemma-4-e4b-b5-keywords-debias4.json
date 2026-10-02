@@ -1,0 +1,97 @@
+{
+  "pairs": [
+    {
+      "a": "results-engine/sp3/baseline/test/preds/decide-gemma-4-e4b-b5-keywords.jsonl",
+      "b": "results-engine/sp3/eval/test/preds/decide-gemma-4-e4b-b5-keywords-debias4.jsonl",
+      "test_set": "/home/marduk/Projects/temp/jev/experiment/data/triage_test.jsonl",
+      "n_tickets": 80,
+      "fields": {
+        "queue": {
+          "a_right": 75,
+          "b_right": 74,
+          "a_only_right": 1,
+          "b_only_right": 0,
+          "discordant": 1,
+          "p": 1.0
+        },
+        "urgency": {
+          "a_right": 66,
+          "b_right": 67,
+          "a_only_right": 0,
+          "b_only_right": 1,
+          "discordant": 1,
+          "p": 1.0
+        },
+        "angry": {
+          "a_right": 76,
+          "b_right": 77,
+          "a_only_right": 0,
+          "b_only_right": 1,
+          "discordant": 1,
+          "p": 1.0
+        }
+      }
+    },
+    {
+      "a": "results-engine/sp3/baseline/train/preds/decide-gemma-4-e4b-b5-keywords.jsonl",
+      "b": "results-engine/sp3/eval/train/preds/decide-gemma-4-e4b-b5-keywords-debias4.jsonl",
+      "test_set": "/home/marduk/Projects/temp/jev/experiment/data/triage_train.jsonl",
+      "n_tickets": 320,
+      "fields": {
+        "queue": {
+          "a_right": 302,
+          "b_right": 303,
+          "a_only_right": 1,
+          "b_only_right": 2,
+          "discordant": 3,
+          "p": 1.0
+        },
+        "urgency": {
+          "a_right": 270,
+          "b_right": 271,
+          "a_only_right": 0,
+          "b_only_right": 1,
+          "discordant": 1,
+          "p": 1.0
+        },
+        "angry": {
+          "a_right": 312,
+          "b_right": 312,
+          "a_only_right": 0,
+          "b_only_right": 0,
+          "discordant": 0,
+          "p": 1.0
+        }
+      }
+    }
+  ],
+  "pooled": {
+    "n_tickets": 400,
+    "fields": {
+      "queue": {
+        "a_right": 377,
+        "b_right": 377,
+        "a_only_right": 2,
+        "b_only_right": 2,
+        "discordant": 4,
+        "p": 1.0
+      },
+      "urgency": {
+        "a_right": 336,
+        "b_right": 338,
+        "a_only_right": 0,
+        "b_only_right": 2,
+        "discordant": 2,
+        "p": 0.5
+      },
+      "angry": {
+        "a_right": 388,
+        "b_right": 389,
+        "a_only_right": 0,
+        "b_only_right": 1,
+        "discordant": 1,
+        "p": 1.0
+      }
+    }
+  }
+}

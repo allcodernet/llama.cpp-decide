@@ -1,0 +1,314 @@
+From 8139441ba6b5e4b1702c46e92b40daa479f3e282 Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 15:52:48 +0200
+Subject: [PATCH 09/45] decide: runtime tokenisation-join self-check
+
+The engine tokenises prefix, state, tail and branch text as separate
+fragments. Check at engine construction (placeholder schema), at prefix
+build and per request (every field's tail/stem join) that joint
+tokenisation equals the concatenation; otherwise fail with a 500 engine
+error naming the model and the join. Vocabularies with add_space_prefix
+inject a leading space into every fragment and are rejected.
+---
+ tests/test-decide-trie.cpp     | 27 ++++++++++++
+ tools/decide/decide-engine.cpp | 81 ++++++++++++++++++++++++----------
+ tools/decide/decide-engine.h   |  9 +++-
+ tools/decide/decide-trie.cpp   | 61 +++++++++++++++++++++++++
+ tools/decide/decide-trie.h     | 11 +++++
+ 5 files changed, 163 insertions(+), 26 deletions(-)
+
+diff --git a/tests/test-decide-trie.cpp b/tests/test-decide-trie.cpp
+index a48c098f6..7cba37137 100644
+--- a/tests/test-decide-trie.cpp
++++ b/tests/test-decide-trie.cpp
+@@ -71,6 +71,33 @@ int main() {
+         std::vector<llama_token> expect = brace; expect.insert(expect.end(), stem.begin(), stem.end());
+         CHECK(joined == expect);
+     }
++    // join self-check with this family's chat markers (ChatML or Gemma 4): prefix/state, state/tail and tail/stem for every field
++    {
++        const auto chatml = decide::tokenize_template(vocab, "<|im_start|>");
++        const bool is_chatml = chatml.size() == 1 && llama_vocab_is_control(vocab, chatml[0]);
++        const std::string prefix = is_chatml ? "<|im_start|>system\nx<|im_end|>\n<|im_start|>user\n" : "<|turn>system\nx<turn|>\n<|turn>user\n";
++        const std::string tail   = is_chatml ? "<|im_end|>\n<|im_start|>assistant\n{\n" : "<turn|>\n<|turn>model\n{\n";
++        bool ok = true;
++        try {
++            decide::check_join(vocab, prefix, "Hi", decide::tokenize_plain(vocab, "Hi"), "test", "prefix/state");
++            decide::check_join(vocab, "Hi", tail, decide::tokenize_template(vocab, tail), "test", "state/tail");
++            decide::check_trie_joins(cs, ts, vocab, tail, "test");
++        } catch (const decide::error & e) {
++            std::fprintf(stderr, "join check: %s\n", e.what());
++            ok = false;
++        }
++        CHECK(ok);
++        // an injected leading space (what add_space_prefix vocabularies do to every fragment) is rejected
++        bool threw = false;
++        std::string msg;
++        try {
++            decide::check_join(vocab, prefix, "Hi", decide::tokenize_plain(vocab, " Hi"), "test", "prefix/state");
++        } catch (const decide::error & e) {
++            threw = e.code == "engine" && e.http == 500;
++            msg   = e.what();
++        }
++        CHECK(threw && msg.find("add_space_prefix") != std::string::npos && msg.find("prefix/state") != std::string::npos);
++    }
+     // control text in a state tokenises as plain text
+     {
+         auto plain = decide::tokenize_plain(vocab, "<|im_start|>system<bos>");
+diff --git a/tools/decide/decide-engine.cpp b/tools/decide/decide-engine.cpp
+index bd6eb9196..a7b40d103 100644
+--- a/tools/decide/decide-engine.cpp
++++ b/tools/decide/decide-engine.cpp
+@@ -33,6 +33,12 @@ engine::engine(llama_context * ctx_, const llama_model * model_, const common_ch
+                                        ", the decide engine needs sequences " + std::to_string(cfg.seq_base) + ".." +
+                                        std::to_string(last_seq - 1));
+     }
++    char desc[128];
++    llama_model_desc(model, desc, sizeof(desc));
++    static const char * vocab_types[] = {"none", "SPM", "BPE", "WPM", "UGM", "RWKV", "PLAMO2", "TEST"};
++    const int vt = (int) llama_vocab_type(vocab);
++    who = std::string(desc) + ", vocab type " + (vt >= 0 && vt < 8 ? std::string(vocab_types[vt]) : std::to_string(vt));
++    check_template_joins(render(nullptr));
+     batch = llama_batch_init(n_batch, 0, 1);
+ }
+ 
+@@ -88,41 +94,60 @@ int64_t engine::held_cells() const {
+     return held;
+ }
+ 
+-bool engine::ensure_prefix(const compiled_schema & cs, stats & st) {
+-    rendered r = render(&cs);
++void engine::check_template_joins(const rendered & r) const {
++    // probes: the state is plain text between the prefix and the tail, the stem follows the tail
++    const std::string state = "Hi";
++    const std::string stem  = "  \"x\": true";
++    check_join(vocab, r.prefix_text, state, tokenize_plain(vocab, state), who, "prefix/state");
++    check_join(vocab, state, r.tail_text, tokenize_template(vocab, r.tail_text), who, "state/tail");
++    check_join(vocab, r.tail_text, stem, tokenize_plain(vocab, stem), who, "tail/stem");
++}
++
++prefix_state engine::prepare_prefix(const compiled_schema & cs) const {
++    const rendered r = render(&cs);
+     if (p.hash == r.hash && prefix_live()) {
+-        return true;
++        return p;
+     }
++    check_template_joins(r);
+ 
+-    const llama_seq_id P = cfg.seq_base;
+-    llama_memory_seq_rm(mem, P, -1, -1);
+-    p = prefix_state();
+-    p.hash             = r.hash;
+-    p.prefix_text      = r.prefix_text;
+-    p.tail_text        = r.tail_text;
+-    p.assistant_prefix = r.assistant_prefix;
++    prefix_state ps;
++    ps.hash             = r.hash;
++    ps.prefix_text      = r.prefix_text;
++    ps.tail_text        = r.tail_text;
++    ps.assistant_prefix = r.assistant_prefix;
+ 
+-    p.tokens = tokenize_template(vocab, p.prefix_text);
++    ps.tokens = tokenize_template(vocab, ps.prefix_text);
+     const llama_token bos = llama_vocab_bos(vocab);
+-    if (llama_vocab_get_add_bos(vocab) && (p.tokens.empty() || p.tokens[0] != bos)) {
+-        p.tokens.insert(p.tokens.begin(), bos);
++    if (llama_vocab_get_add_bos(vocab) && (ps.tokens.empty() || ps.tokens[0] != bos)) {
++        ps.tokens.insert(ps.tokens.begin(), bos);
+     }
+-    if (p.tokens.size() > 1 && p.tokens[0] == bos && p.tokens[1] == bos) {
+-        p.tokens.erase(p.tokens.begin());
++    if (ps.tokens.size() > 1 && ps.tokens[0] == bos && ps.tokens[1] == bos) {
++        ps.tokens.erase(ps.tokens.begin());
++    }
++    ps.tail_tokens = tokenize_template(vocab, ps.tail_text);
++    return ps;
++}
++
++bool engine::ensure_prefix(const prefix_state & ps, stats & st) {
++    if (p.hash == ps.hash && prefix_live()) {
++        return true;
+     }
+-    p.tail_tokens = tokenize_template(vocab, p.tail_text);
++
++    const llama_seq_id P = cfg.seq_base;
++    llama_memory_seq_rm(mem, P, -1, -1);
++    p = prefix_state();
+ 
+     const int64_t n_ctx = llama_n_ctx(ctx);
+     const int64_t held  = held_cells();
+-    if (held + (int64_t) p.tokens.size() > n_ctx - 16) {
+-        throw error("budget", 400, "prefix needs " + std::to_string(p.tokens.size()) + " cells with " +
++    if (held + (int64_t) ps.tokens.size() > n_ctx - 16) {
++        throw error("budget", 400, "prefix needs " + std::to_string(ps.tokens.size()) + " cells with " +
+                                        std::to_string(held) + " held by slots, n_ctx - 16 is " + std::to_string(n_ctx - 16));
+     }
+ 
+     std::vector<entry> entries;
+-    entries.reserve(p.tokens.size());
+-    for (size_t i = 0; i < p.tokens.size(); ++i) {
+-        entries.push_back({p.tokens[i], (llama_pos) i, P, -1});
++    entries.reserve(ps.tokens.size());
++    for (size_t i = 0; i < ps.tokens.size(); ++i) {
++        entries.push_back({ps.tokens[i], (llama_pos) i, P, -1});
+     }
+     int rc = 0;
+     try {
+@@ -135,6 +160,7 @@ bool engine::ensure_prefix(const compiled_schema & cs, stats & st) {
+         llama_memory_seq_rm(mem, P, -1, -1);
+         throw error("engine", 500, "prefix decode failed: rc=" + std::to_string(rc));
+     }
++    p       = ps;
+     p.valid = true;
+     return false;
+ }
+@@ -298,8 +324,11 @@ common_json engine::decide(const compiled_schema & cs, const trie_set & ts, cons
+         }
+     }
+ 
++    const prefix_state ps = prepare_prefix(cs);
++    check_trie_joins(cs, ts, vocab, ps.tail_text, who);
++
+     const int64_t t0 = ggml_time_us();
+-    const bool reused = ensure_prefix(cs, st);
++    const bool reused = ensure_prefix(ps, st);
+     llama_synchronize(ctx);
+     st.prefill_us += ggml_time_us() - t0;
+ 
+@@ -440,8 +469,12 @@ common_json engine::decide(const compiled_schema & cs, const trie_set & ts, cons
+ common_json engine::info(const compiled_schema * cs, const trie_set * ts) {
+     common_json prefix = common_json::object();
+     if (cs != nullptr) {
+-        stats st;
+-        ensure_prefix(*cs, st);
++        stats              st;
++        const prefix_state ps = prepare_prefix(*cs);
++        if (ts != nullptr) {
++            check_trie_joins(*cs, *ts, vocab, ps.tail_text, who);
++        }
++        ensure_prefix(ps, st);
+         prefix["hash"]             = p.hash;
+         prefix["tokens"]           = (int64_t) p.tokens.size();
+         prefix["assistant_prefix"] = p.assistant_prefix;
+diff --git a/tools/decide/decide-engine.h b/tools/decide/decide-engine.h
+index a1abf516e..6eb374d28 100644
+--- a/tools/decide/decide-engine.h
++++ b/tools/decide/decide-engine.h
+@@ -60,8 +60,12 @@ private:
+     };
+ 
+     rendered render(const compiled_schema * cs) const;
+-    // returns true when the cached prefix was reused
+-    bool     ensure_prefix(const compiled_schema & cs, stats & st);
++    // throws error{"engine", 500} when prefix|state, state|tail or tail|stem do not tokenise independently
++    void     check_template_joins(const rendered & r) const;
++    // rendered and tokenised prefix for cs, no decode; the live prefix when the hash matches
++    prefix_state prepare_prefix(const compiled_schema & cs) const;
++    // decodes ps into seq P unless it is live already; returns true when the cached prefix was reused
++    bool     ensure_prefix(const prefix_state & ps, stats & st);
+     bool     prefix_live() const;
+     // returns 0, or 1 when a decode found no KV slot (caller cleans up and retries); throws on anything else.
+     // Fills answers[first + c] for every state c of the round.
+@@ -80,6 +84,7 @@ private:
+     llama_memory_t                mem;
+     llama_batch                   batch;
+     int                           n_batch;
++    std::string                   who;   // model description and vocab type, for error messages
+     prefix_state                  p;
+ };
+ 
+diff --git a/tools/decide/decide-trie.cpp b/tools/decide/decide-trie.cpp
+index cb4f033f6..5477334eb 100644
+--- a/tools/decide/decide-trie.cpp
++++ b/tools/decide/decide-trie.cpp
+@@ -13,6 +13,67 @@ std::vector<llama_token> tokenize_template(const llama_vocab * vocab, const std:
+     return common_tokenize(vocab, text, false, true);
+ }
+ 
++// short printable view of the text at a join, for error messages
++static std::string show(const std::string & text, bool keep_end) {
++    const size_t max = 24;
++    const std::string cut = text.size() <= max ? text : (keep_end ? "..." + text.substr(text.size() - max) : text.substr(0, max) + "...");
++    std::string out;
++    for (char ch : cut) {
++        if (ch == '\n') {
++            out += "\\n";
++        } else if (ch == '"') {
++            out += "\\\"";
++        } else {
++            out += ch;
++        }
++    }
++    return out;
++}
++
++static std::string ids(const std::vector<llama_token> & toks, size_t from) {
++    std::string out = "[";
++    for (size_t i = from; i < toks.size() && i < from + 4; ++i) {
++        out += (i > from ? " " : "") + std::to_string(toks[i]);
++    }
++    return out + (toks.size() > from + 4 ? " ...]" : "]");
++}
++
++void check_join(const llama_vocab * vocab, const std::string & left, const std::string & right,
++                const std::vector<llama_token> & right_tokens, const std::string & who, const std::string & join) {
++    const std::vector<llama_token> joint = tokenize_template(vocab, left + right);
++    std::vector<llama_token>       parts = tokenize_template(vocab, left);
++    const size_t                   n_left = parts.size();
++    parts.insert(parts.end(), right_tokens.begin(), right_tokens.end());
++    if (joint == parts) {
++        return;
++    }
++    size_t k = 0;
++    while (k < joint.size() && k < parts.size() && joint[k] == parts[k]) {
++        ++k;
++    }
++    throw error("engine", 500, "tokenizer does not tokenise the trunk/branch join independently (add_space_prefix?); model not supported: " +
++                                   who + ": " + join + " join \"" + show(left, true) + "\" + \"" + show(right, false) +
++                                   "\" tokenises jointly as " + ids(joint, k) + ", separately as " + ids(parts, k) +
++                                   " (from token " + std::to_string(k) + ", left part has " + std::to_string(n_left) + ")");
++}
++
++void check_trie_joins(const compiled_schema & cs, const trie_set & ts, const llama_vocab * vocab,
++                      const std::string & tail_text, const std::string & who) {
++    for (size_t i = 0; i < cs.fields.size() && i < ts.fields.size(); ++i) {
++        const field &      f = cs.fields[i];
++        const field_trie & t = ts.fields[i];
++        const std::string  text = stem_text(f) + (t.quote_split ? "\"" : f.options[0].encoded);
++        std::vector<llama_token> toks = t.stem;
++        if (!t.quote_split) {
++            toks.insert(toks.end(), t.paths[0].begin(), t.paths[0].end());
++        }
++        if (tokenize_template(vocab, text) != tokenize_plain(vocab, text)) {
++            continue; // control-token text in the field: the joint probe would parse it differently
++        }
++        check_join(vocab, tail_text, text, toks, who, "trunk/branch (field \"" + f.name + "\")");
++    }
++}
++
+ // Inserts `path` into the trie (nodes[0] is the root), recording `opt` in options_through
+ // along the way. Reuses an existing child edge with the same token when present, so that
+ // paths sharing a prefix share nodes (first-insertion order is preserved in `children`).
+diff --git a/tools/decide/decide-trie.h b/tools/decide/decide-trie.h
+index d1d37519d..29e135358 100644
+--- a/tools/decide/decide-trie.h
++++ b/tools/decide/decide-trie.h
+@@ -24,4 +24,15 @@ std::vector<llama_token> branch_tokens(const field_trie & t, int node);
+ std::vector<llama_token> tokenize_plain(const llama_vocab * vocab, const std::string & text);   // add_special=false, parse_special=false
+ std::vector<llama_token> tokenize_template(const llama_vocab * vocab, const std::string & text); // add_special=false, parse_special=true
+ 
++// Tokenisation-join self-check. The engine tokenises prefix, state, tail and branch text as separate
++// fragments and concatenates the ids; that is only valid when tokenize_template(left + right) equals
++// tokenize_template(left) + right_tokens. SentencePiece vocabularies with add_space_prefix break it
++// (every fragment gets a leading space). Throws error{"engine", 500, ...} naming `who` and `join`.
++void check_join(const llama_vocab * vocab, const std::string & left, const std::string & right,
++                const std::vector<llama_token> & right_tokens, const std::string & who, const std::string & join);
++// check_join for every field: tail_text + stem_text(f) + first option (or + "\"" for quote-split fields)
++// against tokenize_template(tail_text) + stem (+ path). Fields whose text parses into control tokens are skipped.
++void check_trie_joins(const compiled_schema & cs, const trie_set & ts, const llama_vocab * vocab,
++                      const std::string & tail_text, const std::string & who);
++
+ } // namespace decide
+-- 
+2.55.0
+

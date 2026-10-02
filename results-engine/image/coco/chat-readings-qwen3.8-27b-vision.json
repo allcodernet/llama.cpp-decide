@@ -1,0 +1,221 @@
+{
+ "model": "qwen3.8-27b-vision",
+ "chat_file": "results-engine/image/coco/chat-qwen3.8-27b-vision.jsonl",
+ "splits": {
+  "calibration": {
+   "n": 485,
+   "decide": {
+    "errors": 7,
+    "accuracy": 0.9855670103092784
+   },
+   "chat_strict": {
+    "errors": 21,
+    "accuracy": 0.9567010309278351
+   },
+   "chat_p_yes": {
+    "errors": 11,
+    "accuracy": 0.977319587628866
+   }
+  },
+  "test": {
+   "n": 487,
+   "decide": {
+    "errors": 2,
+    "accuracy": 0.9958932238193019
+   },
+   "chat_strict": {
+    "errors": 15,
+    "accuracy": 0.9691991786447639
+   },
+   "chat_p_yes": {
+    "errors": 5,
+    "accuracy": 0.9897330595482546
+   }
+  },
+  "all": {
+   "n": 972,
+   "decide": {
+    "errors": 9,
+    "accuracy": 0.9907407407407407
+   },
+   "chat_strict": {
+    "errors": 36,
+    "accuracy": 0.9629629629629629
+   },
+   "chat_p_yes": {
+    "errors": 16,
+    "accuracy": 0.9835390946502057
+   }
+  }
+ },
+ "unclear_answers": [
+  {
+   "image_id": 86956,
+   "field": "dog",
+   "answer": "```",
+   "p_yes": 0.28350117523101864,
+   "label": false,
+   "split": "test"
+  },
+  {
+   "image_id": 509699,
+   "field": "cat",
+   "answer": "```",
+   "p_yes": 0.7096132439880646,
+   "label": false,
+   "split": "calibration"
+  },
+  {
+   "image_id": 509699,
+   "field": "dog",
+   "answer": "```",
+   "p_yes": 0.35218801302817393,
+   "label": false,
+   "split": "calibration"
+  },
+  {
+   "image_id": 425925,
+   "field": "bicycle",
+   "answer": "Based",
+   "p_yes": 0.019253969571639783,
+   "label": false,
+   "split": "test"
+  },
+  {
+   "image_id": 66231,
+   "field": "cat",
+   "answer": "```",
+   "p_yes": 0.2078405059959733,
+   "label": false,
+   "split": "calibration"
+  },
+  {
+   "image_id": 432553,
+   "field": "car",
+   "answer": "Based",
+   "p_yes": 0.0228573214607132,
+   "label": false,
+   "split": "calibration"
+  },
+  {
+   "image_id": 256868,
+   "field": "cat",
+   "answer": "```",
+   "p_yes": 0.06806353781878821,
+   "label": false,
+   "split": "calibration"
+  },
+  {
+   "image_id": 98839,
+   "field": "dog",
+   "answer": "```",
+   "p_yes": 0.049059048072733126,
+   "label": false,
+   "split": "calibration"
+  },
+  {
+   "image_id": 520531,
+   "field": "person",
+   "answer": "Based",
+   "p_yes": 0.12411825242483669,
+   "label": false,
+   "split": "test"
+  },
+  {
+   "image_id": 520531,
+   "field": "dog",
+   "answer": "```",
+   "p_yes": 0.11344141639984007,
+   "label": false,
+   "split": "test"
+  },
+  {
+   "image_id": 210273,
+   "field": "dog",
+   "answer": "Based",
+   "p_yes": 0.005986678762576629,
+   "label": false,
+   "split": "test"
+  },
+  {
+   "image_id": 414340,
+   "field": "bicycle",
+   "answer": "Based",
+   "p_yes": 0.27316871353349415,
+   "label": false,
+   "split": "calibration"
+  },
+  {
+   "image_id": 168619,
+   "field": "car",
+   "answer": "Looking",
+   "p_yes": 0.1712936181218385,
+   "label": false,
+   "split": "calibration"
+  },
+  {
+   "image_id": 170278,
+   "field": "cat",
+   "answer": "```",
+   "p_yes": 0.1438053159373491,
+   "label": false,
+   "split": "calibration"
+  },
+  {
+   "image_id": 82807,
+   "field": "cat",
+   "answer": "```",
+   "p_yes": 0.1127888237780337,
+   "label": false,
+   "split": "calibration"
+  },
+  {
+   "image_id": 297830,
+   "field": "bicycle",
+   "answer": "```",
+   "p_yes": 0.020440669242093815,
+   "label": false,
+   "split": "test"
+  },
+  {
+   "image_id": 297830,
+   "field": "cat",
+   "answer": "```",
+   "p_yes": 0.02018594032469077,
+   "label": false,
+   "split": "test"
+  },
+  {
+   "image_id": 327701,
+   "field": "bicycle",
+   "answer": "Based",
+   "p_yes": 0.0032326078307723886,
+   "label": false,
+   "split": "test"
+  },
+  {
+   "image_id": 255965,
+   "field": "car",
+   "answer": "```",
+   "p_yes": 0.00922885340812693,
+   "label": false,
+   "split": "test"
+  },
+  {
+   "image_id": 255965,
+   "field": "bicycle",
+   "answer": "```",
+   "p_yes": 0.034917986295547654,
+   "label": false,
+   "split": "test"
+  }
+ ],
+ "time_s": {
+  "decide_per_image_median": 1.321020857500116,
+  "chat_per_image_median": 6.813351425504152,
+  "chat_per_call_median": 1.345158050498867,
+  "chat_first_call_median": 1.5057690809990163,
+  "chat_calls_2_5_median": 1.3292572855007165
+ },
+ "prompt_cache": null
+}

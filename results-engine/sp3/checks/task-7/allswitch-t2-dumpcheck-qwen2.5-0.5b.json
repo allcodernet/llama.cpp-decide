@@ -1,0 +1,15 @@
+{
+  "resp": "results-engine/sp3/checks/task-7/allswitch-t2-qwen2.5-0.5b.jsonl",
+  "T": 2.0,
+  "fields_checked": 15,
+  "variants": [
+    4
+  ],
+  "max_abs_diff": {
+    "probabilities": 1.1102230246251565e-16,
+    "coverage": 1.1102230246251565e-16,
+    "order_spread": 0.0
+  },
+  "problems": [],
+  "pass": true
+}

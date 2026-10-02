@@ -1,0 +1,168 @@
+{
+ "model": "gemma-3-4b-vision",
+ "debias": 1,
+ "chat": false,
+ "info": {
+  "n_ctx": 16384,
+  "n_batch": 2048,
+  "decide_seqs": 16,
+  "n_parallel": 1,
+  "memory": {
+   "recurrent": false,
+   "swa": true,
+   "swa_cells": 16384
+  }
+ },
+ "probe": {
+  "status": 400,
+  "error": {
+   "message": "state 0 needs 20076 cells (held 0, prefix 64, state 20000, tail 7, branches 5), n_ctx - 16 is 16368",
+   "code": "budget"
+  },
+  "budget": {
+   "needs": 20076,
+   "held": 0,
+   "prefix": 64,
+   "K": 1,
+   "state": 20000,
+   "tail": 7,
+   "branches": 5,
+   "limit": 16368,
+   "swa_cells": null
+  }
+ },
+ "largest_admitted": 16292,
+ "sweep": [
+  {
+   "state_tokens": 16228,
+   "status": 200,
+   "error": null,
+   "budget": null,
+   "usage": {
+    "prompt_tokens": 16304,
+    "cached_tokens": 0,
+    "state_tokens": 16228,
+    "scored_tokens": 1
+   }
+  },
+  {
+   "state_tokens": 16276,
+   "status": 200,
+   "error": null,
+   "budget": null,
+   "usage": {
+    "prompt_tokens": 16288,
+    "cached_tokens": 64,
+    "state_tokens": 16276,
+    "scored_tokens": 1
+   }
+  },
+  {
+   "state_tokens": 16290,
+   "status": 200,
+   "error": null,
+   "budget": null,
+   "usage": {
+    "prompt_tokens": 16302,
+    "cached_tokens": 64,
+    "state_tokens": 16290,
+    "scored_tokens": 1
+   }
+  },
+  {
+   "state_tokens": 16291,
+   "status": 200,
+   "error": null,
+   "budget": null,
+   "usage": {
+    "prompt_tokens": 16303,
+    "cached_tokens": 64,
+    "state_tokens": 16291,
+    "scored_tokens": 1
+   }
+  },
+  {
+   "state_tokens": 16292,
+   "status": 200,
+   "error": null,
+   "budget": null,
+   "usage": {
+    "prompt_tokens": 16304,
+    "cached_tokens": 64,
+    "state_tokens": 16292,
+    "scored_tokens": 1
+   }
+  },
+  {
+   "state_tokens": 16293,
+   "status": 400,
+   "error": {
+    "message": "state 0 needs 16369 cells (held 0, prefix 64, state 16293, tail 7, branches 5), n_ctx - 16 is 16368",
+    "code": "budget"
+   },
+   "budget": {
+    "needs": 16369,
+    "held": 0,
+    "prefix": 64,
+    "K": 1,
+    "state": 16293,
+    "tail": 7,
+    "branches": 5,
+    "limit": 16368,
+    "swa_cells": null
+   },
+   "usage": null
+  },
+  {
+   "state_tokens": 16294,
+   "status": 400,
+   "error": {
+    "message": "state 0 needs 16370 cells (held 0, prefix 64, state 16294, tail 7, branches 5), n_ctx - 16 is 16368",
+    "code": "budget"
+   },
+   "budget": {
+    "needs": 16370,
+    "held": 0,
+    "prefix": 64,
+    "K": 1,
+    "state": 16294,
+    "tail": 7,
+    "branches": 5,
+    "limit": 16368,
+    "swa_cells": null
+   },
+   "usage": null
+  },
+  {
+   "state_tokens": 16308,
+   "status": 400,
+   "error": {
+    "message": "state 0 needs 16384 cells (held 0, prefix 64, state 16308, tail 7, branches 5), n_ctx - 16 is 16368",
+    "code": "budget"
+   },
+   "budget": {
+    "needs": 16384,
+    "held": 0,
+    "prefix": 64,
+    "K": 1,
+    "state": 16308,
+    "tail": 7,
+    "branches": 5,
+    "limit": 16368,
+    "swa_cells": null
+   },
+   "usage": null
+  }
+ ],
+ "checks": {
+  "info: memory.swa_cells 16384": true,
+  "probe: 400 budget with the cell counts": true,
+  "probe: K_eff 1": true,
+  "probe: limit min(n_ctx, swa_cells) - 16": true,
+  "probe: names the SWA cache (and --swa-full) exactly when it is the bound": true,
+  "sweep: every state up to the largest admitted answers 200 with exactly its tokens": true,
+  "sweep: every state over it answers 400 budget with the probe's held, limit and bound": true,
+  "sweep: no 500": true
+ },
+ "pass": true
+}

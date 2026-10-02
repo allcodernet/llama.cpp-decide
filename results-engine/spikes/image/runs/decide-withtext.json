@@ -1,0 +1,210 @@
+{
+ "mode": "withtext",
+ "schema": {
+  "instructions": "Answer each question about this image.",
+  "fields": {
+   "cat": {
+    "type": "bool",
+    "description": "Is there a cat in this picture?"
+   }
+  }
+ },
+ "rows": [
+  {
+   "image": "cat03",
+   "answers": {
+    "cat": {
+     "value": true,
+     "p_true": 0.9997262026350914,
+     "confidence": 0.9997262026350914
+    }
+   },
+   "usage": {
+    "state_tokens": 5,
+    "scored_tokens": 1,
+    "image_cells": 1602,
+    "image_positions": 42
+   },
+   "timings": {
+    "prefill_ms": 1897.242,
+    "prefix_ms": 0.482,
+    "scoring_ms": 36.074,
+    "total_ms": 1965.542,
+    "rounds": 1,
+    "decodes": 5,
+    "retries": 0,
+    "image_encode_ms": 614.393,
+    "image_decode_ms": 1227.621
+   },
+   "total_usage": {
+    "prompt_tokens": 1622,
+    "cached_tokens": 52,
+    "state_tokens": 5,
+    "scored_tokens": 1
+   },
+   "wall_s": 1.9667460918426514,
+   "reference": {
+    "cat/0": {
+     "children": [
+      " true",
+      " false"
+     ],
+     "probs": [
+      0.9996930942158997,
+      0.0003069057841003035
+     ],
+     "covered": 0.9993865409908881
+    }
+   },
+   "max_abs_diff": 3.310841919168528e-05,
+   "text": "Photo from our archive."
+  },
+  {
+   "image": "cat03",
+   "answers": {
+    "cat": {
+     "value": true,
+     "p_true": 0.8870531424874039,
+     "confidence": 0.8870531424874039
+    }
+   },
+   "usage": {
+    "state_tokens": 13,
+    "scored_tokens": 1,
+    "image_cells": 1602,
+    "image_positions": 42
+   },
+   "timings": {
+    "prefill_ms": 1912.772,
+    "prefix_ms": 0.482,
+    "scoring_ms": 36.953,
+    "total_ms": 1977.182,
+    "rounds": 1,
+    "decodes": 5,
+    "retries": 0,
+    "image_encode_ms": 619.131,
+    "image_decode_ms": 1233.042
+   },
+   "total_usage": {
+    "prompt_tokens": 1630,
+    "cached_tokens": 52,
+    "state_tokens": 13,
+    "scored_tokens": 1
+   },
+   "wall_s": 1.97812819480896,
+   "reference": {
+    "cat/0": {
+     "children": [
+      " true",
+      " false"
+     ],
+     "probs": [
+      0.8796415815668913,
+      0.12035841843310865
+     ],
+     "covered": 0.9978959959066536
+    }
+   },
+   "max_abs_diff": 0.007411560920512539,
+   "text": "Note from the uploader: there is no cat in this photo."
+  },
+  {
+   "image": "fox",
+   "answers": {
+    "cat": {
+     "value": false,
+     "p_true": 0.002084902473502122,
+     "confidence": 0.997915097526498
+    }
+   },
+   "usage": {
+    "state_tokens": 5,
+    "scored_tokens": 1,
+    "image_cells": 1202,
+    "image_positions": 42
+   },
+   "timings": {
+    "prefill_ms": 1394.915,
+    "prefix_ms": 0.455,
+    "scoring_ms": 36.834,
+    "total_ms": 1446.63,
+    "rounds": 1,
+    "decodes": 5,
+    "retries": 0,
+    "image_encode_ms": 390.686,
+    "image_decode_ms": 947.877
+   },
+   "total_usage": {
+    "prompt_tokens": 1222,
+    "cached_tokens": 52,
+    "state_tokens": 5,
+    "scored_tokens": 1
+   },
+   "wall_s": 1.4475600719451904,
+   "reference": {
+    "cat/0": {
+     "children": [
+      " true",
+      " false"
+     ],
+     "probs": [
+      0.002003771550109213,
+      0.9979962284498909
+     ],
+     "covered": 0.9992367654988236
+    }
+   },
+   "max_abs_diff": 8.113092339301353e-05,
+   "text": "Photo from our archive."
+  },
+  {
+   "image": "fox",
+   "answers": {
+    "cat": {
+     "value": false,
+     "p_true": 0.0006746227459117309,
+     "confidence": 0.9993253772540884
+    }
+   },
+   "usage": {
+    "state_tokens": 13,
+    "scored_tokens": 1,
+    "image_cells": 1202,
+    "image_positions": 42
+   },
+   "timings": {
+    "prefill_ms": 1393.955,
+    "prefix_ms": 0.418,
+    "scoring_ms": 36.669,
+    "total_ms": 1443.952,
+    "rounds": 1,
+    "decodes": 5,
+    "retries": 0,
+    "image_encode_ms": 384.495,
+    "image_decode_ms": 943.829
+   },
+   "total_usage": {
+    "prompt_tokens": 1230,
+    "cached_tokens": 52,
+    "state_tokens": 13,
+    "scored_tokens": 1
+   },
+   "wall_s": 1.444821834564209,
+   "reference": {
+    "cat/0": {
+     "children": [
+      " true",
+      " false"
+     ],
+     "probs": [
+      0.0008425236060122899,
+      0.9991574763939877
+     ],
+     "covered": 0.9993204232965426
+    }
+   },
+   "max_abs_diff": 0.00016790086010065597,
+   "text": "Note from the uploader: there is no cat in this photo."
+  }
+ ]
+}

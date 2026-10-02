@@ -1,0 +1,181 @@
+{
+ "model": "gemma-4-e4b-16k",
+ "debias": 1,
+ "chat": true,
+ "chat_answer": {
+  "status": 200,
+  "usage": {
+   "completion_tokens": 1,
+   "prompt_tokens": 16,
+   "total_tokens": 17,
+   "prompt_tokens_details": {
+    "cached_tokens": 0
+   }
+  }
+ },
+ "info": {
+  "n_ctx": 16384,
+  "n_batch": 2048,
+  "decide_seqs": 16,
+  "n_parallel": 1,
+  "memory": {
+   "recurrent": false,
+   "swa": true,
+   "swa_cells": 9216
+  }
+ },
+ "probe": {
+  "status": 400,
+  "error": {
+   "message": "state 0 needs 20096 cells (held 16, prefix 68, state 20000, tail 7, branches 5), the sliding-window cache holds 9216 cells (limit 9200); start with --swa-full to use n_ctx",
+   "code": "budget"
+  },
+  "budget": {
+   "needs": 20096,
+   "held": 16,
+   "prefix": 68,
+   "K": 1,
+   "state": 20000,
+   "tail": 7,
+   "branches": 5,
+   "limit": 9200,
+   "swa_cells": 9216
+  }
+ },
+ "largest_admitted": 9104,
+ "sweep": [
+  {
+   "state_tokens": 9040,
+   "status": 200,
+   "error": null,
+   "budget": null,
+   "usage": {
+    "prompt_tokens": 9120,
+    "cached_tokens": 0,
+    "state_tokens": 9040,
+    "scored_tokens": 1
+   }
+  },
+  {
+   "state_tokens": 9088,
+   "status": 200,
+   "error": null,
+   "budget": null,
+   "usage": {
+    "prompt_tokens": 9100,
+    "cached_tokens": 68,
+    "state_tokens": 9088,
+    "scored_tokens": 1
+   }
+  },
+  {
+   "state_tokens": 9102,
+   "status": 200,
+   "error": null,
+   "budget": null,
+   "usage": {
+    "prompt_tokens": 9114,
+    "cached_tokens": 68,
+    "state_tokens": 9102,
+    "scored_tokens": 1
+   }
+  },
+  {
+   "state_tokens": 9103,
+   "status": 200,
+   "error": null,
+   "budget": null,
+   "usage": {
+    "prompt_tokens": 9115,
+    "cached_tokens": 68,
+    "state_tokens": 9103,
+    "scored_tokens": 1
+   }
+  },
+  {
+   "state_tokens": 9104,
+   "status": 200,
+   "error": null,
+   "budget": null,
+   "usage": {
+    "prompt_tokens": 9116,
+    "cached_tokens": 68,
+    "state_tokens": 9104,
+    "scored_tokens": 1
+   }
+  },
+  {
+   "state_tokens": 9105,
+   "status": 400,
+   "error": {
+    "message": "state 0 needs 9201 cells (held 16, prefix 68, state 9105, tail 7, branches 5), the sliding-window cache holds 9216 cells (limit 9200); start with --swa-full to use n_ctx",
+    "code": "budget"
+   },
+   "budget": {
+    "needs": 9201,
+    "held": 16,
+    "prefix": 68,
+    "K": 1,
+    "state": 9105,
+    "tail": 7,
+    "branches": 5,
+    "limit": 9200,
+    "swa_cells": 9216
+   },
+   "usage": null
+  },
+  {
+   "state_tokens": 9106,
+   "status": 400,
+   "error": {
+    "message": "state 0 needs 9202 cells (held 16, prefix 68, state 9106, tail 7, branches 5), the sliding-window cache holds 9216 cells (limit 9200); start with --swa-full to use n_ctx",
+    "code": "budget"
+   },
+   "budget": {
+    "needs": 9202,
+    "held": 16,
+    "prefix": 68,
+    "K": 1,
+    "state": 9106,
+    "tail": 7,
+    "branches": 5,
+    "limit": 9200,
+    "swa_cells": 9216
+   },
+   "usage": null
+  },
+  {
+   "state_tokens": 9120,
+   "status": 400,
+   "error": {
+    "message": "state 0 needs 9216 cells (held 16, prefix 68, state 9120, tail 7, branches 5), the sliding-window cache holds 9216 cells (limit 9200); start with --swa-full to use n_ctx",
+    "code": "budget"
+   },
+   "budget": {
+    "needs": 9216,
+    "held": 16,
+    "prefix": 68,
+    "K": 1,
+    "state": 9120,
+    "tail": 7,
+    "branches": 5,
+    "limit": 9200,
+    "swa_cells": 9216
+   },
+   "usage": null
+  }
+ ],
+ "checks": {
+  "chat request: 200": true,
+  "info: memory.swa_cells 9216": true,
+  "probe: 400 budget with the cell counts": true,
+  "probe: K_eff 1": true,
+  "probe: limit min(n_ctx, swa_cells) - 16": true,
+  "probe: names the SWA cache (and --swa-full) exactly when it is the bound": true,
+  "probe: held > 0 (the chat's cells)": true,
+  "sweep: every state up to the largest admitted answers 200 with exactly its tokens": true,
+  "sweep: every state over it answers 400 budget with the probe's held, limit and bound": true,
+  "sweep: no 500": true
+ },
+ "pass": true
+}

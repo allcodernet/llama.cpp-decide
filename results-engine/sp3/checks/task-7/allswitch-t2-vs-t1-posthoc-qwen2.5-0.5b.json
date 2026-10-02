@@ -1,0 +1,9 @@
+{
+  "t1": "results-engine/sp3/checks/task-7/allswitch-t1-qwen2.5-0.5b.jsonl",
+  "t2": "results-engine/sp3/checks/task-7/allswitch-t2-qwen2.5-0.5b.jsonl",
+  "T": 2.0,
+  "answers": 15,
+  "max_abs_diff": 4.440892098500626e-16,
+  "problems": [],
+  "pass": true
+}

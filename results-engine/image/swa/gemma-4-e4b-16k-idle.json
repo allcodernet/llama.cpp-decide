@@ -1,0 +1,576 @@
+{
+ "model": "gemma-4-e4b-16k",
+ "debias": 1,
+ "chat": false,
+ "info": {
+  "n_ctx": 16384,
+  "n_batch": 2048,
+  "decide_seqs": 16,
+  "n_parallel": 1,
+  "memory": {
+   "recurrent": false,
+   "swa": true,
+   "swa_cells": 9216
+  }
+ },
+ "probe": {
+  "status": 400,
+  "error": {
+   "message": "state 0 needs 20080 cells (held 0, prefix 68, state 20000, tail 7, branches 5), the sliding-window cache holds 9216 cells (limit 9200); start with --swa-full to use n_ctx",
+   "code": "budget"
+  },
+  "budget": {
+   "needs": 20080,
+   "held": 0,
+   "prefix": 68,
+   "K": 1,
+   "state": 20000,
+   "tail": 7,
+   "branches": 5,
+   "limit": 9200,
+   "swa_cells": 9216
+  }
+ },
+ "largest_admitted": 9120,
+ "sweep": [
+  {
+   "state_tokens": 9056,
+   "status": 200,
+   "error": null,
+   "budget": null,
+   "usage": {
+    "prompt_tokens": 9136,
+    "cached_tokens": 0,
+    "state_tokens": 9056,
+    "scored_tokens": 1
+   }
+  },
+  {
+   "state_tokens": 9104,
+   "status": 200,
+   "error": null,
+   "budget": null,
+   "usage": {
+    "prompt_tokens": 9116,
+    "cached_tokens": 68,
+    "state_tokens": 9104,
+    "scored_tokens": 1
+   }
+  },
+  {
+   "state_tokens": 9118,
+   "status": 200,
+   "error": null,
+   "budget": null,
+   "usage": {
+    "prompt_tokens": 9130,
+    "cached_tokens": 68,
+    "state_tokens": 9118,
+    "scored_tokens": 1
+   }
+  },
+  {
+   "state_tokens": 9119,
+   "status": 200,
+   "error": null,
+   "budget": null,
+   "usage": {
+    "prompt_tokens": 9131,
+    "cached_tokens": 68,
+    "state_tokens": 9119,
+    "scored_tokens": 1
+   }
+  },
+  {
+   "state_tokens": 9120,
+   "status": 200,
+   "error": null,
+   "budget": null,
+   "usage": {
+    "prompt_tokens": 9132,
+    "cached_tokens": 68,
+    "state_tokens": 9120,
+    "scored_tokens": 1
+   }
+  },
+  {
+   "state_tokens": 9121,
+   "status": 400,
+   "error": {
+    "message": "state 0 needs 9201 cells (held 0, prefix 68, state 9121, tail 7, branches 5), the sliding-window cache holds 9216 cells (limit 9200); start with --swa-full to use n_ctx",
+    "code": "budget"
+   },
+   "budget": {
+    "needs": 9201,
+    "held": 0,
+    "prefix": 68,
+    "K": 1,
+    "state": 9121,
+    "tail": 7,
+    "branches": 5,
+    "limit": 9200,
+    "swa_cells": 9216
+   },
+   "usage": null
+  },
+  {
+   "state_tokens": 9122,
+   "status": 400,
+   "error": {
+    "message": "state 0 needs 9202 cells (held 0, prefix 68, state 9122, tail 7, branches 5), the sliding-window cache holds 9216 cells (limit 9200); start with --swa-full to use n_ctx",
+    "code": "budget"
+   },
+   "budget": {
+    "needs": 9202,
+    "held": 0,
+    "prefix": 68,
+    "K": 1,
+    "state": 9122,
+    "tail": 7,
+    "branches": 5,
+    "limit": 9200,
+    "swa_cells": 9216
+   },
+   "usage": null
+  },
+  {
+   "state_tokens": 9136,
+   "status": 400,
+   "error": {
+    "message": "state 0 needs 9216 cells (held 0, prefix 68, state 9136, tail 7, branches 5), the sliding-window cache holds 9216 cells (limit 9200); start with --swa-full to use n_ctx",
+    "code": "budget"
+   },
+   "budget": {
+    "needs": 9216,
+    "held": 0,
+    "prefix": 68,
+    "K": 1,
+    "state": 9136,
+    "tail": 7,
+    "branches": 5,
+    "limit": 9200,
+    "swa_cells": 9216
+   },
+   "usage": null
+  }
+ ],
+ "round": {
+  "same": {
+   "state_tokens": [
+    4554,
+    4554,
+    4554
+   ],
+   "need_2": 9200,
+   "need_3": 13766,
+   "limit": 9200,
+   "n_ctx_limit": 16368,
+   "multi": {
+    "status": 200,
+    "error": null,
+    "results": [
+     {
+      "answers": {
+       "animal": {
+        "value": "dog",
+        "probabilities": {
+         "cat": 0.10216252567278224,
+         "dog": 0.6701352932650362,
+         "bird": 0.22770218106218149
+        },
+        "confidence": 0.6701352932650362
+       }
+      },
+      "usage": {
+       "state_tokens": 4554,
+       "scored_tokens": 1
+      }
+     },
+     {
+      "answers": {
+       "animal": {
+        "value": "dog",
+        "probabilities": {
+         "cat": 0.09878625294544265,
+         "dog": 0.6767471717213416,
+         "bird": 0.22446657533321585
+        },
+        "confidence": 0.6767471717213416
+       }
+      },
+      "usage": {
+       "state_tokens": 4554,
+       "scored_tokens": 1
+      }
+     },
+     {
+      "answers": {
+       "animal": {
+        "value": "dog",
+        "probabilities": {
+         "cat": 0.10254788248447529,
+         "dog": 0.6414153097511288,
+         "bird": 0.2560368077643959
+        },
+        "confidence": 0.6414153097511288
+       }
+      },
+      "usage": {
+       "state_tokens": 4554,
+       "scored_tokens": 1
+      }
+     }
+    ],
+    "rounds": 2,
+    "retries": 0
+   },
+   "pair": {
+    "status": 200,
+    "error": null,
+    "results": [
+     {
+      "answers": {
+       "animal": {
+        "value": "dog",
+        "probabilities": {
+         "cat": 0.10216252567278224,
+         "dog": 0.6701352932650362,
+         "bird": 0.22770218106218149
+        },
+        "confidence": 0.6701352932650362
+       }
+      },
+      "usage": {
+       "state_tokens": 4554,
+       "scored_tokens": 1
+      }
+     },
+     {
+      "answers": {
+       "animal": {
+        "value": "dog",
+        "probabilities": {
+         "cat": 0.09878625294544265,
+         "dog": 0.6767471717213416,
+         "bird": 0.22446657533321585
+        },
+        "confidence": 0.6767471717213416
+       }
+      },
+      "usage": {
+       "state_tokens": 4554,
+       "scored_tokens": 1
+      }
+     }
+    ],
+    "rounds": 1,
+    "retries": 0
+   },
+   "alone": [
+    {
+     "status": 200,
+     "error": null,
+     "results": [
+      {
+       "answers": {
+        "animal": {
+         "value": "dog",
+         "probabilities": {
+          "cat": 0.10254788248447529,
+          "dog": 0.6414153097511288,
+          "bird": 0.2560368077643959
+         },
+         "confidence": 0.6414153097511288
+        }
+       },
+       "usage": {
+        "state_tokens": 4554,
+        "scored_tokens": 1
+       }
+      }
+     ],
+     "rounds": 1,
+     "retries": 0
+    }
+   ],
+   "gate": {
+    "first_two_vs_pair_max_abs_diff": 0.0,
+    "third_vs_alone_max_abs_diff": 0.0,
+    "pass": true
+   },
+   "vs_alone": {
+    "n_tickets": 3,
+    "max_abs_diff": 0.03533186197021276,
+    "fields": {
+     "animal": {
+      "median_abs_diff": 0.0037616295390326404,
+      "max_abs_diff": 0.03533186197021276,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+     }
+    },
+    "pass": true
+   },
+   "pair_vs_alone": {
+    "n_tickets": 2,
+    "max_abs_diff": 0.03533186197021276,
+    "fields": {
+     "animal": {
+      "median_abs_diff": 0.028527305108060896,
+      "max_abs_diff": 0.03533186197021276,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": false
+     }
+    },
+    "pass": false
+   }
+  },
+  "distinct": {
+   "state_tokens": [
+    4654,
+    4454,
+    3000
+   ],
+   "need_2": 9200,
+   "need_3": 12212,
+   "limit": 9200,
+   "n_ctx_limit": 16368,
+   "multi": {
+    "status": 200,
+    "error": null,
+    "results": [
+     {
+      "answers": {
+       "animal": {
+        "value": "dog",
+        "probabilities": {
+         "cat": 0.10077815582812011,
+         "dog": 0.6777566139534802,
+         "bird": 0.22146523021839973
+        },
+        "confidence": 0.6777566139534802
+       }
+      },
+      "usage": {
+       "state_tokens": 4654,
+       "scored_tokens": 1
+      }
+     },
+     {
+      "answers": {
+       "animal": {
+        "value": "bird",
+        "probabilities": {
+         "cat": 0.4223981119457234,
+         "dog": 0.002326365503084158,
+         "bird": 0.5752755225511925
+        },
+        "confidence": 0.5752755225511925
+       }
+      },
+      "usage": {
+       "state_tokens": 4454,
+       "scored_tokens": 1
+      }
+     },
+     {
+      "answers": {
+       "animal": {
+        "value": "bird",
+        "probabilities": {
+         "cat": 0.1263521443803608,
+         "dog": 0.4205537078703557,
+         "bird": 0.4530941477492835
+        },
+        "confidence": 0.4530941477492835
+       }
+      },
+      "usage": {
+       "state_tokens": 3000,
+       "scored_tokens": 1
+      }
+     }
+    ],
+    "rounds": 2,
+    "retries": 0
+   },
+   "pair": {
+    "status": 200,
+    "error": null,
+    "results": [
+     {
+      "answers": {
+       "animal": {
+        "value": "dog",
+        "probabilities": {
+         "cat": 0.10077815582812011,
+         "dog": 0.6777566139534802,
+         "bird": 0.22146523021839973
+        },
+        "confidence": 0.6777566139534802
+       }
+      },
+      "usage": {
+       "state_tokens": 4654,
+       "scored_tokens": 1
+      }
+     },
+     {
+      "answers": {
+       "animal": {
+        "value": "bird",
+        "probabilities": {
+         "cat": 0.4223981119457234,
+         "dog": 0.002326365503084158,
+         "bird": 0.5752755225511925
+        },
+        "confidence": 0.5752755225511925
+       }
+      },
+      "usage": {
+       "state_tokens": 4454,
+       "scored_tokens": 1
+      }
+     }
+    ],
+    "rounds": 1,
+    "retries": 0
+   },
+   "alone": [
+    {
+     "status": 200,
+     "error": null,
+     "results": [
+      {
+       "answers": {
+        "animal": {
+         "value": "dog",
+         "probabilities": {
+          "cat": 0.12573285472300283,
+          "dog": 0.6481441133782341,
+          "bird": 0.22612303189876307
+         },
+         "confidence": 0.6481441133782341
+        }
+       },
+       "usage": {
+        "state_tokens": 4654,
+        "scored_tokens": 1
+       }
+      }
+     ],
+     "rounds": 1,
+     "retries": 0
+    },
+    {
+     "status": 200,
+     "error": null,
+     "results": [
+      {
+       "answers": {
+        "animal": {
+         "value": "cat",
+         "probabilities": {
+          "cat": 0.526159929197503,
+          "dog": 0.0006299762967430906,
+          "bird": 0.47321009450575396
+         },
+         "confidence": 0.526159929197503
+        }
+       },
+       "usage": {
+        "state_tokens": 4454,
+        "scored_tokens": 1
+       }
+      }
+     ],
+     "rounds": 1,
+     "retries": 0
+    },
+    {
+     "status": 200,
+     "error": null,
+     "results": [
+      {
+       "answers": {
+        "animal": {
+         "value": "bird",
+         "probabilities": {
+          "cat": 0.1263521443803608,
+          "dog": 0.4205537078703557,
+          "bird": 0.4530941477492835
+         },
+         "confidence": 0.4530941477492835
+        }
+       },
+       "usage": {
+        "state_tokens": 3000,
+        "scored_tokens": 1
+       }
+      }
+     ],
+     "rounds": 1,
+     "retries": 0
+    }
+   ],
+   "gate": {
+    "first_two_vs_pair_max_abs_diff": 0.0,
+    "third_vs_alone_max_abs_diff": 0.0,
+    "pass": true
+   },
+   "vs_alone": {
+    "n_tickets": 3,
+    "max_abs_diff": 0.10376181725177958,
+    "fields": {
+     "animal": {
+      "median_abs_diff": 0.004657801680363338,
+      "max_abs_diff": 0.10376181725177958,
+      "argmax_agreement": 0.6666666666666666,
+      "argmax_disagreements": 1,
+      "disagreements_over_margin": 0,
+      "pass": true
+     }
+    },
+    "pass": true
+   },
+   "pair_vs_alone": {
+    "n_tickets": 2,
+    "max_abs_diff": 0.10376181725177958,
+    "fields": {
+     "animal": {
+      "median_abs_diff": 0.027283599735064418,
+      "max_abs_diff": 0.10376181725177958,
+      "argmax_agreement": 0.5,
+      "argmax_disagreements": 1,
+      "disagreements_over_margin": 0,
+      "pass": false
+     }
+    },
+    "pass": false
+   }
+  }
+ },
+ "checks": {
+  "info: memory.swa_cells 9216": true,
+  "probe: 400 budget with the cell counts": true,
+  "probe: K_eff 1": true,
+  "probe: limit min(n_ctx, swa_cells) - 16": true,
+  "probe: names the SWA cache (and --swa-full) exactly when it is the bound": true,
+  "sweep: every state up to the largest admitted answers 200 with exactly its tokens": true,
+  "sweep: every state over it answers 400 budget with the probe's held, limit and bound": true,
+  "sweep: no 500": true,
+  "round same: the first two states fill the limit, all three are over it but within n_ctx - 16": true,
+  "round same: 200 in two rounds without a retry": true,
+  "round same: the pair and each text alone answer 200": true,
+  "round same: round 1 equals the pair request and round 2 the third state alone (max abs diff 0)": true,
+  "round distinct: the first two states fill the limit, all three are over it but within n_ctx - 16": true,
+  "round distinct: 200 in two rounds without a retry": true,
+  "round distinct: the pair and each text alone answer 200": true,
+  "round distinct: round 1 equals the pair request and round 2 the third state alone (max abs diff 0)": true
+ },
+ "pass": true
+}

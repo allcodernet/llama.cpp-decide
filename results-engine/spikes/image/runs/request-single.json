@@ -1,0 +1,14 @@
+{
+ "instructions": "Answer each question about this image.",
+ "fields": {
+  "cat": {
+   "type": "bool",
+   "description": "Is there a cat in this picture?"
+  }
+ },
+ "states": [
+  {
+   "image": "/home/marduk/llama.cpp-decision/local/spike-image/cat03.jpg"
+  }
+ ]
+}

@@ -1,0 +1,387 @@
+From 40fa331c0b36b9b7bb6ccc07d27eaaca1875581f Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 20:14:59 +0200
+Subject: [PATCH 18/45] decide-compat: bound nesting, size and question count;
+ status from map_decide_error
+
+systemone_to_decide checks the nesting depth of state, instructions and
+every criteria value before it serialises them: deeper than 32 levels is
+a 422 at the value's loc. Pretty text grows with the square of the
+depth, so a small request could build gigabytes of text or overflow the
+stack in the recursive serialiser. The text built from request values is
+capped at 2 MiB per request (422 at ["body"]), more than 64 questions is
+a 422 at ["body","questions"] before any question is translated, and an
+empty state is a 422 at ["body","state"] instead of the compiler's
+states error at ["body"]. The built fields and states move into the
+result.
+
+map_decide_error_body becomes map_decide_error and returns the status
+with the body (budget 400, other post-task 400s 422); the /v1/systemone
+route uses it. compat_error derives from std::runtime_error, so what()
+gives the message if one escapes a handler.
+
+test-decide-compat: case 4 compares text() with literal strings (UTF-8
+kept), case 10 asserts both statuses, case 12 covers the bounds (depth
+33 rejected at the loc of state, instructions, a choice value, a score
+entry and a noul half; depth 32 accepted; 65 questions; empty state; the
+2 MiB total for one value and across values). test-decide-trie asserts
+error.field on the sale/sales sibling conflict.
+---
+ tests/test-decide-compat.cpp    | 83 +++++++++++++++++++++++++++++----
+ tests/test-decide-trie.cpp      |  5 +-
+ tools/decide/decide-compat.cpp  | 68 ++++++++++++++++++---------
+ tools/decide/decide-compat.h    | 17 ++++---
+ tools/server/server-context.cpp |  6 +--
+ 5 files changed, 139 insertions(+), 40 deletions(-)
+
+diff --git a/tests/test-decide-compat.cpp b/tests/test-decide-compat.cpp
+index 1f9ae8b50..fb4f32e74 100644
+--- a/tests/test-decide-compat.cpp
++++ b/tests/test-decide-compat.cpp
+@@ -105,7 +105,7 @@ int main() {
+     // 4. object state, object instructions, object choice value, empty score entry
+     {
+         const auto body = common_json::parse(R"({
+-            "state": {"ticket": "hi", "tags": [1, 2]}, "model": "m",
++            "state": {"ticket": "hé", "tags": [1, 2]}, "model": "m",
+             "questions": {
+                 "c": {"type": "choice", "instructions": {"question": "Pick", "data": {"k": "v"}},
+                       "criteria": {"a": {"rubric": "first", "n": 1}, "b": ["x", "y"]}},
+@@ -113,10 +113,10 @@ int main() {
+             }
+         })");
+         auto out = decide::systemone_to_decide(body);
+-        CHECK(out.at("states").at(0).get<std::string>() == body.at("state").dump(2));
++        CHECK(out.at("states").at(0).get<std::string>() == "{\n  \"ticket\": \"h\xc3\xa9\",\n  \"tags\": [\n    1,\n    2\n  ]\n}");
+         CHECK(out.at("states").at(0).get<std::string>().find('\n') != std::string::npos);
+         const auto & c = out.at("fields").at("c");
+-        CHECK(c.at("description").get<std::string>() == body.at("questions").at("c").at("instructions").dump(2));
++        CHECK(c.at("description").get<std::string>() == "{\n  \"question\": \"Pick\",\n  \"data\": {\n    \"k\": \"v\"\n  }\n}");
+         CHECK(c.at("options").at("a").get<std::string>() == R"({"rubric":"first","n":1})");
+         CHECK(c.at("options").at("b").get<std::string>() == R"(["x","y"])");
+         CHECK_JSON(out.at("fields").at("s").at("levels"), R"(["low", "level 1", "high"])");
+@@ -253,16 +253,83 @@ int main() {
+         CHECK(thrown);
+     }
+ 
+-    // 10. map_decide_error_body
+-    CHECK_JSON(decide::map_decide_error_body(400, common_json::parse(R"({"error":{"code":"invalid_schema","message":"m","field":"q"}})")),
+-               R"({"detail":[{"loc":["body","questions","q"],"msg":"m","type":"invalid_schema"}]})");
+-    CHECK_JSON(decide::map_decide_error_body(400, common_json::parse(R"({"error":{"message":"too long","code":"budget"}})")),
+-               R"({"detail":[{"loc":["body"],"msg":"too long","type":"budget"}]})");
++    // 10. map_decide_error: invalid_schema -> 422 at the field, budget -> 400, other statuses unchanged
++    {
++        const auto m1 = decide::map_decide_error(400, common_json::parse(R"({"error":{"code":"invalid_schema","message":"m","field":"q"}})"));
++        CHECK(m1.first == 422);
++        CHECK_JSON(m1.second, R"({"detail":[{"loc":["body","questions","q"],"msg":"m","type":"invalid_schema"}]})");
++        const auto m2 = decide::map_decide_error(400, common_json::parse(R"({"error":{"message":"too long","code":"budget"}})"));
++        CHECK(m2.first == 400);
++        CHECK_JSON(m2.second, R"({"detail":[{"loc":["body"],"msg":"too long","type":"budget"}]})");
++        const auto m3 = decide::map_decide_error(500, common_json::parse(R"({"error":{"message":"x","code":"engine"}})"));
++        CHECK(m3.first == 500);
++        CHECK_JSON(m3.second, R"({"error":{"message":"x","code":"engine"}})");
++    }
+ 
+     // 11. validation_body keeps order
+     CHECK_JSON(decide::validation_body({{{"body", "model"}, "first", "missing"}, {{"body", "state"}, "second", "missing"}}),
+                R"({"detail":[{"loc":["body","model"],"msg":"first","type":"missing"},{"loc":["body","state"],"msg":"second","type":"missing"}]})");
+ 
++    // 12. bounds: nesting depth, question count, empty state, translated text size
++    {
++        // a scalar is depth 0, [1] depth 1; nest_obj uses objects
++        const auto nest     = [](int d) { return std::string(d, '[') + "1" + std::string(d, ']'); };
++        const auto nest_obj = [](int d) { std::string s; for (int i = 0; i < d; ++i) s += R"({"k":)"; return s + "1" + std::string(d, '}'); };
++        EXPECT_LOC(R"({"model": "m", "questions": {"q": {"type": "noul"}}, "state": )" + nest(33) + "}", "body", "state");
++        EXPECT_LOC(R"({"model": "m", "state": "s", "questions": {"q": {"type": "noul", "instructions": )" + nest_obj(33) + "}}}", "body", "questions", "q", "instructions");
++        EXPECT_LOC(R"({"model": "m", "state": "s", "questions": {"q": {"type": "choice", "criteria": {"a": "x", "b": )" + nest(33) + "}}}}", "body", "questions", "q", "criteria", "b");
++        EXPECT_LOC(R"({"model": "m", "state": "s", "questions": {"q": {"type": "score", "criteria": ["x", )" + nest_obj(33) + "]}}}", "body", "questions", "q", "criteria", "1");
++        EXPECT_LOC(R"({"model": "m", "state": "s", "questions": {"q": {"type": "noul", "criteria": {"false": )" + nest(33) + "}}}}", "body", "questions", "q", "criteria", "false");
++        try {
++            (void) decide::systemone_to_decide(common_json::parse(R"({"model": "m", "questions": {"q": {"type": "noul"}}, "state": )" + nest(33) + "}"));
++            CHECK(false);
++        } catch (const decide::compat_error & e) {
++            CHECK(e.msg == "nesting deeper than 32 levels" && e.type == "value_error" && std::string(e.what()) == e.msg);
++        }
++        // depth 32 everywhere is accepted and compiles
++        {
++            auto out = decide::systemone_to_decide(common_json::parse(R"({"model": "m", "state": )" + nest(32) + R"(, "questions": {
++                "c": {"type": "choice", "instructions": )" + nest_obj(32) + R"(, "criteria": {"a": "x", "b": )" + nest(32) + R"(}},
++                "s": {"type": "score", "criteria": ["x", )" + nest_obj(32) + R"(]},
++                "n": {"type": "noul", "criteria": {"true": )" + nest(32) + "}}}}"));
++            CHECK(out.at("fields").at("c").at("options").at("b").get<std::string>() == nest(32));
++            (void) decide::compile_request(out);
++        }
++
++        // more than 64 questions -> loc ["body","questions"]; 64 pass the translator and compile
++        std::string qs64;
++        for (int i = 0; i < 64; ++i) qs64 += (i ? ", " : "") + std::string(R"("q)") + std::to_string(i) + R"(": {"type": "noul"})";
++        auto out64 = decide::systemone_to_decide(common_json::parse(R"({"model": "m", "state": "s", "questions": {)" + qs64 + "}}"));
++        CHECK(decide::compile_request(out64).fields.size() == 64);
++        EXPECT_LOC(R"({"model": "m", "state": "s", "questions": {)" + qs64 + R"(, "q64": {"type": "noul"}}})", "body", "questions");
++        try {
++            (void) decide::systemone_to_decide(common_json::parse(R"({"model": "m", "state": "s", "questions": {)" + qs64 + R"(, "q64": {"type": "noul"}}})"));
++            CHECK(false);
++        } catch (const decide::compat_error & e) {
++            CHECK(e.msg == "at most 64 questions per request" && e.type == "value_error");
++        }
++
++        // empty state -> loc ["body","state"] (before: states_of's "states entries must not be empty" at ["body"])
++        EXPECT_LOC(R"({"model": "m", "state": "", "questions": {"q": {"type": "noul"}}})", "body", "state");
++
++        // 2 MiB of translated text: a state of 2 MiB + 1 byte is rejected, 1 MiB passes, and the total counts every value
++        const std::string mib(1048576, 'x');
++        auto out_mib = decide::systemone_to_decide(common_json::parse(R"({"model": "m", "questions": {"q": {"type": "noul"}}, "state": ")" + mib + R"("})"));
++        CHECK(out_mib.at("states").at(0).get<std::string>().size() == 1048576);
++        const std::string over_state   = R"({"model": "m", "questions": {"q": {"type": "noul"}}, "state": ")" + mib + mib + R"(x"})";
++        const std::string over_sum     = R"({"model": "m", "state": ")" + mib + R"(", "questions": {"q": {"type": "choice", "criteria": {"a": "x", "b": ")" + mib + R"("}}}})";
++        EXPECT_LOC(over_state, "body");
++        EXPECT_LOC(over_sum, "body");
++        for (const auto * body : {&over_state, &over_sum}) {
++            try {
++                (void) decide::systemone_to_decide(common_json::parse(*body));
++                CHECK(false);
++            } catch (const decide::compat_error & e) {
++                CHECK(e.msg == "request too large after serialisation (2097153 bytes, limit 2097152)" && e.type == "value_error");
++            }
++        }
++    }
++
+     if (failures) {
+         std::fprintf(stderr, "test-decide-compat: %d failure(s)\n", failures);
+         return 1;
+diff --git a/tests/test-decide-trie.cpp b/tests/test-decide-trie.cpp
+index de52c8d12..5a919f3d0 100644
+--- a/tests/test-decide-trie.cpp
++++ b/tests/test-decide-trie.cpp
+@@ -126,10 +126,11 @@ int main() {
+         // on both tokenizer families; if a tokenizer happens to split them into non-prefix pieces, pick another pair
+         // (e.g. "cat"/"cats", "tech"/"technical") and record the pieces in the report.
+         auto bad = decide::compile_request(common_json::parse(R"({"fields": {"q": {"type": "choice", "description": "d", "options": ["sale", "sales"]}}, "states": ["x"]})"));
+-        bool threw = false; std::string msg;
+-        try { decide::build_tries(bad, vocab); } catch (const decide::error & e) { threw = e.code == "invalid_schema"; msg = e.what(); }
++        bool threw = false; std::string msg; std::string field;
++        try { decide::build_tries(bad, vocab); } catch (const decide::error & e) { threw = e.code == "invalid_schema"; msg = e.what(); field = e.field; }
+         CHECK(threw);
+         CHECK(msg.find("\"sale\"") != std::string::npos && msg.find("\"sales\"") != std::string::npos);
++        CHECK(field == "q");
+     }
+     // 255-option choice builds
+     {
+diff --git a/tools/decide/decide-compat.cpp b/tools/decide/decide-compat.cpp
+index 8460dc833..57b039cb5 100644
+--- a/tools/decide/decide-compat.cpp
++++ b/tools/decide/decide-compat.cpp
+@@ -16,6 +16,21 @@ static loc_t loc_of(loc_t base, const std::string & key) {
+     throw compat_error{loc, msg, type};
+ }
+ 
++// request bounds: pretty text grows with the square of the nesting depth, so check the depth before any dump
++static constexpr int    max_depth            = 32;       // a scalar is depth 0, [1] depth 1
++static constexpr size_t max_questions        = 64;       // same as the compile field limit, checked before translation
++static constexpr size_t max_translated_bytes = 2097152;  // 2 MiB of text()/short() output per request
++
++// true when j nests deeper than depth levels; stops one level past the cap
++static bool deeper_than(const common_json & j, int depth) {
++    if (!j.is_object() && !j.is_array()) return false;
++    if (depth == 0) return true;
++    for (const auto & child : j) {
++        if (deeper_than(child, depth - 1)) return true;
++    }
++    return false;
++}
++
+ // X = string | object | array
+ static bool is_x(const common_json & j) {
+     return j.is_string() || j.is_object() || j.is_array();
+@@ -35,13 +50,24 @@ static std::string short_text(const common_json & j) {
+     return j.dump();
+ }
+ 
++// text() (pretty) or short_text() of a request value at loc, after the depth check; adds the output size to total and checks the cap
++static std::string bounded_text(const common_json & j, const loc_t & loc, bool pretty, size_t & total) {
++    if (deeper_than(j, max_depth)) fail(loc, "nesting deeper than " + std::to_string(max_depth) + " levels", "value_error");
++    std::string s = pretty ? text(j) : short_text(j);
++    total += s.size();
++    if (total > max_translated_bytes) {
++        fail({"body"}, "request too large after serialisation (" + std::to_string(total) + " bytes, limit " + std::to_string(max_translated_bytes) + ")", "value_error");
++    }
++    return s;
++}
++
+ static const char * default_description(const std::string & type) {
+     if (type == "noul")   return "Answer yes or no.";
+     if (type == "choice") return "Choose the option that applies.";
+     return "Rate on the given scale.";
+ }
+ 
+-static common_json translate_question(const std::string & id, const common_json & q) {
++static common_json translate_question(const std::string & id, const common_json & q, size_t & total) {
+     const loc_t base = {"body", "questions", id};
+     if (!q.is_object()) fail(base, "Input should be a valid dictionary", "dict_type");
+ 
+@@ -57,7 +83,7 @@ static common_json translate_question(const std::string & id, const common_json
+         if (!ij.is_null()) {
+             if (!is_x(ij)) fail(loc_of(base, "instructions"), "Input should be a string, an object or an array", "invalid_type");
+             // an empty string falls back to the default like null (compile rejects an empty description)
+-            if (!(ij.is_string() && ij.get<std::string>().empty())) d = text(ij);
++            if (!(ij.is_string() && ij.get<std::string>().empty())) d = bounded_text(ij, loc_of(base, "instructions"), true, total);
+         }
+     }
+ 
+@@ -73,7 +99,7 @@ static common_json translate_question(const std::string & id, const common_json
+                 if (!cj.contains(half)) continue;
+                 const auto & hj = cj.at(half);
+                 if (!hj.is_null() && !is_x(hj)) fail(loc_of(cloc, half), "Input should be a string, an object, an array or null", "invalid_type");
+-                const std::string s = short_text(hj);
++                const std::string s = bounded_text(hj, loc_of(cloc, half), false, total);
+                 if (!s.empty()) parts.push_back(std::string(half) + ": " + s);
+             }
+             if (!parts.empty()) {
+@@ -91,7 +117,7 @@ static common_json translate_question(const std::string & id, const common_json
+         common_json options = common_json::object();
+         for (const auto & [key, val] : cj.items()) {
+             if (!val.is_null() && !is_x(val)) fail(loc_of(cloc, key), "Input should be a string, an object, an array or null", "invalid_type");
+-            options[key] = short_text(val);
++            options[key] = bounded_text(val, loc_of(cloc, key), false, total);
+         }
+         f["type"]        = "choice";
+         f["description"] = d;
+@@ -104,7 +130,7 @@ static common_json translate_question(const std::string & id, const common_json
+         for (size_t i = 0; i < cj.size(); ++i) {
+             const auto & ej = cj.at(i);
+             if (!is_x(ej)) fail(loc_of(cloc, std::to_string(i)), "Input should be a string, an object or an array", "invalid_type");
+-            std::string s = short_text(ej);
++            std::string s = bounded_text(ej, loc_of(cloc, std::to_string(i)), false, total);
+             if (s.empty()) s = "level " + std::to_string(i);
+             levels.push_back(s);
+         }
+@@ -123,24 +149,30 @@ common_json systemone_to_decide(const common_json & body) {
+ 
+     if (!body.contains("state")) fail({"body", "state"}, "Field required", "missing");
+     if (!is_x(body.at("state"))) fail({"body", "state"}, "Input should be a string, an object or an array", "invalid_type");
++    size_t total = 0;   // bytes of text built from request values so far
++    std::string state = bounded_text(body.at("state"), {"body", "state"}, true, total);
++    if (state.empty()) fail({"body", "state"}, "state must not be empty", "string_too_short");
+ 
+     if (!body.contains("questions")) fail({"body", "questions"}, "Field required", "missing");
+     const auto & qs = body.at("questions");
+     if (!qs.is_object()) fail({"body", "questions"}, "Input should be a valid dictionary", "dict_type");
+     if (qs.empty()) fail({"body", "questions"}, "questions must have at least 1 entry", "too_short");
++    if (qs.size() > max_questions) {
++        fail({"body", "questions"}, "at most " + std::to_string(max_questions) + " questions per request", "value_error");
++    }
+ 
+     common_json fields = common_json::object();
+     for (const auto & [id, q] : qs.items()) {
+-        fields[id] = translate_question(id, q);
++        fields[id] = translate_question(id, q, total);
+     }
+ 
+     common_json out = common_json::object();
+     out["model"]        = body.at("model");
+     out["instructions"] = "Answer each question about the state.";
+-    out["fields"]       = fields;
++    out["fields"]       = std::move(fields);
+     common_json states  = common_json::array();
+-    states.push_back(text(body.at("state")));
+-    out["states"]       = states;
++    states.push_back(std::move(state));
++    out["states"]       = std::move(states);
+     return out;
+ }
+ 
+@@ -223,22 +255,16 @@ common_json validation_body(const std::vector<compat_error> & errs) {
+ }
+ 
+ compat_error from_decide_error(const error & e) {
+-    compat_error ce;
+-    ce.loc = e.field.empty() ? loc_t{"body"} : loc_t{"body", "questions", e.field};
+-    ce.msg  = e.what();
+-    ce.type = e.code;
+-    return ce;
++    return compat_error(e.field.empty() ? loc_t{"body"} : loc_t{"body", "questions", e.field}, e.what(), e.code);
+ }
+ 
+-common_json map_decide_error_body(int status, const common_json & decide_error_body) {
+-    if (status != 400 || !decide_error_body.is_object() || !decide_error_body.contains("error")) return decide_error_body;
++std::pair<int, common_json> map_decide_error(int status, const common_json & decide_error_body) {
++    if (status != 400 || !decide_error_body.is_object() || !decide_error_body.contains("error")) return {status, decide_error_body};
+     const auto & ej = decide_error_body.at("error");
+     const std::string field = ej.value("field", std::string());
+-    compat_error ce;
+-    ce.loc  = field.empty() ? loc_t{"body"} : loc_t{"body", "questions", field};
+-    ce.msg  = ej.value("message", std::string());
+-    ce.type = ej.value("code", std::string());
+-    return validation_body({ce});
++    const std::string code  = ej.value("code", std::string());
++    const compat_error ce(field.empty() ? loc_t{"body"} : loc_t{"body", "questions", field}, ej.value("message", std::string()), code);
++    return {code == "budget" ? 400 : 422, validation_body({ce})};
+ }
+ 
+ } // namespace decide
+diff --git a/tools/decide/decide-compat.h b/tools/decide/decide-compat.h
+index e825c9dfb..e4489540c 100644
+--- a/tools/decide/decide-compat.h
++++ b/tools/decide/decide-compat.h
+@@ -3,20 +3,26 @@
+ #include "decide-schema.h"
+ #include "json.h"          // common_json
+ 
++#include <stdexcept>
+ #include <string>
++#include <utility>
+ #include <vector>
+ 
+ namespace decide {
+ 
+ // one FastAPI-style validation entry; loc is built from JSON keys, never from messages
+-// (array indices appear as decimal strings)
+-struct compat_error {
++// (array indices appear as decimal strings); what() is msg
++struct compat_error : std::runtime_error {
+     std::vector<std::string> loc;
+     std::string              msg;
+     std::string              type;
++    compat_error(std::vector<std::string> loc_, std::string msg_, std::string type_)
++        : std::runtime_error(msg_), loc(std::move(loc_)), msg(std::move(msg_)), type(std::move(type_)) {}
+ };
+ 
+ // Jev request -> /v1/decide body. Throws compat_error for the first shape problem found.
++// Bounds (422 value_error): state, instructions and criteria values nested deeper than 32 levels,
++// more than 64 questions, and more than 2 MiB of text built from request values.
+ common_json systemone_to_decide(const common_json & body);
+ // /v1/decide 200 body -> Jev response; questions and model come from the Jev request.
+ common_json decide_to_systemone(const common_json & decide_response, const common_json & questions, const std::string & model);
+@@ -26,9 +32,8 @@ double      jev_confidence(const std::vector<double> & probs);
+ common_json validation_body(const std::vector<compat_error> & errs);
+ // loc = ["body","questions",e.field], or ["body"] when e.field is empty; type = e.code
+ compat_error from_decide_error(const error & e);
+-// post-task /v1/decide error body -> {"detail": [...]} for status 400 (invalid_schema, budget);
+-// any other status returns the body unchanged. The HTTP status itself is the caller's choice
+-// (spec 3.2: invalid_schema -> 422, budget -> 400).
+-common_json map_decide_error_body(int status, const common_json & decide_error_body);
++// post-task /v1/decide 400 error body -> {status, {"detail": [...]}}: budget stays 400, anything
++// else (invalid_schema) is 422 (spec 3.2). Other statuses come back unchanged with their body.
++std::pair<int, common_json> map_decide_error(int status, const common_json & decide_error_body);
+ 
+ } // namespace decide
+diff --git a/tools/server/server-context.cpp b/tools/server/server-context.cpp
+index 3e6d2ecf1..28d8f53cb 100644
+--- a/tools/server/server-context.cpp
++++ b/tools/server/server-context.cpp
+@@ -5489,9 +5489,9 @@ void server_routes::init_routes() {
+             res->data   = safe_json_to_str(decide::decide_to_systemone(data, body.at("questions"), body.at("model").get<std::string>()));
+         } else if (status == 400) {
+             // post-task errors: invalid_schema (sibling prefixes) is a validation error, budget stays 400
+-            const std::string code = data.contains("error") ? data.at("error").value("code", std::string()) : std::string();
+-            res->status = code == "budget" ? 400 : 422;
+-            res->data   = safe_json_to_str(decide::map_decide_error_body(status, data));
++            const auto mapped = decide::map_decide_error(status, data);
++            res->status = mapped.first;
++            res->data   = safe_json_to_str(mapped.second);
+         } else {
+             res->status = status;
+             res->data   = safe_json_to_str(data);
+-- 
+2.55.0
+

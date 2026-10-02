@@ -1,0 +1,9 @@
+{
+ "model": "qwen3.8-27b",
+ "with_rejected_pass": true,
+ "without_pass": true,
+ "requests": 12,
+ "max_abs_diff": 0.0,
+ "differences": [],
+ "pass": true
+}

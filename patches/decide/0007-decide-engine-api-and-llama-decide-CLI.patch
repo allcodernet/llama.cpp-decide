@@ -1,0 +1,816 @@
+From cf444ae52cbfb9e1e1e26bf5d952a7b7a9a824f6 Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 14:16:52 +0200
+Subject: [PATCH 07/45] decide: engine, api and llama-decide CLI
+
+---
+ tests/data/decide-triage.json  |   1 +
+ tools/decide/CMakeLists.txt    |  10 +-
+ tools/decide/decide-api.cpp    |  44 +++
+ tools/decide/decide-api.h      |  11 +
+ tools/decide/decide-cli.cpp    | 111 ++++++++
+ tools/decide/decide-engine.cpp | 481 +++++++++++++++++++++++++++++++++
+ tools/decide/decide-engine.h   |  86 ++++++
+ 7 files changed, 743 insertions(+), 1 deletion(-)
+ create mode 100644 tests/data/decide-triage.json
+ create mode 100644 tools/decide/decide-api.cpp
+ create mode 100644 tools/decide/decide-api.h
+ create mode 100644 tools/decide/decide-cli.cpp
+ create mode 100644 tools/decide/decide-engine.cpp
+ create mode 100644 tools/decide/decide-engine.h
+
+diff --git a/tests/data/decide-triage.json b/tests/data/decide-triage.json
+new file mode 100644
+index 000000000..a072ed1f6
+--- /dev/null
++++ b/tests/data/decide-triage.json
+@@ -0,0 +1 @@
++{"instructions": "Answer each question about this support ticket.", "fields": {"queue": {"type": "choice", "description": "Which team must act first?", "options": {"billing": "Payments, refunds, invoices, charges", "technical": "Bugs, crashes, outages, errors, performance, login problems", "sales": "Contracts, plan changes, pricing questions, cancellation threats, procurement", "feedback": "Praise, feature requests, general non-problem questions"}}, "urgency": {"type": "score", "description": "How urgent is this support ticket?", "levels": ["Can wait: praise, feature requests, idle questions, no problem", "Normal: a real problem for one user without time pressure", "Should be handled today: user is blocked, money wrongly taken, a deadline within days, or repeated contact", "Drop everything: outage affecting many users, security incident, data loss, or enterprise customer about to churn"]}, "angry": {"type": "bool", "description": "The text itself shows anger (hostile wording, shouting, threats, sarcasm aimed at the company)."}}, "states": ["My password reset email never arrives, so I cannot log in.", "Love the new dashboard, great work!"]}
+diff --git a/tools/decide/CMakeLists.txt b/tools/decide/CMakeLists.txt
+index 43e7e0647..66275c70e 100644
+--- a/tools/decide/CMakeLists.txt
++++ b/tools/decide/CMakeLists.txt
+@@ -1,8 +1,16 @@
+ add_library(llama-decide STATIC
+     decide-schema.cpp decide-schema.h
+     decide-score.cpp decide-score.h
+-    decide-trie.cpp decide-trie.h)
++    decide-trie.cpp decide-trie.h
++    decide-engine.cpp decide-engine.h
++    decide-api.cpp decide-api.h)
+ target_include_directories(llama-decide PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+ target_link_libraries(llama-decide PUBLIC llama-common llama)
+ target_compile_features(llama-decide PUBLIC cxx_std_17)
+ set_target_properties(llama-decide PROPERTIES POSITION_INDEPENDENT_CODE ON)
++
++# the library already owns the target name llama-decide; the binary keeps it as its file name
++add_executable(llama-decide-cli decide-cli.cpp)
++set_target_properties(llama-decide-cli PROPERTIES OUTPUT_NAME llama-decide)
++target_link_libraries(llama-decide-cli PRIVATE llama-decide llama-common llama ${CMAKE_THREAD_LIBS_INIT})
++target_compile_features(llama-decide-cli PRIVATE cxx_std_17)
+diff --git a/tools/decide/decide-api.cpp b/tools/decide/decide-api.cpp
+new file mode 100644
+index 000000000..d02f4e362
+--- /dev/null
++++ b/tools/decide/decide-api.cpp
+@@ -0,0 +1,44 @@
++#include "decide-api.h"
++
++#include <exception>
++
++namespace decide {
++
++static api_result error_result(int status, const std::string & code, const std::string & message) {
++    common_json e = common_json::object();
++    e["message"] = message;
++    e["code"]    = code;
++    common_json body = common_json::object();
++    body["error"] = e;
++    return {status, body};
++}
++
++api_result handle_decide(engine & eng, const llama_vocab * vocab, const common_json & body, bool dump_tokens) {
++    try {
++        const compiled_schema          cs     = compile_request(body);
++        const std::vector<std::string> states = states_of(body);
++        const trie_set                 ts     = build_tries(cs, vocab);
++        return {200, eng.decide(cs, ts, states, dump_tokens)};
++    } catch (const error & e) {
++        return error_result(e.http, e.code, e.what());
++    } catch (const std::exception & e) {
++        return error_result(500, "engine", e.what());
++    }
++}
++
++api_result handle_info(engine & eng, const llama_vocab * vocab, const common_json * schema_body) {
++    try {
++        if (schema_body == nullptr) {
++            return {200, eng.info(nullptr, nullptr)};
++        }
++        const compiled_schema cs = compile_request(*schema_body);
++        const trie_set        ts = build_tries(cs, vocab);
++        return {200, eng.info(&cs, &ts)};
++    } catch (const error & e) {
++        return error_result(e.http, e.code, e.what());
++    } catch (const std::exception & e) {
++        return error_result(500, "engine", e.what());
++    }
++}
++
++} // namespace decide
+diff --git a/tools/decide/decide-api.h b/tools/decide/decide-api.h
+new file mode 100644
+index 000000000..d46defce7
+--- /dev/null
++++ b/tools/decide/decide-api.h
+@@ -0,0 +1,11 @@
++#pragma once
++#include "decide-engine.h"
++
++namespace decide {
++
++// Parses body, compiles, builds tries, runs the engine; maps decide::error to {"error": {"message","code"}} with http status.
++struct api_result { int status; common_json body; };
++api_result handle_decide(engine & eng, const llama_vocab * vocab, const common_json & body, bool dump_tokens);
++api_result handle_info(engine & eng, const llama_vocab * vocab, const common_json * schema_body /* nullable */);
++
++} // namespace decide
+diff --git a/tools/decide/decide-cli.cpp b/tools/decide/decide-cli.cpp
+new file mode 100644
+index 000000000..10f34f1e9
+--- /dev/null
++++ b/tools/decide/decide-cli.cpp
+@@ -0,0 +1,111 @@
++// llama-decide: reads one /v1/decide request body per stdin line, writes one response per stdout line.
++//
++//   llama-decide -m model.gguf --decide-seqs N [-c N] [-b N] [-ngl N] [-fa on] [--chat-template T]
++//                [--info] [--dump-tokens] < requests.jsonl
++//
++// --info prints the info JSON for each line's schema instead of deciding.
++// --dump-tokens adds the "tokens" object (prefix, state, tail, branch ids) to every response.
++// Exits 1 on the first error, with the error JSON on stderr.
++
++#include "decide-api.h"
++
++#include "arg.h"
++#include "chat.h"
++#include "common.h"
++#include "log.h"
++#include "llama.h"
++
++#include <clocale>
++#include <cstdio>
++#include <cstring>
++#include <iostream>
++#include <string>
++#include <vector>
++
++int main(int argc, char ** argv) {
++    std::setlocale(LC_NUMERIC, "C");
++
++    bool info        = false;
++    bool dump_tokens = false;
++    std::vector<char *> args;
++    for (int i = 0; i < argc; ++i) {
++        if (i > 0 && std::strcmp(argv[i], "--info") == 0) {
++            info = true;
++        } else if (i > 0 && std::strcmp(argv[i], "--dump-tokens") == 0) {
++            dump_tokens = true;
++        } else {
++            args.push_back(argv[i]);
++        }
++    }
++
++    common_params params;
++    common_init();
++    if (!common_params_parse((int) args.size(), args.data(), params, LLAMA_EXAMPLE_COMPLETION)) {
++        return 2;
++    }
++    if (params.decide_seqs < 3) {
++        fprintf(stderr, "llama-decide: --decide-seqs N (N >= 3) is required\n");
++        return 2;
++    }
++    params.n_parallel = 1;   // seq 0 unused, the engine owns 1 .. decide_seqs
++
++    llama_backend_init();
++    llama_numa_init(params.numa);
++
++    auto init = common_init_from_params(params);
++    llama_model   * model = init->model();
++    llama_context * ctx   = init->context();
++    if (model == nullptr || ctx == nullptr) {
++        fprintf(stderr, "llama-decide: failed to load the model\n");
++        return 2;
++    }
++    const llama_vocab * vocab = llama_model_get_vocab(model);
++
++    common_chat_templates_ptr tmpls = common_chat_templates_init(model, params.chat_template);
++    if (!common_chat_templates_was_explicit(tmpls.get())) {
++        fprintf(stderr, "no chat template; pass --chat-template\n");
++        return 2;
++    }
++
++    int exit_code = 0;
++    try {
++        decide::engine_config cfg;
++        cfg.decide_seqs = params.decide_seqs;
++        cfg.seq_base    = 1;
++        decide::engine eng(ctx, model, tmpls.get(), cfg);
++
++        std::string line;
++        while (std::getline(std::cin, line)) {
++            if (line.find_first_not_of(" \t\r") == std::string::npos) {
++                continue;
++            }
++            decide::api_result res;
++            const common_json body = common_json::parse_no_throw(line);
++            if (body.is_discarded()) {
++                common_json e = common_json::object();
++                e["message"] = "request line is not valid JSON";
++                e["code"]    = "invalid_schema";
++                common_json err = common_json::object();
++                err["error"] = e;
++                res = {400, err};
++            } else if (info) {
++                res = decide::handle_info(eng, vocab, &body);
++            } else {
++                res = decide::handle_decide(eng, vocab, body, dump_tokens);
++            }
++            if (res.status != 200) {
++                fprintf(stderr, "%s\n", res.body.dump().c_str());
++                exit_code = 1;
++                break;
++            }
++            fprintf(stdout, "%s\n", res.body.dump().c_str());
++            fflush(stdout);
++        }
++    } catch (const decide::error & e) {
++        fprintf(stderr, "%s\n", e.what());
++        exit_code = 2;
++    }
++
++    llama_backend_free();
++    return exit_code;
++}
+diff --git a/tools/decide/decide-engine.cpp b/tools/decide/decide-engine.cpp
+new file mode 100644
+index 000000000..bd6eb9196
+--- /dev/null
++++ b/tools/decide/decide-engine.cpp
+@@ -0,0 +1,481 @@
++#include "decide-engine.h"
++#include "common.h"
++#include "ggml.h"
++
++#include <algorithm>
++#include <utility>
++
++namespace decide {
++
++// User content placed by the chat template; \x1f cannot occur in normal text.
++static const std::string SENTINEL = "\x1f" "DECIDE_STATE" "\x1f";
++
++static common_json token_array(const std::vector<llama_token> & toks) {
++    common_json a = common_json::array();
++    for (llama_token t : toks) {
++        a.push_back(t);
++    }
++    return a;
++}
++
++engine::engine(llama_context * ctx_, const llama_model * model_, const common_chat_templates * tmpls_, engine_config cfg_)
++    : ctx(ctx_), model(model_), vocab(llama_model_get_vocab(model_)), tmpls(tmpls_), cfg(std::move(cfg_)),
++      mem(llama_get_memory(ctx_)), batch(), n_batch((int) llama_n_batch(ctx_)) {
++    if (tmpls == nullptr || !common_chat_templates_was_explicit(tmpls)) {
++        throw error("engine", 500, "no chat template; pass --chat-template");
++    }
++    if (cfg.decide_seqs < 3) {
++        throw error("engine", 500, "decide_seqs must be at least 3, got " + std::to_string(cfg.decide_seqs));
++    }
++    const int64_t last_seq = (int64_t) cfg.seq_base + cfg.decide_seqs;
++    if (cfg.seq_base < 0 || last_seq > (int64_t) llama_n_seq_max(ctx)) {
++        throw error("engine", 500, "context has n_seq_max " + std::to_string(llama_n_seq_max(ctx)) +
++                                       ", the decide engine needs sequences " + std::to_string(cfg.seq_base) + ".." +
++                                       std::to_string(last_seq - 1));
++    }
++    batch = llama_batch_init(n_batch, 0, 1);
++}
++
++engine::~engine() {
++    for (int i = 0; i < cfg.decide_seqs; ++i) {
++        llama_memory_seq_rm(mem, cfg.seq_base + i, -1, -1);
++    }
++    llama_batch_free(batch);
++}
++
++engine::rendered engine::render(const compiled_schema * cs) const {
++    common_chat_msg sys;
++    sys.role    = "system";
++    sys.content = cs ? render_catalogue(*cs, 0) : "x";
++    common_chat_msg usr;
++    usr.role    = "user";
++    usr.content = SENTINEL;
++
++    common_chat_templates_inputs in;
++    in.messages              = {sys, usr};
++    in.use_jinja             = true;
++    in.add_generation_prompt = true;
++    in.enable_thinking       = false;
++
++    std::string prompt;
++    try {
++        prompt = common_chat_templates_apply(tmpls, in).prompt;
++    } catch (const std::exception & e) {
++        throw error("engine", 500, std::string("chat template failed: ") + e.what());
++    }
++
++    const size_t pos = prompt.find(SENTINEL);
++    if (pos == std::string::npos || prompt.find(SENTINEL, pos + 1) != std::string::npos) {
++        throw error("engine", 500, "chat template did not place the user content once");
++    }
++    rendered r;
++    r.prefix_text      = prompt.substr(0, pos);
++    r.assistant_prefix = prompt.substr(pos + SENTINEL.size());
++    r.tail_text        = r.assistant_prefix + "{\n";
++    r.hash             = hex64(fnv1a64(r.prefix_text + "\x1e" + r.tail_text));
++    return r;
++}
++
++bool engine::prefix_live() const {
++    return p.valid && llama_memory_seq_pos_max(mem, cfg.seq_base) == (llama_pos) p.tokens.size() - 1;
++}
++
++int64_t engine::held_cells() const {
++    int64_t held = 0;
++    for (llama_seq_id s : cfg.slot_seqs) {
++        held += std::max<int64_t>(0, (int64_t) llama_memory_seq_pos_max(mem, s) + 1);
++    }
++    return held;
++}
++
++bool engine::ensure_prefix(const compiled_schema & cs, stats & st) {
++    rendered r = render(&cs);
++    if (p.hash == r.hash && prefix_live()) {
++        return true;
++    }
++
++    const llama_seq_id P = cfg.seq_base;
++    llama_memory_seq_rm(mem, P, -1, -1);
++    p = prefix_state();
++    p.hash             = r.hash;
++    p.prefix_text      = r.prefix_text;
++    p.tail_text        = r.tail_text;
++    p.assistant_prefix = r.assistant_prefix;
++
++    p.tokens = tokenize_template(vocab, p.prefix_text);
++    const llama_token bos = llama_vocab_bos(vocab);
++    if (llama_vocab_get_add_bos(vocab) && (p.tokens.empty() || p.tokens[0] != bos)) {
++        p.tokens.insert(p.tokens.begin(), bos);
++    }
++    if (p.tokens.size() > 1 && p.tokens[0] == bos && p.tokens[1] == bos) {
++        p.tokens.erase(p.tokens.begin());
++    }
++    p.tail_tokens = tokenize_template(vocab, p.tail_text);
++
++    const int64_t n_ctx = llama_n_ctx(ctx);
++    const int64_t held  = held_cells();
++    if (held + (int64_t) p.tokens.size() > n_ctx - 16) {
++        throw error("budget", 400, "prefix needs " + std::to_string(p.tokens.size()) + " cells with " +
++                                       std::to_string(held) + " held by slots, n_ctx - 16 is " + std::to_string(n_ctx - 16));
++    }
++
++    std::vector<entry> entries;
++    entries.reserve(p.tokens.size());
++    for (size_t i = 0; i < p.tokens.size(); ++i) {
++        entries.push_back({p.tokens[i], (llama_pos) i, P, -1});
++    }
++    int rc = 0;
++    try {
++        rc = decode_chunked(entries, nullptr, st);
++    } catch (...) {
++        llama_memory_seq_rm(mem, P, -1, -1);
++        throw;
++    }
++    if (rc != 0) {
++        llama_memory_seq_rm(mem, P, -1, -1);
++        throw error("engine", 500, "prefix decode failed: rc=" + std::to_string(rc));
++    }
++    p.valid = true;
++    return false;
++}
++
++int engine::decode_chunked(const std::vector<entry> & entries, const std::function<void(size_t, size_t)> & on_chunk_done, stats & st) {
++    common_batch_clear(batch);
++    size_t chunk_begin = 0;
++    for (size_t i = 0; i < entries.size(); ++i) {
++        const entry & e = entries[i];
++        common_batch_add(batch, e.tok, e.pos, {e.seq}, e.tag >= 0);
++        if (batch.n_tokens == n_batch || i + 1 == entries.size()) {
++            const int rc = llama_decode(ctx, batch);
++            st.decodes++;
++            common_batch_clear(batch);
++            if (rc == 1) {
++                return 1;
++            }
++            if (rc != 0) {
++                throw error("engine", 500, "llama_decode failed: rc=" + std::to_string(rc));
++            }
++            if (on_chunk_done) {
++                on_chunk_done(chunk_begin, i + 1);
++            }
++            chunk_begin = i + 1;
++        }
++    }
++    return 0;
++}
++
++void engine::cleanup(int seqs_per_state, size_t count) {
++    // trunk c owns seq_base + 1 + c * seqs_per_state and its branches the ids right after it
++    const int n = (int) count * seqs_per_state;
++    for (int i = 0; i < n; ++i) {
++        llama_memory_seq_rm(mem, cfg.seq_base + 1 + i, -1, -1);
++    }
++}
++
++int engine::run_round(const compiled_schema & cs, const trie_set & ts, int seqs_per_state,
++                      const std::vector<std::vector<llama_token>> & state_tokens, size_t first, size_t count,
++                      std::vector<common_json> & answers, stats & st) {
++    const llama_seq_id P        = cfg.seq_base;
++    const llama_pos    n_prefix = (llama_pos) p.tokens.size();
++
++    // trunk phase: prefix copy + state + tail, no logits
++    int64_t t0 = ggml_time_us();
++    std::vector<entry>     entries;
++    std::vector<llama_pos> trunk_len(count);
++    for (size_t c = 0; c < count; ++c) {
++        const llama_seq_id T = cfg.seq_base + 1 + (llama_seq_id) c * seqs_per_state;
++        llama_memory_seq_cp(mem, P, T, -1, -1);
++        llama_pos pos = n_prefix;
++        for (llama_token tok : state_tokens[first + c]) {
++            entries.push_back({tok, pos++, T, -1});
++        }
++        for (llama_token tok : p.tail_tokens) {
++            entries.push_back({tok, pos++, T, -1});
++        }
++        trunk_len[c] = pos;
++    }
++    int rc = decode_chunked(entries, nullptr, st);
++    llama_synchronize(ctx);
++    st.prefill_us += ggml_time_us() - t0;
++    if (rc != 0) {
++        return rc;
++    }
++
++    // branch phase: trunk copy + stem + edge tokens to the branch node, logits on the last token
++    t0 = ggml_time_us();
++    struct branch_ref {
++        size_t c;
++        size_t f;
++        int    node;
++    };
++    std::vector<branch_ref> refs;
++    std::vector<std::vector<std::vector<node_scores>>> scores(count, std::vector<std::vector<node_scores>>(ts.fields.size()));
++    entries.clear();
++    for (size_t c = 0; c < count; ++c) {
++        const llama_seq_id T = cfg.seq_base + 1 + (llama_seq_id) c * seqs_per_state;
++        int running_index = 0;
++        for (size_t f = 0; f < ts.fields.size(); ++f) {
++            const field_trie & t = ts.fields[f];
++            for (int k : t.branch_nodes) {
++                const llama_seq_id B = T + 1 + running_index++;
++                llama_memory_seq_cp(mem, T, B, -1, -1);
++                const std::vector<llama_token> toks = branch_tokens(t, k);
++                if (toks.empty()) {
++                    throw error("engine", 500, "field \"" + cs.fields[f].name + "\": empty branch at node " + std::to_string(k));
++                }
++                llama_pos pos = trunk_len[c];
++                for (size_t i = 0; i < toks.size(); ++i) {
++                    const int tag = i + 1 == toks.size() ? (int) refs.size() : -1;
++                    entries.push_back({toks[i], pos++, B, tag});
++                }
++                refs.push_back({c, f, k});
++            }
++        }
++    }
++    rc = decode_chunked(entries, [&](size_t begin, size_t end) {
++        for (size_t j = begin; j < end; ++j) {
++            if (entries[j].tag < 0) {
++                continue;
++            }
++            const branch_ref & r   = refs[entries[j].tag];
++            const float *      row = llama_get_logits_ith(ctx, (int32_t) (j - begin));
++            if (row == nullptr) {
++                throw error("engine", 500, "no logits for field \"" + cs.fields[r.f].name + "\" node " +
++                                               std::to_string(r.node) + " (batch index " + std::to_string(j - begin) + ")");
++            }
++            const field_trie & t = ts.fields[r.f];
++            node_scores ns;
++            ns.node = r.node;
++            for (int child : t.nodes[r.node].children) {
++                ns.child_logits.push_back(row[t.nodes[child].tok]);
++            }
++            scores[r.c][r.f].push_back(std::move(ns));
++        }
++    }, st);
++    if (rc != 0) {
++        llama_synchronize(ctx);
++        st.scoring_us += ggml_time_us() - t0;
++        return rc;
++    }
++
++    for (size_t c = 0; c < count; ++c) {
++        common_json a = common_json::object();
++        for (size_t f = 0; f < ts.fields.size(); ++f) {
++            const field_answer fa = score_field(cs.fields[f], ts.fields[f], scores[c][f]);
++            a[cs.fields[f].name] = answer_json(cs.fields[f], fa);
++        }
++        answers[first + c] = a;
++    }
++    llama_synchronize(ctx);
++    st.scoring_us += ggml_time_us() - t0;
++    return 0;
++}
++
++common_json engine::decide(const compiled_schema & cs, const trie_set & ts, const std::vector<std::string> & states, bool dump_tokens) {
++    const int64_t t_start = ggml_time_us();
++    stats st;
++
++    if (ts.fields.size() != cs.fields.size()) {
++        throw error("engine", 500, "trie set does not match the schema");
++    }
++    const int seqs_per_state = 1 + ts.branches_per_state;
++    int       spr            = (cfg.decide_seqs - 1) / seqs_per_state;
++    if (spr == 0) {
++        throw error("budget", 400, "schema needs " + std::to_string(seqs_per_state) + " sequences per state, budget is " +
++                                       std::to_string(cfg.decide_seqs - 1) + " (--decide-seqs " +
++                                       std::to_string(cfg.decide_seqs) + " minus the prefix sequence)");
++    }
++
++    std::vector<std::vector<llama_token>> state_tokens;
++    state_tokens.reserve(states.size());
++    for (const auto & s : states) {
++        state_tokens.push_back(tokenize_plain(vocab, s));
++    }
++    int64_t branch_total = 0;   // branch tokens per state
++    for (const auto & t : ts.fields) {
++        for (int k : t.branch_nodes) {
++            branch_total += (int64_t) branch_tokens(t, k).size();
++        }
++    }
++
++    const int64_t t0 = ggml_time_us();
++    const bool reused = ensure_prefix(cs, st);
++    llama_synchronize(ctx);
++    st.prefill_us += ggml_time_us() - t0;
++
++    const int64_t n_ctx = llama_n_ctx(ctx);
++    const int64_t tail  = (int64_t) p.tail_tokens.size();
++    std::vector<common_json> answers(states.size());
++    size_t next = 0;
++    while (next < states.size()) {
++        size_t count = std::min<size_t>((size_t) spr, states.size() - next);
++
++        const int64_t held = held_cells();
++        auto need_for = [&](size_t n) {
++            int64_t need = held + (int64_t) p.tokens.size();
++            for (size_t c = 0; c < n; ++c) {
++                need += (int64_t) state_tokens[next + c].size() + tail + branch_total;
++            }
++            return need;
++        };
++        while (count > 1 && need_for(count) > n_ctx - 16) {
++            count--;
++        }
++        if (need_for(1) > n_ctx - 16) {
++            throw error("budget", 400, "state " + std::to_string(next) + " needs " + std::to_string(need_for(1)) +
++                                           " cells (held " + std::to_string(held) + ", prefix " + std::to_string(p.tokens.size()) +
++                                           ", state " + std::to_string(state_tokens[next].size()) + ", tail " + std::to_string(tail) +
++                                           ", branches " + std::to_string(branch_total) + "), n_ctx - 16 is " +
++                                           std::to_string(n_ctx - 16));
++        }
++
++        bool retried = false;
++        for (;;) {
++            int rc = 0;
++            try {
++                rc = run_round(cs, ts, seqs_per_state, state_tokens, next, count, answers, st);
++            } catch (...) {
++                cleanup(seqs_per_state, count);
++                throw;
++            }
++            cleanup(seqs_per_state, count);
++            if (rc == 0) {
++                break;
++            }
++            if (retried) {
++                throw error("engine", 500, "no KV cell space (rc=1)");
++            }
++            retried = true;
++            spr   = std::max(1, spr / 2);
++            count = std::min<size_t>(count, (size_t) spr);
++        }
++        st.rounds++;
++        next += count;
++    }
++
++    int64_t state_total = 0;
++    for (const auto & s : state_tokens) {
++        state_total += (int64_t) s.size();
++    }
++    const int64_t n_states      = (int64_t) states.size();
++    const int64_t prompt_tokens = (reused ? 0 : (int64_t) p.tokens.size()) + state_total + n_states * (tail + branch_total);
++
++    common_json results = common_json::array();
++    for (size_t i = 0; i < states.size(); ++i) {
++        common_json u = common_json::object();
++        u["state_tokens"]  = (int64_t) state_tokens[i].size();
++        u["scored_tokens"] = ts.branches_per_state;
++        common_json r = common_json::object();
++        r["answers"] = answers[i];
++        r["usage"]   = u;
++        results.push_back(r);
++    }
++
++    common_json usage = common_json::object();
++    usage["prompt_tokens"] = prompt_tokens;
++    usage["cached_tokens"] = reused ? (int64_t) p.tokens.size() : (int64_t) 0;
++    usage["state_tokens"]  = state_total;
++    usage["scored_tokens"] = n_states * ts.branches_per_state;
++
++    llama_synchronize(ctx);
++    common_json timings = common_json::object();
++    timings["prefill_ms"] = st.prefill_us / 1000.0;
++    timings["scoring_ms"] = st.scoring_us / 1000.0;
++    timings["total_ms"]   = (ggml_time_us() - t_start) / 1000.0;
++    timings["rounds"]     = st.rounds;
++    timings["decodes"]    = st.decodes;
++
++    common_json quote_split = common_json::array();
++    for (size_t f = 0; f < cs.fields.size(); ++f) {
++        if (cs.fields[f].type == field_type::CHOICE && ts.fields[f].quote_split) {
++            quote_split.push_back(cs.fields[f].name);
++        }
++    }
++    common_json eng = common_json::object();
++    eng["scoring"]            = "tree";
++    eng["seqs_per_state"]     = seqs_per_state;
++    eng["states_per_round"]   = spr;
++    eng["quote_split_fields"] = quote_split;
++
++    common_json out = common_json::object();
++    out["object"]  = "decide";
++    out["results"] = results;
++    out["usage"]   = usage;
++    out["timings"] = timings;
++    out["engine"]  = eng;
++
++    if (dump_tokens) {
++        common_json per_state = common_json::array();
++        for (size_t i = 0; i < states.size(); ++i) {
++            common_json branches = common_json::array();
++            for (size_t f = 0; f < ts.fields.size(); ++f) {
++                const field_trie & t = ts.fields[f];
++                for (int k : t.branch_nodes) {
++                    std::vector<llama_token> children;
++                    for (int child : t.nodes[k].children) {
++                        children.push_back(t.nodes[child].tok);
++                    }
++                    common_json b = common_json::object();
++                    b["field"]    = cs.fields[f].name;
++                    b["node"]     = k;
++                    b["tokens"]   = token_array(branch_tokens(t, k));
++                    b["children"] = token_array(children);
++                    branches.push_back(b);
++                }
++            }
++            common_json s = common_json::object();
++            s["state"]    = token_array(state_tokens[i]);
++            s["tail"]     = token_array(p.tail_tokens);
++            s["branches"] = branches;
++            per_state.push_back(s);
++        }
++        common_json tokens = common_json::object();
++        tokens["prefix"] = token_array(p.tokens);
++        tokens["states"] = per_state;
++        out["tokens"]    = tokens;
++    }
++    return out;
++}
++
++common_json engine::info(const compiled_schema * cs, const trie_set * ts) {
++    common_json prefix = common_json::object();
++    if (cs != nullptr) {
++        stats st;
++        ensure_prefix(*cs, st);
++        prefix["hash"]             = p.hash;
++        prefix["tokens"]           = (int64_t) p.tokens.size();
++        prefix["assistant_prefix"] = p.assistant_prefix;
++        prefix["valid"]            = prefix_live();
++    } else {
++        const rendered r    = render(nullptr);
++        const bool     live = prefix_live();
++        prefix["hash"]             = p.hash;
++        prefix["tokens"]           = live ? (int64_t) p.tokens.size() : (int64_t) 0;
++        prefix["assistant_prefix"] = r.assistant_prefix;
++        prefix["valid"]            = live;
++    }
++
++    common_json memory = common_json::object();
++    memory["recurrent"] = llama_model_is_recurrent(model) || llama_model_is_hybrid(model);
++    memory["swa"]       = llama_model_n_swa(model) > 0;
++
++    common_json j = common_json::object();
++    j["decide_seqs"]   = cfg.decide_seqs;
++    j["n_ctx"]         = (int64_t) llama_n_ctx(ctx);
++    j["n_batch"]       = (int64_t) llama_n_batch(ctx);
++    j["kv_unified"]    = true;
++    j["n_parallel"]    = std::max<int64_t>(1, (int64_t) cfg.slot_seqs.size());
++    j["memory"]        = memory;
++    j["prefix"]        = prefix;
++    j["scoring_modes"] = common_json::array({"tree"});
++    if (ts != nullptr) {
++        const int seqs_per_state = 1 + ts->branches_per_state;
++        common_json schema = common_json::object();
++        schema["seqs_per_state"]   = seqs_per_state;
++        schema["states_per_round"] = (cfg.decide_seqs - 1) / seqs_per_state;
++        j["schema"] = schema;
++    }
++    return j;
++}
++
++} // namespace decide
+diff --git a/tools/decide/decide-engine.h b/tools/decide/decide-engine.h
+new file mode 100644
+index 000000000..a1abf516e
+--- /dev/null
++++ b/tools/decide/decide-engine.h
+@@ -0,0 +1,86 @@
++#pragma once
++#include "decide-schema.h"
++#include "decide-trie.h"
++#include "chat.h"
++#include "llama.h"
++#include <cstdint>
++#include <functional>
++#include <string>
++#include <vector>
++
++namespace decide {
++
++struct engine_config {
++    int                       decide_seqs = 0;   // >= 3
++    llama_seq_id              seq_base    = 0;   // first reserved seq id
++    std::vector<llama_seq_id> slot_seqs;         // sequences owned by server slots (for the cell check); empty in the CLI
++};
++
++struct prefix_state {
++    std::string              hash;              // hex64(fnv1a64(prefix_text + "\x1e" + tail_text))
++    std::string              prefix_text, tail_text, assistant_prefix;
++    std::vector<llama_token> tokens;            // prefix tokens in seq P
++    std::vector<llama_token> tail_tokens;       // template tail + "{"
++    bool                     valid = false;
++};
++
++class engine {
++public:
++    // Throws error{"engine", 500, "no chat template; pass --chat-template"} when
++    // !common_chat_templates_was_explicit(tmpls) (the ChatML fallback is not accepted).
++    engine(llama_context * ctx, const llama_model * model, const common_chat_templates * tmpls, engine_config cfg);
++    ~engine();
++    engine(const engine &) = delete;
++    engine & operator=(const engine &) = delete;
++
++    // Full request: throws decide::error; never leaves trunks/branches behind.
++    common_json decide(const compiled_schema & cs, const trie_set & ts, const std::vector<std::string> & states, bool dump_tokens);
++    // Info JSON (spec 3.3); builds/validates the prefix for cs when given.
++    common_json info(const compiled_schema * cs, const trie_set * ts);
++
++private:
++    // one token of a phase; `tag` names the branch whose logit row it requests (-1: no logits)
++    struct entry {
++        llama_token  tok;
++        llama_pos    pos;
++        llama_seq_id seq;
++        int          tag;
++    };
++    // prefix, tail and hash of one rendering (cs == nullptr: placeholder system text)
++    struct rendered {
++        std::string prefix_text, tail_text, assistant_prefix, hash;
++    };
++    // per-request counters
++    struct stats {
++        int     decodes       = 0;
++        int     rounds        = 0;
++        int64_t prompt_tokens = 0;
++        int64_t prefill_us    = 0;
++        int64_t scoring_us    = 0;
++    };
++
++    rendered render(const compiled_schema * cs) const;
++    // returns true when the cached prefix was reused
++    bool     ensure_prefix(const compiled_schema & cs, stats & st);
++    bool     prefix_live() const;
++    // returns 0, or 1 when a decode found no KV slot (caller cleans up and retries); throws on anything else.
++    // Fills answers[first + c] for every state c of the round.
++    int      run_round(const compiled_schema & cs, const trie_set & ts, int seqs_per_state,
++                       const std::vector<std::vector<llama_token>> & state_tokens, size_t first, size_t count,
++                       std::vector<common_json> & answers, stats & st);
++    int      decode_chunked(const std::vector<entry> & entries, const std::function<void(size_t, size_t)> & on_chunk_done, stats & st);
++    void     cleanup(int seqs_per_state, size_t count);
++    int64_t  held_cells() const;
++
++    llama_context               * ctx;
++    const llama_model           * model;
++    const llama_vocab           * vocab;
++    const common_chat_templates * tmpls;
++    engine_config                 cfg;
++    llama_memory_t                mem;
++    llama_batch                   batch;
++    int                           n_batch;
++    prefix_state                  p;
++};
++
++} // namespace decide
+-- 
+2.55.0
+

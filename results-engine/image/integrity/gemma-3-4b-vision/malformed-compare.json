@@ -1,0 +1,8 @@
+{
+ "model": "gemma-3-4b-vision",
+ "with_cases_pass": true,
+ "without_pass": true,
+ "max_abs_diff": 0.0,
+ "differences": [],
+ "pass": true
+}

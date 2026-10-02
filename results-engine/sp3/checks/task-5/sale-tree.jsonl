@@ -1,0 +1,1 @@
+{"instructions": "Answer about the ticket.", "fields": {"q": {"type": "choice", "description": "Which word fits the ticket?", "options": ["sale", "sales"]}}, "states": ["Hi, I saw your spring sale ad. Does the discount also apply to annual plans?"], "options": {"scoring": "tree"}}

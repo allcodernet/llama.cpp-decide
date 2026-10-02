@@ -1,0 +1,72 @@
+From f5c37862f32d54fc67d0af92b7a50e88f772b6d6 Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 20:17:41 +0200
+Subject: [PATCH 19/45] server: /v1/systemone request id header, body limit;
+ field in /v1/decide pre-task errors
+
+post_systemone sets x-typesafe-request-id ("llamacpp-" + a random id) on
+every response it writes, so the TypeSafe SDK's response.request_id
+works and its error messages name the request. A body above 1 MiB is a
+413 with a FastAPI detail body, checked after the 404 disabled check and
+before parsing.
+
+post_decide passes error.field into its pre-task error bodies ("field"
+only when non-empty), the same shape error_result gives task-thread
+errors.
+---
+ tools/server/server-context.cpp | 15 +++++++++++++--
+ 1 file changed, 13 insertions(+), 2 deletions(-)
+
+diff --git a/tools/server/server-context.cpp b/tools/server/server-context.cpp
+index 28d8f53cb..3e34da820 100644
+--- a/tools/server/server-context.cpp
++++ b/tools/server/server-context.cpp
+@@ -5361,10 +5361,11 @@ void server_routes::init_routes() {
+ 
+     // decide routes: the status is set directly, since res->error() derives it from an integer "code"
+     // while decide errors carry string codes
+-    const auto decide_error = [](server_res_generator & res, int status, const std::string & message, const std::string & code) {
++    const auto decide_error = [](server_res_generator & res, int status, const std::string & message, const std::string & code, const std::string & field = std::string()) {
+         json err = json::object();
+         err["message"] = message;
+         err["code"]    = code;
++        if (!field.empty()) err["field"] = field; // same shape as error_result in decide-api
+         json body = json::object();
+         body["error"] = err;
+         res.status = status;
+@@ -5419,7 +5420,7 @@ void server_routes::init_routes() {
+             decide::compile_request(body);
+             decide::states_of(body);
+         } catch (const decide::error & e) {
+-            decide_error(*res, e.http, e.what(), e.code);
++            decide_error(*res, e.http, e.what(), e.code, e.field);
+             return res;
+         }
+ 
+@@ -5449,6 +5450,8 @@ void server_routes::init_routes() {
+     // {"detail": [...]} body, 404 disabled and 500 engine keep the {"error": {...}} body
+     this->post_systemone = [this, decide_error, decide_task](const server_http_req & req) {
+         auto res = create_response();
++        // the SDK reads this header for response.request_id
++        res->headers["x-typesafe-request-id"] = "llamacpp-" + random_string();
+         if (params.decide_seqs <= 0) {
+             decide_error(*res, 404, "decide endpoint disabled (--decide-seqs 0)", "disabled");
+             return res;
+@@ -5459,6 +5462,14 @@ void server_routes::init_routes() {
+             res->data   = safe_json_to_str(decide::validation_body({e}));
+         };
+ 
++        // bound the body before parsing and translation
++        const size_t max_body_bytes = 1048576;
++        if (req.body.size() > max_body_bytes) {
++            res->status = 413;
++            res->data   = safe_json_to_str(decide::validation_body({{{"body"}, "request body too large (" + std::to_string(req.body.size()) + " bytes, limit " + std::to_string(max_body_bytes) + ")", "value_error"}}));
++            return res;
++        }
++
+         json body = json::parse_no_throw(req.body);
+         if (body.is_discarded()) {
+             validation_error({{"body"}, "request body is not valid JSON", "json_invalid"});
+-- 
+2.55.0
+

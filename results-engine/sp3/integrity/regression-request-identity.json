@@ -1,0 +1,35 @@
+{
+  "old": "f972d7e",
+  "new": "826110a",
+  "runs": [
+    {
+      "preset": "qwen3.5-9b",
+      "set": "test",
+      "requests": 17,
+      "identical": true,
+      "run_name": "decide-qwen3.5-9b-b5-keywords"
+    },
+    {
+      "preset": "qwen3.5-9b",
+      "set": "train",
+      "requests": 65,
+      "identical": true,
+      "run_name": "decide-qwen3.5-9b-b5-keywords"
+    },
+    {
+      "preset": "gemma-4-e4b",
+      "set": "test",
+      "requests": 17,
+      "identical": true,
+      "run_name": "decide-gemma-4-e4b-b5-keywords"
+    },
+    {
+      "preset": "gemma-4-e4b",
+      "set": "train",
+      "requests": 65,
+      "identical": true,
+      "run_name": "decide-gemma-4-e4b-b5-keywords"
+    }
+  ],
+  "identical": true
+}

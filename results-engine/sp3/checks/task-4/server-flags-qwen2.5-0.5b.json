@@ -1,0 +1,42 @@
+{
+  "info": {
+    "status": 200,
+    "body": {
+      "decide_seqs": 9,
+      "n_ctx": 2048,
+      "n_batch": 2048,
+      "kv_unified": true,
+      "n_parallel": 4,
+      "memory": {
+        "recurrent": false,
+        "swa": false
+      },
+      "prefix": {
+        "hash": "",
+        "tokens": 0,
+        "assistant_prefix": "<|im_end|>\n<|im_start|>assistant\n",
+        "valid": false
+      },
+      "prefixes": [],
+      "prefix_cache": {
+        "capacity": 3,
+        "entries": 0,
+        "bytes": 0
+      },
+      "temperature": 0.7,
+      "scoring_modes": [
+        "tree"
+      ]
+    }
+  },
+  "decide": {
+    "status": 500,
+    "body": {
+      "error": {
+        "message": "not implemented yet: temperature",
+        "code": "engine"
+      }
+    }
+  },
+  "pass": true
+}

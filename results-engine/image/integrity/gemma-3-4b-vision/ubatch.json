@@ -1,0 +1,29 @@
+{
+ "command": [
+  "/home/marduk/llama.cpp-decision/engine/build/bin/llama-decide",
+  "-m",
+  "./models/gemma-3-4b-it-Q4_K_M.gguf",
+  "--decide-seqs",
+  "16",
+  "-c",
+  "16384",
+  "-ngl",
+  "99",
+  "-fa",
+  "on",
+  "-ctk",
+  "q8_0",
+  "-ctv",
+  "q8_0",
+  "--mmproj",
+  "./models/mmproj-gemma-3-4b-it-f16.gguf",
+  "-ub",
+  "128"
+ ],
+ "returncode": 1,
+ "error": {
+  "message": "state 0 has an image chunk of 256 cells, which the projector decodes with non-causal attention in one micro-batch, but n_ubatch is 128; start with --ubatch-size 256 or more",
+  "code": "budget"
+ },
+ "pass": true
+}

@@ -1,0 +1,83 @@
+{
+ "model": "gemma-4-e4b-vision",
+ "states": 8,
+ "together": {
+  "n_tickets": 8,
+  "max_abs_diff": 0.013032623250016306,
+  "fields": {
+   "cat": {
+    "median_abs_diff": 2.5448185152987524e-05,
+    "max_abs_diff": 0.0002821543051724218,
+    "argmax_agreement": 1,
+    "argmax_disagreements": 0,
+    "disagreements_over_margin": 0,
+    "pass": true
+   },
+   "dog": {
+    "median_abs_diff": 4.4114083799219643e-05,
+    "max_abs_diff": 0.0002754383334997543,
+    "argmax_agreement": 1,
+    "argmax_disagreements": 0,
+    "disagreements_over_margin": 0,
+    "pass": true
+   },
+   "animal": {
+    "median_abs_diff": 5.284244672366283e-05,
+    "max_abs_diff": 0.011778048595729524,
+    "argmax_agreement": 1,
+    "argmax_disagreements": 0,
+    "disagreements_over_margin": 0,
+    "pass": true
+   },
+   "indoors": {
+    "median_abs_diff": 0.00043450997531435664,
+    "max_abs_diff": 0.013032623250016306,
+    "argmax_agreement": 1,
+    "argmax_disagreements": 0,
+    "disagreements_over_margin": 0,
+    "pass": true
+   }
+  },
+  "pass": true
+ },
+ "mixed": {
+  "n_tickets": 8,
+  "max_abs_diff": 0.008047166089138913,
+  "fields": {
+   "cat": {
+    "median_abs_diff": 6.775632588566663e-05,
+    "max_abs_diff": 0.00014183638560349987,
+    "argmax_agreement": 1,
+    "argmax_disagreements": 0,
+    "disagreements_over_margin": 0,
+    "pass": true
+   },
+   "dog": {
+    "median_abs_diff": 3.619723895259425e-05,
+    "max_abs_diff": 0.0002715452860806544,
+    "argmax_agreement": 1,
+    "argmax_disagreements": 0,
+    "disagreements_over_margin": 0,
+    "pass": true
+   },
+   "animal": {
+    "median_abs_diff": 3.9334095075939526e-05,
+    "max_abs_diff": 0.005680633715386407,
+    "argmax_agreement": 1,
+    "argmax_disagreements": 0,
+    "disagreements_over_margin": 0,
+    "pass": true
+   },
+   "indoors": {
+    "median_abs_diff": 0.0004521827909995113,
+    "max_abs_diff": 0.008047166089138913,
+    "argmax_agreement": 1,
+    "argmax_disagreements": 0,
+    "disagreements_over_margin": 0,
+    "pass": true
+   }
+  },
+  "pass": true
+ },
+ "pass": true
+}

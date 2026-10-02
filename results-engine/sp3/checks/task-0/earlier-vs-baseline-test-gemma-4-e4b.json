@@ -1,0 +1,39 @@
+{
+  "a": "results-engine/preds/decide-gemma-4-e4b-b5-keywords.jsonl",
+  "b": "results-engine/sp3/baseline/test/preds/decide-gemma-4-e4b-b5-keywords.jsonl",
+  "formats": [
+    "preds",
+    "preds"
+  ],
+  "n_tickets": 80,
+  "max_abs_diff": 0.0,
+  "fields": {
+    "queue": {
+      "median_abs_diff": 0.0,
+      "max_abs_diff": 0.0,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    },
+    "urgency": {
+      "median_abs_diff": 0.0,
+      "max_abs_diff": 0.0,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    },
+    "angry": {
+      "median_abs_diff": 0.0,
+      "max_abs_diff": 0.0,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    }
+  },
+  "pass": true,
+  "max_diff_bound": 1e-06,
+  "within_bound": true
+}

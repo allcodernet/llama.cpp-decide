@@ -1,0 +1,1 @@
+{"instructions": "Answer each question about this image.", "fields": {"cat": {"type": "bool", "description": "Is there a cat in this picture?"}}}

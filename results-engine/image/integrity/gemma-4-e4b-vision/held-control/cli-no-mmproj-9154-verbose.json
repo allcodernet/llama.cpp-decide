@@ -1,0 +1,60 @@
+{
+ "command": [
+  "/home/marduk/llama.cpp-decision/engine/build/bin/llama-decide",
+  "-m",
+  "./models/gemma-4-E4B-it-Q4_0.gguf",
+  "--decide-seqs",
+  "16",
+  "-c",
+  "16384",
+  "-ngl",
+  "99",
+  "-fa",
+  "on",
+  "-ctk",
+  "q8_0",
+  "-ctv",
+  "q8_0"
+ ],
+ "words": 9154,
+ "returncode": 1,
+ "usage": null,
+ "state_usage": null,
+ "error": {
+  "error": {
+   "message": "no KV cell space (rc=1)",
+   "code": "engine"
+  }
+ },
+ "kv_lines": [
+  "0.00.677.188 I print_info: n_swa                 = 512",
+  "0.00.684.906 I llama_context: n_seq_max             = 17",
+  "0.00.684.906 I llama_context: n_ctx                 = 16384",
+  "0.00.684.907 I llama_context: n_ubatch              = 512",
+  "0.00.684.910 I llama_context: kv_unified            = true",
+  "0.00.696.569 I llama_kv_cache_iswa: creating non-SWA KV cache, size = 16384 cells",
+  "0.00.696.717 I llama_kv_cache: size =  136.00 MiB ( 16384 cells,   4 layers, 17/1 seqs), K (q8_0):   68.00 MiB, V (q8_0):   68.00 MiB",
+  "0.00.696.827 I llama_kv_cache_iswa: creating     SWA KV cache, size = 9216 cells",
+  "0.00.696.925 I llama_kv_cache: size =  191.25 MiB (  9216 cells,  20 layers, 17/1 seqs), K (q8_0):   95.62 MiB, V (q8_0):   95.62 MiB",
+  "0.01.281.320 I print_info: n_swa                 = 512",
+  "0.01.799.608 I llama_context: n_seq_max             = 17",
+  "0.01.799.609 I llama_context: n_ctx                 = 16384",
+  "0.01.799.610 I llama_context: n_ubatch              = 512",
+  "0.01.799.611 I llama_context: kv_unified            = true",
+  "0.01.812.363 I llama_kv_cache_iswa: creating non-SWA KV cache, size = 16384 cells",
+  "0.01.812.839 I llama_kv_cache: size =  136.00 MiB ( 16384 cells,   4 layers, 17/1 seqs), K (q8_0):   68.00 MiB, V (q8_0):   68.00 MiB",
+  "0.01.812.962 I llama_kv_cache_iswa: creating     SWA KV cache, size = 9216 cells",
+  "0.01.813.478 I llama_kv_cache: size =  191.25 MiB (  9216 cells,  20 layers, 17/1 seqs), K (q8_0):   95.62 MiB, V (q8_0):   95.62 MiB",
+  "0.03.473.385 W decode: failed to find a memory slot for batch of size 4",
+  "0.04.918.157 W decode: failed to find a memory slot for batch of size 4"
+ ],
+ "summary": {
+  "no_mmproj": true,
+  "words": 9154,
+  "returncode": 1,
+  "error": {
+   "message": "no KV cell space (rc=1)",
+   "code": "engine"
+  }
+ }
+}

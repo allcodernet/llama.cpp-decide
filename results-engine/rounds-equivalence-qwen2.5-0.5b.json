@@ -1,0 +1,29 @@
+{
+  "preds_a": "results-engine/integrity/decide-qwen2.5-0.5b-b12-lim12.jsonl",
+  "preds_b": "results-engine/integrity/decide-qwen2.5-0.5b-b5-lim12.jsonl",
+  "n": 12,
+  "fields": {
+    "queue": {
+      "median_abs_diff": 0.0,
+      "max_abs_diff": 0.0,
+      "argmax_agreement": 1,
+      "disagreements_over_margin": 0,
+      "argmax_abs_diff_median": 0.0
+    },
+    "urgency": {
+      "median_abs_diff": 0.0,
+      "max_abs_diff": 0.0,
+      "argmax_agreement": 1,
+      "disagreements_over_margin": 0,
+      "argmax_abs_diff_median": 0.0
+    },
+    "angry": {
+      "median_abs_diff": 0.0,
+      "max_abs_diff": 0.0,
+      "argmax_agreement": 1,
+      "disagreements_over_margin": 0,
+      "argmax_abs_diff_median": 0.0
+    }
+  },
+  "pass": true
+}

@@ -1,0 +1,91 @@
+{
+ "command": [
+  "/home/marduk/llama.cpp-decision/engine/build/bin/llama-decide",
+  "-m",
+  "/home/marduk/.lmstudio/models/unsloth/Qwen3.6-35B-A3B-MTP-GGUF/Qwen3.6-35B-A3B-UD-IQ4_XS.gguf",
+  "--decide-seqs",
+  "16",
+  "-c",
+  "16384",
+  "-ngl",
+  "999",
+  "-fa",
+  "on",
+  "-ctk",
+  "q8_0",
+  "-ctv",
+  "q8_0",
+  "--mmproj",
+  "/home/marduk/.lmstudio/models/unsloth/Qwen3.6-35B-A3B-MTP-GGUF/mmproj-F32.gguf"
+ ],
+ "timings": {
+  "clean": {
+   "prefill_ms": 2070.306,
+   "prefix_ms": 138.461,
+   "scoring_ms": 172.666,
+   "total_ms": 2314.688,
+   "rounds": 3,
+   "decodes": 37,
+   "retries": 0,
+   "image_encode_ms": 618.425,
+   "image_decode_ms": 1002.479
+  },
+  "rc1": {
+   "prefill_ms": 4422.681,
+   "prefix_ms": 143.281,
+   "scoring_ms": 276.587,
+   "total_ms": 4776.554,
+   "rounds": 8,
+   "decodes": 91,
+   "retries": 8,
+   "image_encode_ms": 1309.24,
+   "image_decode_ms": 2200.722
+  }
+ },
+ "statistic": {
+  "n_tickets": 8,
+  "max_abs_diff": 0.05279014150581951,
+  "fields": {
+   "cat": {
+    "median_abs_diff": 9.8552602689983e-05,
+    "max_abs_diff": 0.0036358487568629583,
+    "argmax_agreement": 1,
+    "argmax_disagreements": 0,
+    "disagreements_over_margin": 0,
+    "pass": true
+   },
+   "dog": {
+    "median_abs_diff": 0.0016362375827244646,
+    "max_abs_diff": 0.030482610781490393,
+    "argmax_agreement": 1,
+    "argmax_disagreements": 0,
+    "disagreements_over_margin": 0,
+    "pass": true
+   },
+   "animal": {
+    "median_abs_diff": 0.0012979946477240682,
+    "max_abs_diff": 0.05279014150581951,
+    "argmax_agreement": 1,
+    "argmax_disagreements": 0,
+    "disagreements_over_margin": 0,
+    "pass": true
+   },
+   "indoors": {
+    "median_abs_diff": 0.007269419789806164,
+    "max_abs_diff": 0.021003420522244243,
+    "argmax_agreement": 1,
+    "argmax_disagreements": 0,
+    "disagreements_over_margin": 0,
+    "pass": true
+   }
+  },
+  "pass": true
+ },
+ "checks": {
+  "run without the fault: no retry": true,
+  "rc1: at least one retry": true,
+  "rc1: the statistic against the run without it": true,
+  "rc1: same image usage": true
+ },
+ "pass": true
+}

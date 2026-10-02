@@ -1,0 +1,9 @@
+{
+  "err": "results-engine/sp3/checks/task-7/cells-k2-qwen2.5-0.5b.err.json",
+  "error": {
+    "message": "state 0 needs 6906 cells (held 0, prefix 496, K_eff 2 × (state 3183, tail 6, branches 16)), n_ctx - 16 is 4080",
+    "code": "budget"
+  },
+  "prefix_tokens_of_the_k2_dump": 496,
+  "pass": true
+}

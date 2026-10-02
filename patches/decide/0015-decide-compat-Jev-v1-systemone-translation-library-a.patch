@@ -1,0 +1,729 @@
+From 1d77d15bd4237c086e7803de54c609f0b3365017 Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 18:29:46 +0200
+Subject: [PATCH 15/45] decide-compat: Jev /v1/systemone translation library
+ and error.field
+
+Add decide-compat.{h,cpp} to llama-decide: pure functions that translate a
+Jev System One request into a /v1/decide body (spec 3.1-3.2, 422 shape
+errors as compat_error with a loc built from JSON keys), a /v1/decide
+response into the Jev response (3.3), the demo confidence approximation,
+and the FastAPI {"detail": [...]} error bodies.
+
+decide::error gains an optional field member: compile() stamps the field
+name on errors raised inside a field, build_trie sets it at the three
+throw sites that name the field, and error_result adds "field" to the
+{"error": {...}} body when it is non-empty.
+
+test-decide-compat covers request and response translation, the 422 locs,
+confidence values and the error mapping; no model needed.
+---
+ tests/CMakeLists.txt           |   3 +
+ tests/test-decide-compat.cpp   | 270 +++++++++++++++++++++++++++++++++
+ tools/decide/CMakeLists.txt    |   3 +-
+ tools/decide/decide-api.cpp    |   7 +-
+ tools/decide/decide-compat.cpp | 243 +++++++++++++++++++++++++++++
+ tools/decide/decide-compat.h   |  34 +++++
+ tools/decide/decide-schema.cpp |   7 +-
+ tools/decide/decide-schema.h   |   5 +-
+ tools/decide/decide-trie.cpp   |   6 +-
+ 9 files changed, 568 insertions(+), 10 deletions(-)
+ create mode 100644 tests/test-decide-compat.cpp
+ create mode 100644 tools/decide/decide-compat.cpp
+ create mode 100644 tools/decide/decide-compat.h
+
+diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
+index ccff73d19..de125056e 100644
+--- a/tests/CMakeLists.txt
++++ b/tests/CMakeLists.txt
+@@ -386,5 +386,8 @@ target_link_libraries(test-decide-schema PRIVATE llama-decide)
+ llama_build_and_test(test-decide-score.cpp)
+ target_link_libraries(test-decide-score PRIVATE llama-decide)
+ 
++llama_build_and_test(test-decide-compat.cpp)
++target_link_libraries(test-decide-compat PRIVATE llama-decide)
++
+ llama_build_and_test(test-decide-trie.cpp)
+ target_link_libraries(test-decide-trie PRIVATE llama-decide)
+diff --git a/tests/test-decide-compat.cpp b/tests/test-decide-compat.cpp
+new file mode 100644
+index 000000000..82ca22c33
+--- /dev/null
++++ b/tests/test-decide-compat.cpp
+@@ -0,0 +1,270 @@
++#include "decide-compat.h"
++#include "decide-schema.h"
++#include "json.h"
++
++#include <cmath>
++#include <cstdio>
++#include <string>
++#include <vector>
++
++static int failures = 0;
++#define CHECK(cond) do { if (!(cond)) { std::fprintf(stderr, "FAIL %s:%d: %s\n", __FILE__, __LINE__, #cond); failures++; } } while (0)
++
++// compares the dumps, so key order counts
++static void check_json(const common_json & got, const std::string & want_text, int line) {
++    const std::string got_s  = got.dump();
++    const std::string want_s = common_json::parse(want_text).dump();
++    if (got_s != want_s) {
++        std::fprintf(stderr, "FAIL line %d: json mismatch\n---got---\n%s\n---want---\n%s\n", line, got_s.c_str(), want_s.c_str());
++        failures++;
++    }
++}
++#define CHECK_JSON(got, want) check_json((got), (want), __LINE__)
++
++static void expect_compat_error(const std::string & body, const std::vector<std::string> & loc, int line) {
++    try {
++        (void) decide::systemone_to_decide(common_json::parse(body));
++    } catch (const decide::compat_error & e) {
++        if (e.loc != loc) {
++            std::string got;
++            for (const auto & s : e.loc) got += "[" + s + "]";
++            std::fprintf(stderr, "FAIL line %d: wrong loc %s (msg %s)\n", line, got.c_str(), e.msg.c_str());
++            failures++;
++        }
++        if (e.msg.empty() || e.type.empty()) {
++            std::fprintf(stderr, "FAIL line %d: empty msg or type\n", line);
++            failures++;
++        }
++        return;
++    }
++    std::fprintf(stderr, "FAIL line %d: no compat_error for %s\n", line, body.c_str());
++    failures++;
++}
++#define EXPECT_LOC(body, ...) expect_compat_error((body), std::vector<std::string>{__VA_ARGS__}, __LINE__)
++
++static bool near(double a, double b) { return std::fabs(a - b) < 1e-9; }
++
++int main() {
++    // 1. docs example: noul with both criteria halves
++    {
++        auto out = decide::systemone_to_decide(common_json::parse(R"({
++            "state": "Help! My payouts have been failing for 3 days.",
++            "model": "jev-latest",
++            "questions": {"is_urgent": {"type": "noul", "instructions": "Does this convey urgency?",
++                                        "criteria": {"true": "Explicitly time-sensitive", "false": "No urgency expressed"}}}
++        })"));
++        CHECK_JSON(out, R"J({
++            "model": "jev-latest",
++            "instructions": "Answer each question about the state.",
++            "fields": {"is_urgent": {"type": "bool",
++                "description": "Does this convey urgency? (true: Explicitly time-sensitive; false: No urgency expressed)"}},
++            "states": ["Help! My payouts have been failing for 3 days."]
++        })J");
++        // the translated body compiles
++        auto cs = decide::compile_request(out);
++        CHECK(cs.fields.size() == 1 && cs.fields[0].type == decide::field_type::BOOL);
++    }
++
++    // 2. choice with a null description, then a score with three levels; field order kept
++    {
++        auto out = decide::systemone_to_decide(common_json::parse(R"({
++            "state": "My password reset email never arrives.", "model": "m",
++            "questions": {
++                "department":  {"type": "choice", "instructions": "Which team?",
++                                "criteria": {"billing": "Payments and refunds", "technical": "Bugs", "sales": null}},
++                "frustration": {"type": "score", "instructions": "How frustrated?",
++                                "criteria": ["Calm", "Annoyed", "Furious"]}
++            }
++        })"));
++        CHECK_JSON(out.at("fields"), R"({
++            "department":  {"type": "choice", "description": "Which team?",
++                            "options": {"billing": "Payments and refunds", "technical": "Bugs", "sales": ""}},
++            "frustration": {"type": "score", "description": "How frustrated?", "levels": ["Calm", "Annoyed", "Furious"]}
++        })");
++        auto cs = decide::compile_request(out);
++        CHECK(cs.fields.size() == 2 && cs.fields[0].name == "department" && cs.fields[1].name == "frustration");
++    }
++
++    // 3. absent instructions (and null) -> per-type defaults
++    {
++        auto out = decide::systemone_to_decide(common_json::parse(R"({
++            "state": "s", "model": "m",
++            "questions": {
++                "n": {"type": "noul"},
++                "c": {"type": "choice", "criteria": {"a": "x", "b": "y"}},
++                "s": {"type": "score", "instructions": null, "criteria": ["lo", "hi"]}
++            }
++        })"));
++        CHECK(out.at("fields").at("n").at("description").get<std::string>() == "Answer yes or no.");
++        CHECK(out.at("fields").at("c").at("description").get<std::string>() == "Choose the option that applies.");
++        CHECK(out.at("fields").at("s").at("description").get<std::string>() == "Rate on the given scale.");
++    }
++
++    // 4. object state, object instructions, object choice value, empty score entry
++    {
++        const auto body = common_json::parse(R"({
++            "state": {"ticket": "hi", "tags": [1, 2]}, "model": "m",
++            "questions": {
++                "c": {"type": "choice", "instructions": {"question": "Pick", "data": {"k": "v"}},
++                      "criteria": {"a": {"rubric": "first", "n": 1}, "b": ["x", "y"]}},
++                "s": {"type": "score", "criteria": ["low", "", "high"]}
++            }
++        })");
++        auto out = decide::systemone_to_decide(body);
++        CHECK(out.at("states").at(0).get<std::string>() == body.at("state").dump(2));
++        CHECK(out.at("states").at(0).get<std::string>().find('\n') != std::string::npos);
++        const auto & c = out.at("fields").at("c");
++        CHECK(c.at("description").get<std::string>() == body.at("questions").at("c").at("instructions").dump(2));
++        CHECK(c.at("options").at("a").get<std::string>() == R"({"rubric":"first","n":1})");
++        CHECK(c.at("options").at("b").get<std::string>() == R"(["x","y"])");
++        CHECK_JSON(out.at("fields").at("s").at("levels"), R"(["low", "level 1", "high"])");
++    }
++
++    // 5. noul halves: only false; true null -> no suffix
++    {
++        auto out = decide::systemone_to_decide(common_json::parse(R"({
++            "state": "s", "model": "m",
++            "questions": {
++                "f":  {"type": "noul", "instructions": "Q?", "criteria": {"false": "No"}},
++                "t0": {"type": "noul", "instructions": "Q?", "criteria": {"true": null}},
++                "o":  {"type": "noul", "instructions": "Q?", "criteria": {"true": {"a": 1}}}
++            }
++        })"));
++        CHECK(out.at("fields").at("f").at("description").get<std::string>() == "Q? (false: No)");
++        CHECK(out.at("fields").at("t0").at("description").get<std::string>() == "Q?");
++        CHECK(out.at("fields").at("o").at("description").get<std::string>() == R"J(Q? (true: {"a":1}))J");
++    }
++
++    // 6. shape errors (422) with exact loc
++    EXPECT_LOC(R"({"state": "s", "questions": {"q": {"type": "noul"}}})", "body", "model");
++    EXPECT_LOC(R"({"state": "s", "model": 3, "questions": {"q": {"type": "noul"}}})", "body", "model");
++    EXPECT_LOC(R"({"model": "m", "questions": {"q": {"type": "noul"}}})", "body", "state");
++    EXPECT_LOC(R"({"model": "m", "state": 5, "questions": {"q": {"type": "noul"}}})", "body", "state");
++    EXPECT_LOC(R"({"model": "m", "state": "s", "questions": {}})", "body", "questions");
++    EXPECT_LOC(R"({"model": "m", "state": "s"})", "body", "questions");
++    EXPECT_LOC(R"({"model": "m", "state": "s", "questions": {"q": {"type": "maybe"}}})", "body", "questions", "q", "type");
++    EXPECT_LOC(R"({"model": "m", "state": "s", "questions": {"q": {"instructions": "x"}}})", "body", "questions", "q", "type");
++    EXPECT_LOC(R"({"model": "m", "state": "s", "questions": {"q": {"type": "choice", "criteria": ["a", "b"]}}})", "body", "questions", "q", "criteria");
++    EXPECT_LOC(R"({"model": "m", "state": "s", "questions": {"q": {"type": "choice"}}})", "body", "questions", "q", "criteria");
++    EXPECT_LOC(R"({"model": "m", "state": "s", "questions": {"q": {"type": "choice", "criteria": {"a": 5, "b": "x"}}}})", "body", "questions", "q", "criteria", "a");
++    EXPECT_LOC(R"({"model": "m", "state": "s", "questions": {"q": "noul"}})", "body", "questions", "q");
++    EXPECT_LOC(R"({"model": "m", "state": "s", "questions": {"q": {"type": "noul", "instructions": 7}}})", "body", "questions", "q", "instructions");
++    EXPECT_LOC(R"({"model": "m", "state": "s", "questions": {"q": {"type": "score", "criteria": {"a": "x"}}}})", "body", "questions", "q", "criteria");
++    EXPECT_LOC(R"({"model": "m", "state": "s", "questions": {"q": {"type": "score", "criteria": ["a", true]}}})", "body", "questions", "q", "criteria", "1");
++    EXPECT_LOC(R"({"model": "m", "state": "s", "questions": {"q": {"type": "noul", "criteria": "yes"}}})", "body", "questions", "q", "criteria");
++    EXPECT_LOC(R"({"model": "m", "state": "s", "questions": {"q": {"type": "noul", "criteria": {"true": 1}}}})", "body", "questions", "q", "criteria", "true");
++    // a question id with a quote and unicode reaches loc unchanged
++    EXPECT_LOC(R"({"model": "m", "state": "s", "questions": {"a\"bé": {"type": 1}}})", "body", "questions", "a\"b\xc3\xa9", "type");
++
++    // 7. decide response -> Jev response
++    {
++        const auto questions = common_json::parse(R"({
++            "department":  {"type": "choice", "criteria": {"billing": "b", "technical": "t", "sales": null}},
++            "frustration": {"type": "score", "criteria": ["Calm", {"level": "Annoyed", "hint": "some"}, "Furious"]},
++            "is_urgent":   {"type": "noul"}
++        })");
++        const auto resp = common_json::parse(R"({
++            "results": [{"answers": {
++                "department":  {"value": "billing", "probabilities": {"billing": 0.88, "technical": 0.12, "sales": 0.0}, "confidence": 0.88},
++                "frustration": {"value": 1, "expected": 1.05, "probabilities": [0.0, 0.95, 0.05], "confidence": 0.95},
++                "is_urgent":   {"value": true, "p_true": 0.95, "confidence": 0.95}
++            }}],
++            "usage": {"prompt_tokens": 50, "cached_tokens": 268, "state_tokens": 12, "scored_tokens": 7}
++        })");
++        auto out = decide::decide_to_systemone(resp, questions, "qwen3.5-9b");
++        const auto & d = out.at("answers").at("department");
++        CHECK(near(d.at("confidence").get<double>(), 0.82));
++        common_json expect = common_json::parse(R"({
++            "model": "qwen3.5-9b",
++            "answers": {
++                "department": {"type": "choice", "choice": "billing",
++                               "probabilities": {"billing": 0.88, "technical": 0.12, "sales": 0.0}, "confidence": 0.0},
++                "frustration": {"type": "score", "score": 1.05,
++                                "legend": {"0": "Calm", "1": {"level": "Annoyed", "hint": "some"}, "2": "Furious"},
++                                "probabilities": {"0": 0.0, "1": 0.95, "2": 0.05}, "confidence": 0.0},
++                "is_urgent": {"type": "noul", "noul": 0.95}
++            },
++            "usage": {"input_tokens": 318, "output_tokens": 0}
++        })");
++        // confidence is a computed double, so compare it separately and splice it in
++        const double fc = out.at("answers").at("frustration").at("confidence").get<double>();
++        CHECK(near(fc, (3 * 0.95 - 1) / 2));
++        expect["answers"]["department"]["confidence"]  = d.at("confidence").get<double>();
++        expect["answers"]["frustration"]["confidence"] = fc;
++        CHECK_JSON(out, expect.dump());
++        CHECK(out.at("usage").at("input_tokens").is_number_integer());
++        CHECK(out.at("usage").at("output_tokens").is_number_integer());
++        CHECK(out.at("answers").at("frustration").at("score").is_number_float());
++        CHECK(!out.at("answers").at("is_urgent").contains("confidence"));
++
++        // score equal to an integer stays a float
++        auto resp2 = resp;
++        resp2["results"][0]["answers"]["frustration"]["expected"] = 1;
++        auto out2 = decide::decide_to_systemone(resp2, questions, "m");
++        CHECK(out2.at("answers").at("frustration").at("score").is_number_float());
++    }
++
++    // 8. confidence
++    CHECK(near(decide::jev_confidence({1.0, 0.0, 0.0}), 1.0));
++    CHECK(near(decide::jev_confidence({1.0 / 3, 1.0 / 3, 1.0 / 3}), 0.0));
++    CHECK(near(decide::jev_confidence({0.5, 0.3, 0.2}), 0.25));
++    CHECK(near(decide::jev_confidence({0.9, 0.1}), 0.8));
++    CHECK(near(decide::jev_confidence({0.7}), 1.0));
++
++    // 9. from_decide_error
++    {
++        auto e1 = decide::from_decide_error(decide::error("invalid_schema", 400, "bad field", "q"));
++        CHECK((e1.loc == std::vector<std::string>{"body", "questions", "q"}));
++        CHECK(e1.type == "invalid_schema" && e1.msg == "bad field");
++        auto e2 = decide::from_decide_error(decide::error("invalid_states", 400, "bad states"));
++        CHECK((e2.loc == std::vector<std::string>{"body"}));
++        CHECK(e2.type == "invalid_states");
++    }
++
++    // compile() stamps the field name on errors that do not know it (empty description)
++    {
++        auto tr = decide::systemone_to_decide(common_json::parse(R"({
++            "model": "m", "state": "s",
++            "questions": {"ok": {"type": "noul"}, "q": {"type": "choice", "instructions": "", "criteria": {"a": "x", "b": "y"}}}
++        })"));
++        bool thrown = false;
++        try {
++            (void) decide::compile_request(tr);
++        } catch (const decide::error & e) {
++            thrown = true;
++            CHECK(e.field == "q");
++            auto ce = decide::from_decide_error(e);
++            CHECK((ce.loc == std::vector<std::string>{"body", "questions", "q"}));
++        }
++        CHECK(thrown);
++        // a one-level score passes the translator and fails in compile with the field
++        auto tr2 = decide::systemone_to_decide(common_json::parse(R"({
++            "model": "m", "state": "s", "questions": {"lvl": {"type": "score", "criteria": ["only"]}}
++        })"));
++        thrown = false;
++        try {
++            (void) decide::compile_request(tr2);
++        } catch (const decide::error & e) {
++            thrown = true;
++            CHECK(e.field == "lvl");
++        }
++        CHECK(thrown);
++    }
++
++    // 10. map_decide_error_body
++    CHECK_JSON(decide::map_decide_error_body(400, common_json::parse(R"({"error":{"code":"invalid_schema","message":"m","field":"q"}})")),
++               R"({"detail":[{"loc":["body","questions","q"],"msg":"m","type":"invalid_schema"}]})");
++    CHECK_JSON(decide::map_decide_error_body(400, common_json::parse(R"({"error":{"message":"too long","code":"budget"}})")),
++               R"({"detail":[{"loc":["body"],"msg":"too long","type":"budget"}]})");
++
++    // 11. validation_body keeps order
++    CHECK_JSON(decide::validation_body({{{"body", "model"}, "first", "missing"}, {{"body", "state"}, "second", "missing"}}),
++               R"({"detail":[{"loc":["body","model"],"msg":"first","type":"missing"},{"loc":["body","state"],"msg":"second","type":"missing"}]})");
++
++    if (failures) {
++        std::fprintf(stderr, "test-decide-compat: %d failure(s)\n", failures);
++        return 1;
++    }
++    std::printf("test-decide-compat: OK\n");
++    return 0;
++}
+diff --git a/tools/decide/CMakeLists.txt b/tools/decide/CMakeLists.txt
+index 66275c70e..3afd62152 100644
+--- a/tools/decide/CMakeLists.txt
++++ b/tools/decide/CMakeLists.txt
+@@ -3,7 +3,8 @@ add_library(llama-decide STATIC
+     decide-score.cpp decide-score.h
+     decide-trie.cpp decide-trie.h
+     decide-engine.cpp decide-engine.h
+-    decide-api.cpp decide-api.h)
++    decide-api.cpp decide-api.h
++    decide-compat.cpp decide-compat.h)
+ target_include_directories(llama-decide PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+ target_link_libraries(llama-decide PUBLIC llama-common llama)
+ target_compile_features(llama-decide PUBLIC cxx_std_17)
+diff --git a/tools/decide/decide-api.cpp b/tools/decide/decide-api.cpp
+index d02f4e362..a8c99706a 100644
+--- a/tools/decide/decide-api.cpp
++++ b/tools/decide/decide-api.cpp
+@@ -4,10 +4,11 @@
+ 
+ namespace decide {
+ 
+-static api_result error_result(int status, const std::string & code, const std::string & message) {
++static api_result error_result(int status, const std::string & code, const std::string & message, const std::string & field = "") {
+     common_json e = common_json::object();
+     e["message"] = message;
+     e["code"]    = code;
++    if (!field.empty()) e["field"] = field;
+     common_json body = common_json::object();
+     body["error"] = e;
+     return {status, body};
+@@ -20,7 +21,7 @@ api_result handle_decide(engine & eng, const llama_vocab * vocab, const common_j
+         const trie_set                 ts     = build_tries(cs, vocab);
+         return {200, eng.decide(cs, ts, states, dump_tokens)};
+     } catch (const error & e) {
+-        return error_result(e.http, e.code, e.what());
++        return error_result(e.http, e.code, e.what(), e.field);
+     } catch (const std::exception & e) {
+         return error_result(500, "engine", e.what());
+     }
+@@ -35,7 +36,7 @@ api_result handle_info(engine & eng, const llama_vocab * vocab, const common_jso
+         const trie_set        ts = build_tries(cs, vocab);
+         return {200, eng.info(&cs, &ts)};
+     } catch (const error & e) {
+-        return error_result(e.http, e.code, e.what());
++        return error_result(e.http, e.code, e.what(), e.field);
+     } catch (const std::exception & e) {
+         return error_result(500, "engine", e.what());
+     }
+diff --git a/tools/decide/decide-compat.cpp b/tools/decide/decide-compat.cpp
+new file mode 100644
+index 000000000..e648ac01d
+--- /dev/null
++++ b/tools/decide/decide-compat.cpp
+@@ -0,0 +1,243 @@
++#include "decide-compat.h"
++
++#include <algorithm>
++#include <cstdint>
++
++namespace decide {
++
++using loc_t = std::vector<std::string>;
++
++static loc_t loc_of(loc_t base, const std::string & key) {
++    base.push_back(key);
++    return base;
++}
++
++[[noreturn]] static void fail(const loc_t & loc, const std::string & msg, const std::string & type) {
++    throw compat_error{loc, msg, type};
++}
++
++// X = string | object | array
++static bool is_x(const common_json & j) {
++    return j.is_string() || j.is_object() || j.is_array();
++}
++
++// spec 3.1 text(): string as is, object/array pretty JSON (indent 2), null ""
++static std::string text(const common_json & j) {
++    if (j.is_string()) return j.get<std::string>();
++    if (j.is_null())   return "";
++    return j.dump(2);
++}
++
++// spec 3.1 short(): string as is, object/array compact JSON, null ""
++static std::string short_text(const common_json & j) {
++    if (j.is_string()) return j.get<std::string>();
++    if (j.is_null())   return "";
++    return j.dump();
++}
++
++static const char * default_description(const std::string & type) {
++    if (type == "noul")   return "Answer yes or no.";
++    if (type == "choice") return "Choose the option that applies.";
++    return "Rate on the given scale.";
++}
++
++static common_json translate_question(const std::string & id, const common_json & q) {
++    const loc_t base = {"body", "questions", id};
++    if (!q.is_object()) fail(base, "Input should be a valid dictionary", "dict_type");
++
++    if (!q.contains("type")) fail(loc_of(base, "type"), "Field required", "missing");
++    const auto & tj = q.at("type");
++    const std::string type = tj.is_string() ? tj.get<std::string>() : "";
++    if (type != "noul" && type != "choice" && type != "score")
++        fail(loc_of(base, "type"), "Input should be 'noul', 'choice' or 'score'", "literal_error");
++
++    std::string d = default_description(type);
++    if (q.contains("instructions")) {
++        const auto & ij = q.at("instructions");
++        if (!ij.is_null()) {
++            if (!is_x(ij)) fail(loc_of(base, "instructions"), "Input should be a string, an object or an array", "invalid_type");
++            d = text(ij);
++        }
++    }
++
++    const loc_t cloc = loc_of(base, "criteria");
++    common_json f = common_json::object();
++    if (type == "noul") {
++        std::string suffix;
++        if (q.contains("criteria") && !q.at("criteria").is_null()) {
++            const auto & cj = q.at("criteria");
++            if (!cj.is_object()) fail(cloc, "Input should be a valid dictionary", "dict_type");
++            std::vector<std::string> parts;
++            for (const char * half : {"true", "false"}) {
++                if (!cj.contains(half)) continue;
++                const auto & hj = cj.at(half);
++                if (!hj.is_null() && !is_x(hj)) fail(loc_of(cloc, half), "Input should be a string, an object, an array or null", "invalid_type");
++                const std::string s = short_text(hj);
++                if (!s.empty()) parts.push_back(std::string(half) + ": " + s);
++            }
++            if (!parts.empty()) {
++                suffix = " (" + parts[0];
++                for (size_t i = 1; i < parts.size(); ++i) suffix += "; " + parts[i];
++                suffix += ")";
++            }
++        }
++        f["type"]        = "bool";
++        f["description"] = d + suffix;
++    } else if (type == "choice") {
++        if (!q.contains("criteria")) fail(cloc, "Field required", "missing");
++        const auto & cj = q.at("criteria");
++        if (!cj.is_object()) fail(cloc, "Input should be a valid dictionary", "dict_type");
++        common_json options = common_json::object();
++        for (const auto & [key, val] : cj.items()) {
++            if (!val.is_null() && !is_x(val)) fail(loc_of(cloc, key), "Input should be a string, an object, an array or null", "invalid_type");
++            options[key] = short_text(val);
++        }
++        f["type"]        = "choice";
++        f["description"] = d;
++        f["options"]     = options;
++    } else {
++        if (!q.contains("criteria")) fail(cloc, "Field required", "missing");
++        const auto & cj = q.at("criteria");
++        if (!cj.is_array()) fail(cloc, "Input should be a valid list", "list_type");
++        common_json levels = common_json::array();
++        for (size_t i = 0; i < cj.size(); ++i) {
++            const auto & ej = cj.at(i);
++            if (!is_x(ej)) fail(loc_of(cloc, std::to_string(i)), "Input should be a string, an object or an array", "invalid_type");
++            std::string s = short_text(ej);
++            if (s.empty()) s = "level " + std::to_string(i);
++            levels.push_back(s);
++        }
++        f["type"]        = "score";
++        f["description"] = d;
++        f["levels"]      = levels;
++    }
++    return f;
++}
++
++common_json systemone_to_decide(const common_json & body) {
++    if (!body.is_object()) fail({"body"}, "Input should be a valid dictionary", "dict_type");
++
++    if (!body.contains("model")) fail({"body", "model"}, "Field required", "missing");
++    if (!body.at("model").is_string()) fail({"body", "model"}, "Input should be a valid string", "string_type");
++
++    if (!body.contains("state")) fail({"body", "state"}, "Field required", "missing");
++    if (!is_x(body.at("state"))) fail({"body", "state"}, "Input should be a string, an object or an array", "invalid_type");
++
++    if (!body.contains("questions")) fail({"body", "questions"}, "Field required", "missing");
++    const auto & qs = body.at("questions");
++    if (!qs.is_object()) fail({"body", "questions"}, "Input should be a valid dictionary", "dict_type");
++    if (qs.empty()) fail({"body", "questions"}, "questions must have at least 1 entry", "too_short");
++
++    common_json fields = common_json::object();
++    for (const auto & [id, q] : qs.items()) {
++        fields[id] = translate_question(id, q);
++    }
++
++    common_json out = common_json::object();
++    out["model"]        = body.at("model");
++    out["instructions"] = "Answer each question about the state.";
++    out["fields"]       = fields;
++    common_json states  = common_json::array();
++    states.push_back(text(body.at("state")));
++    out["states"]       = states;
++    return out;
++}
++
++double jev_confidence(const std::vector<double> & probs) {
++    const size_t n = probs.size();
++    if (n < 2) return 1.0;
++    const double peak = *std::max_element(probs.begin(), probs.end());
++    const double c = ((double) n * peak - 1.0) / ((double) n - 1.0);
++    return std::min(1.0, std::max(0.0, c));
++}
++
++common_json decide_to_systemone(const common_json & decide_response, const common_json & questions, const std::string & model) {
++    const auto & answers = decide_response.at("results").at(0).at("answers");
++    common_json out_answers = common_json::object();
++    for (const auto & [id, q] : questions.items()) {
++        const std::string type = q.at("type").get<std::string>();
++        const auto & a = answers.at(id);
++        common_json j = common_json::object();
++        j["type"] = type;
++        if (type == "noul") {
++            j["noul"] = a.at("p_true").get<double>();
++        } else if (type == "choice") {
++            common_json probs = common_json::object();
++            std::vector<double> ps;
++            for (const auto & [key, p] : a.at("probabilities").items()) {
++                const double v = p.get<double>();
++                probs[key] = v;
++                ps.push_back(v);
++            }
++            j["choice"]        = a.at("value");
++            j["probabilities"] = probs;
++            j["confidence"]    = jev_confidence(ps);
++        } else {
++            const auto & criteria = q.at("criteria");
++            const auto & pl = a.at("probabilities");
++            common_json legend = common_json::object();
++            common_json probs  = common_json::object();
++            std::vector<double> ps;
++            for (size_t i = 0; i < pl.size(); ++i) {
++                const std::string k = std::to_string(i);
++                legend[k] = criteria.at(i);
++                const double v = pl.at(i).get<double>();
++                probs[k] = v;
++                ps.push_back(v);
++            }
++            j["score"]         = a.at("expected").get<double>();
++            j["legend"]        = legend;
++            j["probabilities"] = probs;
++            j["confidence"]    = jev_confidence(ps);
++        }
++        out_answers[id] = j;
++    }
++
++    const auto & u = decide_response.at("usage");
++    common_json usage = common_json::object();
++    usage["input_tokens"]  = u.at("prompt_tokens").get<int64_t>() + u.at("cached_tokens").get<int64_t>();
++    usage["output_tokens"] = (int64_t) 0;
++
++    common_json out = common_json::object();
++    out["model"]   = model;
++    out["answers"] = out_answers;
++    out["usage"]   = usage;
++    return out;
++}
++
++common_json validation_body(const std::vector<compat_error> & errs) {
++    common_json detail = common_json::array();
++    for (const auto & e : errs) {
++        common_json loc = common_json::array();
++        for (const auto & s : e.loc) loc.push_back(s);
++        common_json d = common_json::object();
++        d["loc"]  = loc;
++        d["msg"]  = e.msg;
++        d["type"] = e.type;
++        detail.push_back(d);
++    }
++    common_json out = common_json::object();
++    out["detail"] = detail;
++    return out;
++}
++
++compat_error from_decide_error(const error & e) {
++    compat_error ce;
++    ce.loc = e.field.empty() ? loc_t{"body"} : loc_t{"body", "questions", e.field};
++    ce.msg  = e.what();
++    ce.type = e.code;
++    return ce;
++}
++
++common_json map_decide_error_body(int status, const common_json & decide_error_body) {
++    if (status != 400 || !decide_error_body.is_object() || !decide_error_body.contains("error")) return decide_error_body;
++    const auto & ej = decide_error_body.at("error");
++    const std::string field = ej.value("field", std::string());
++    compat_error ce;
++    ce.loc  = field.empty() ? loc_t{"body"} : loc_t{"body", "questions", field};
++    ce.msg  = ej.value("message", std::string());
++    ce.type = ej.value("code", std::string());
++    return validation_body({ce});
++}
++
++} // namespace decide
+diff --git a/tools/decide/decide-compat.h b/tools/decide/decide-compat.h
+new file mode 100644
+index 000000000..e825c9dfb
+--- /dev/null
++++ b/tools/decide/decide-compat.h
+@@ -0,0 +1,34 @@
++#pragma once
++// Jev System One (POST /v1/systemone) <-> /v1/decide translation. Pure functions, no model.
++#include "decide-schema.h"
++#include "json.h"          // common_json
++
++#include <string>
++#include <vector>
++
++namespace decide {
++
++// one FastAPI-style validation entry; loc is built from JSON keys, never from messages
++// (array indices appear as decimal strings)
++struct compat_error {
++    std::vector<std::string> loc;
++    std::string              msg;
++    std::string              type;
++};
++
++// Jev request -> /v1/decide body. Throws compat_error for the first shape problem found.
++common_json systemone_to_decide(const common_json & body);
++// /v1/decide 200 body -> Jev response; questions and model come from the Jev request.
++common_json decide_to_systemone(const common_json & decide_response, const common_json & questions, const std::string & model);
++// clip((n*peak - 1)/(n - 1), 0, 1); n < 2 -> 1.0
++double      jev_confidence(const std::vector<double> & probs);
++// {"detail": [{"loc", "msg", "type"}, ...]}
++common_json validation_body(const std::vector<compat_error> & errs);
++// loc = ["body","questions",e.field], or ["body"] when e.field is empty; type = e.code
++compat_error from_decide_error(const error & e);
++// post-task /v1/decide error body -> {"detail": [...]} for status 400 (invalid_schema, budget);
++// any other status returns the body unchanged. The HTTP status itself is the caller's choice
++// (spec 3.2: invalid_schema -> 422, budget -> 400).
++common_json map_decide_error_body(int status, const common_json & decide_error_body);
++
++} // namespace decide
+diff --git a/tools/decide/decide-schema.cpp b/tools/decide/decide-schema.cpp
+index d7c729c76..a7f5e041d 100644
+--- a/tools/decide/decide-schema.cpp
++++ b/tools/decide/decide-schema.cpp
+@@ -74,7 +74,12 @@ compiled_schema compile(const common_json & fields_j, const std::string & instru
+     cs.instructions = instructions;
+     for (const auto & [key, val] : fields_j.items()) {
+         if (key.empty()) throw error("invalid_schema", 400, "field name must not be empty");
+-        cs.fields.push_back(compile_field(key, val));
++        try {
++            cs.fields.push_back(compile_field(key, val));
++        } catch (error & e) {
++            if (e.field.empty()) e.field = key;   // require_string/require_object do not know the name
++            throw;
++        }
+     }
+ 
+     if (!opts_j.is_object()) throw error("invalid_options", 400, "options must be an object");
+diff --git a/tools/decide/decide-schema.h b/tools/decide/decide-schema.h
+index 84935d9ca..c44e2487c 100644
+--- a/tools/decide/decide-schema.h
++++ b/tools/decide/decide-schema.h
+@@ -10,8 +10,9 @@ namespace decide {
+ struct error : std::runtime_error {
+     std::string code;   // invalid_schema | invalid_options | invalid_states | budget | engine
+     int         http;   // 400 or 500
+-    error(std::string code_, int http_, const std::string & msg)
+-        : std::runtime_error(msg), code(std::move(code_)), http(http_) {}
++    std::string field;  // the field name the error is about, empty when not about one field
++    error(std::string code_, int http_, const std::string & msg, std::string field_ = "")
++        : std::runtime_error(msg), code(std::move(code_)), http(http_), field(std::move(field_)) {}
+ };
+ 
+ enum class field_type { CHOICE, SCORE, BOOL };
+diff --git a/tools/decide/decide-trie.cpp b/tools/decide/decide-trie.cpp
+index 26ec5f378..43a84bfeb 100644
+--- a/tools/decide/decide-trie.cpp
++++ b/tools/decide/decide-trie.cpp
+@@ -122,7 +122,7 @@ static void check_paths_nonempty_distinct(const field & f, const std::vector<std
+             const auto & pj = paths[j];
+             if (pi.size() <= pj.size() && std::equal(pi.begin(), pi.end(), pj.begin())) {
+                 throw error("invalid_schema", 400, "field \"" + f.name + "\": option \"" + f.options[i].key +
+-                                                        "\" tokenises as a prefix of option \"" + f.options[j].key + "\"");
++                                                        "\" tokenises as a prefix of option \"" + f.options[j].key + "\"", f.name);
+             }
+         }
+     }
+@@ -204,7 +204,7 @@ field_trie build_trie(const field & f, const llama_vocab * vocab) {
+ 
+     // Rule 6: quote-anchored fallback, choice fields only.
+     if (f.type != field_type::CHOICE) {
+-        throw error("invalid_schema", 400, conflict_msg);
++        throw error("invalid_schema", 400, conflict_msg, f.name);
+     }
+ 
+     field_trie qt;
+@@ -219,7 +219,7 @@ field_trie build_trie(const field & f, const llama_vocab * vocab) {
+ 
+     std::string qconflict_msg = sibling_conflict(f, qt, vocab);
+     if (!qconflict_msg.empty()) {
+-        throw error("invalid_schema", 400, qconflict_msg);
++        throw error("invalid_schema", 400, qconflict_msg, f.name);
+     }
+ 
+     return qt;
+-- 
+2.55.0
+

@@ -1,0 +1,60 @@
+{
+ "command": [
+  "/home/marduk/llama.cpp-decision/engine/build/bin/llama-decide",
+  "-m",
+  "./models/gemma-4-E4B-it-Q4_0.gguf",
+  "--decide-seqs",
+  "21",
+  "-c",
+  "4096",
+  "-ngl",
+  "99",
+  "-fa",
+  "on",
+  "-ctk",
+  "q8_0",
+  "-ctv",
+  "q8_0",
+  "--info",
+  "-v"
+ ],
+ "returncode": 0,
+ "n_ctx": 4096,
+ "memory": {
+  "recurrent": false,
+  "swa": true,
+  "swa_cells": 4096
+ },
+ "logged_swa_cells": [
+  4096,
+  4096
+ ],
+ "kv_lines": [
+  "0.00.687.717 I print_info: n_swa                 = 512",
+  "0.00.695.362 I llama_context: n_seq_max             = 22",
+  "0.00.695.363 I llama_context: n_ubatch              = 512",
+  "0.00.710.252 I llama_kv_cache_iswa: creating non-SWA KV cache, size = 4096 cells",
+  "0.00.710.319 D llama_kv_cache: layer  24: does not have KV cache",
+  "0.00.710.320 D llama_kv_cache: layer  25: does not have KV cache",
+  "0.00.710.320 D llama_kv_cache: layer  26: does not have KV cache",
+  "0.00.710.320 D llama_kv_cache: layer  27: does not have KV cache",
+  "0.00.710.321 D llama_kv_cache: layer  28: does not have KV cache",
+  "0.00.710.321 D llama_kv_cache: layer  29: does not have KV cache",
+  "0.00.710.321 D llama_kv_cache: layer  30: does not have KV cache",
+  "0.00.710.322 D llama_kv_cache: layer  31: does not have KV cache",
+  "0.00.710.322 D llama_kv_cache: layer  32: does not have KV cache",
+  "0.00.710.322 D llama_kv_cache: layer  33: does not have KV cache",
+  "0.00.710.322 D llama_kv_cache: layer  34: does not have KV cache",
+  "0.00.710.323 D llama_kv_cache: layer  35: does not have KV cache",
+  "0.00.710.323 D llama_kv_cache: layer  36: does not have KV cache",
+  "0.00.710.323 D llama_kv_cache: layer  37: does not have KV cache",
+  "0.00.710.324 D llama_kv_cache: layer  38: does not have KV cache",
+  "0.00.710.324 D llama_kv_cache: layer  39: does not have KV cache"
+ ],
+ "checks": {
+  "llama-decide --info: exit 0": true,
+  "info: memory.swa_cells equals the SWA KV cache size in the log": true,
+  "info: memory.swa_cells 4096": true
+ },
+ "pass": true
+}

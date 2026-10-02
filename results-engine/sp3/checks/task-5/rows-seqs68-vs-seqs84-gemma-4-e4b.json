@@ -1,0 +1,122 @@
+{
+  "split": "results-engine/sp3/checks/task-5/fp-b5-seqs68-gemma-4-e4b.jsonl",
+  "whole": "results-engine/sp3/checks/task-5/fp-b5-seqs84-gemma-4-e4b.jsonl",
+  "row_cap": 69,
+  "rows_compared": 340,
+  "max_abs_diff_all_rows": 0.07263763977466164,
+  "rows_after_boundary": [
+    {
+      "line": 0,
+      "state": 4,
+      "field": "queue",
+      "node": 1,
+      "max_abs_diff": 1.0823598281326852e-05,
+      "values_split": {
+        "children:236775": 0.00012462729973822752,
+        "merged:236775": 0.9998699909019517
+      },
+      "values_whole": {
+        "children:236775": 0.00013545089801955437,
+        "merged:236775": 0.9998594517790347
+      }
+    },
+    {
+      "line": 0,
+      "state": 4,
+      "field": "queue",
+      "node": 2,
+      "max_abs_diff": 0.0006052873157703642,
+      "values_split": {
+        "end:": 0.9963479440234003
+      },
+      "values_whole": {
+        "end:": 0.9969532313391707
+      }
+    },
+    {
+      "line": 1,
+      "state": 4,
+      "field": "queue",
+      "node": 1,
+      "max_abs_diff": 3.479555199525919e-09,
+      "values_split": {
+        "children:236775": 1.599808879456532e-07,
+        "merged:236775": 0.9999997096801816
+      },
+      "values_whole": {
+        "children:236775": 1.6309749369868602e-07,
+        "merged:236775": 0.9999997131597368
+      }
+    },
+    {
+      "line": 1,
+      "state": 4,
+      "field": "queue",
+      "node": 2,
+      "max_abs_diff": 2.3095690291574655e-05,
+      "values_split": {
+        "end:": 0.9995348507729043
+      },
+      "values_whole": {
+        "end:": 0.9995579464631958
+      }
+    },
+    {
+      "line": 2,
+      "state": 4,
+      "field": "queue",
+      "node": 1,
+      "max_abs_diff": 5.942247253405865e-06,
+      "values_split": {
+        "children:236775": 5.8082902112670735e-05,
+        "merged:236775": 0.9999349272693691
+      },
+      "values_whole": {
+        "children:236775": 5.214065485926487e-05,
+        "merged:236775": 0.9999402757794519
+      }
+    },
+    {
+      "line": 2,
+      "state": 4,
+      "field": "queue",
+      "node": 2,
+      "max_abs_diff": 0.0004754565525381116,
+      "values_split": {
+        "end:": 0.9909161559127652
+      },
+      "values_whole": {
+        "end:": 0.9913916124653033
+      }
+    },
+    {
+      "line": 3,
+      "state": 4,
+      "field": "queue",
+      "node": 1,
+      "max_abs_diff": 1.1113883502389399e-07,
+      "values_split": {
+        "children:236775": 1.2833702075672795e-06,
+        "merged:236775": 0.99999844132909
+      },
+      "values_whole": {
+        "children:236775": 1.197141003614331e-06,
+        "merged:236775": 0.999998552467925
+      }
+    },
+    {
+      "line": 3,
+      "state": 4,
+      "field": "queue",
+      "node": 2,
+      "max_abs_diff": 7.744512491159039e-05,
+      "values_split": {
+        "end:": 0.9994561693985827
+      },
+      "values_whole": {
+        "end:": 0.9995336145234943
+      }
+    }
+  ],
+  "max_abs_diff_after_boundary": 0.0006052873157703642
+}

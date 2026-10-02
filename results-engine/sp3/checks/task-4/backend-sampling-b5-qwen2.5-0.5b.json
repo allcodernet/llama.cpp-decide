@@ -1,0 +1,82 @@
+{
+  "ref": "results-engine/sp3/checks/task-4/normal-b5-qwen2.5-0.5b.jsonl",
+  "run": "results-engine/sp3/checks/task-4/backend-sampling-b5-qwen2.5-0.5b.jsonl",
+  "n_tickets": 20,
+  "max_abs_diff": 0.0,
+  "fields": {
+    "queue": {
+      "median_abs_diff": 0.0,
+      "max_abs_diff": 0.0,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    },
+    "urgency": {
+      "median_abs_diff": 0.0,
+      "max_abs_diff": 0.0,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    },
+    "angry": {
+      "median_abs_diff": 0.0,
+      "max_abs_diff": 0.0,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    }
+  },
+  "pass": true,
+  "run_lines": [
+    {
+      "retries": 0,
+      "rounds": 3,
+      "states_per_round": 2,
+      "decodes": 7
+    },
+    {
+      "retries": 0,
+      "rounds": 3,
+      "states_per_round": 2,
+      "decodes": 6
+    },
+    {
+      "retries": 0,
+      "rounds": 3,
+      "states_per_round": 2,
+      "decodes": 6
+    },
+    {
+      "retries": 0,
+      "rounds": 3,
+      "states_per_round": 2,
+      "decodes": 6
+    }
+  ],
+  "ref_lines": [
+    {
+      "retries": 0,
+      "rounds": 3,
+      "states_per_round": 2
+    },
+    {
+      "retries": 0,
+      "rounds": 3,
+      "states_per_round": 2
+    },
+    {
+      "retries": 0,
+      "rounds": 3,
+      "states_per_round": 2
+    },
+    {
+      "retries": 0,
+      "rounds": 3,
+      "states_per_round": 2
+    }
+  ],
+  "pass_all": true
+}

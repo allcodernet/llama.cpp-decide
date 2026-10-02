@@ -1,0 +1,29 @@
+{
+ "command": [
+  "/home/marduk/llama.cpp-decision/engine/build/bin/llama-decide",
+  "-m",
+  "./models/Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+  "--decide-seqs",
+  "9",
+  "-c",
+  "4096",
+  "-ngl",
+  "99",
+  "-fa",
+  "on",
+  "-ctk",
+  "f16",
+  "-ctv",
+  "f16"
+ ],
+ "returncode": 1,
+ "stdout": "",
+ "error": {
+  "error": {
+   "message": "states[0] has an image part, but vision is not available (no_projector): no projector is loaded; start the server or llama-decide with --mmproj",
+   "code": "vision_unavailable",
+   "field": "states[0]"
+  }
+ },
+ "pass": true
+}

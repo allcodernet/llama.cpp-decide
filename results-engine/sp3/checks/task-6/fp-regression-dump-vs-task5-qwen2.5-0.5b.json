@@ -1,0 +1,31 @@
+{
+  "ref": "results-engine/sp3/checks/task-5/fp-b5-qwen2.5-0.5b.jsonl",
+  "run": "results-engine/sp3/checks/task-6/fp-regression-b5-qwen2.5-0.5b.jsonl",
+  "results_identical": true,
+  "tokens_identical_without_phase": true,
+  "phases_in_dump": [
+    0
+  ],
+  "new_engine_keys": [
+    "phases"
+  ],
+  "usage_identical": true,
+  "decodes": [
+    [
+      4,
+      4
+    ],
+    [
+      3,
+      3
+    ],
+    [
+      3,
+      3
+    ],
+    [
+      3,
+      3
+    ]
+  ]
+}

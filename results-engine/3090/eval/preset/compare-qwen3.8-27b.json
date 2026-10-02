@@ -1,0 +1,39 @@
+{
+  "a": "results-engine/3090/eval/preset/tempered-baseline-test-qwen3.8-27b.jsonl",
+  "b": "results-engine/3090/eval/preset/preds/decide-qwen3.8-27b-b5-keywords-t0.8992.jsonl",
+  "formats": [
+    "preds",
+    "preds"
+  ],
+  "n_tickets": 80,
+  "max_abs_diff": 2.220446049250313e-16,
+  "fields": {
+    "queue": {
+      "median_abs_diff": 7.411538288475128e-22,
+      "max_abs_diff": 2.220446049250313e-16,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    },
+    "urgency": {
+      "median_abs_diff": 2.168404344971009e-19,
+      "max_abs_diff": 2.220446049250313e-16,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    },
+    "angry": {
+      "median_abs_diff": 0.0,
+      "max_abs_diff": 2.220446049250313e-16,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    }
+  },
+  "pass": true,
+  "max_diff_bound": 1e-09,
+  "within_bound": true
+}

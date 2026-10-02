@@ -1,0 +1,34 @@
+02:27:25 qwen3.5-9b-full-path-test: 22 MiB, 52 C before start
+02:27:45 qwen3.5-9b-full-path-test: 6424 MiB, 66 at stop
+02:27:48 qwen3.5-9b-full-path-train: 22 MiB, 64 C before start
+02:29:19 qwen3.5-9b-full-path-train: 6424 MiB, 75 at stop
+02:29:22 qwen3.5-9b-after-a-test: 22 MiB, 73 C before start
+02:29:36 qwen3.5-9b-after-a-test: 6416 MiB, 74 at stop
+02:29:39 qwen3.5-9b-after-a-train: 22 MiB, 72 C before start
+02:30:27 qwen3.5-9b-after-a-train: 6416 MiB, 75 at stop
+02:30:30 qwen3.5-9b-after-b-test: 22 MiB, 73 C before start
+02:30:47 qwen3.5-9b-after-b-test: 6416 MiB, 75 at stop
+02:30:49 qwen3.5-9b-after-b-train: 22 MiB, 73 C before start
+02:31:50 qwen3.5-9b-after-b-train: 6416 MiB, 76 at stop
+02:31:53 qwen3.5-9b-debias4-test: 22 MiB, 73 C before start
+02:32:39 qwen3.5-9b-debias4-test: 6426 MiB, 76 at stop
+02:32:41 qwen3.5-9b-debias4-train: 22 MiB, 73 C before start
+02:35:26 qwen3.5-9b-debias4-train: 6426 MiB, 78 at stop
+02:35:29 gemma-4-e4b-full-path-test: 22 MiB, 74 C before start
+02:35:44 gemma-4-e4b-full-path-test: 3344 MiB, 75 at stop
+02:35:47 gemma-4-e4b-full-path-train: 22 MiB, 74 C before start
+02:36:38 gemma-4-e4b-full-path-train: 3344 MiB, 75 at stop
+02:36:41 gemma-4-e4b-after-a-test: 22 MiB, 73 C before start
+02:36:48 gemma-4-e4b-after-a-test: 3326 MiB, 75 at stop
+02:36:51 gemma-4-e4b-after-a-train: 22 MiB, 72 C before start
+02:37:11 gemma-4-e4b-after-a-train: 3340 MiB, 75 at stop
+02:37:13 gemma-4-e4b-after-b-test: 22 MiB, 72 C before start
+02:37:21 gemma-4-e4b-after-b-test: 3326 MiB, 75 at stop
+02:37:23 gemma-4-e4b-after-b-train: 22 MiB, 72 C before start
+02:37:47 gemma-4-e4b-after-b-train: 3340 MiB, 75 at stop
+02:37:50 gemma-4-e4b-debias4-test: 22 MiB, 73 C before start
+02:38:12 gemma-4-e4b-debias4-test: 3344 MiB, 76 at stop
+02:38:15 gemma-4-e4b-debias4-train: 22 MiB, 73 C before start
+02:39:31 gemma-4-e4b-debias4-train: 3344 MiB, 75 at stop
+02:41:10 preset-gemma-4-e4b-test: 22 MiB, 59 C before start
+02:41:15 preset-gemma-4-e4b-test: 3330 MiB, 65 at stop

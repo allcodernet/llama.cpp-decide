@@ -1,0 +1,7 @@
+{
+  "resp": "results-engine/sp3/checks/task-5/fp-b1-qwen2.5-0.5b.jsonl",
+  "fields_checked": 60,
+  "max_abs_diff": 1.1102230246251565e-16,
+  "problems": [],
+  "pass": true
+}

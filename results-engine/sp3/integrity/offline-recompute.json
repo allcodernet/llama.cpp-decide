@@ -1,0 +1,55 @@
+{
+  "results": [
+    {
+      "result": "reference-fp-after-qwen2.5-0.5b.json",
+      "mode": "full_path",
+      "identical": true
+    },
+    {
+      "result": "reference-fp-after-qwen3.5-4b.json",
+      "mode": "full_path",
+      "identical": true
+    },
+    {
+      "result": "reference-fp-b5-gemma-4-e4b.json",
+      "mode": "full_path",
+      "identical": true
+    },
+    {
+      "result": "reference-fp-b5-qwen2.5-0.5b.json",
+      "mode": "full_path",
+      "identical": true
+    },
+    {
+      "result": "reference-fp-gemma-4-e4b.json",
+      "mode": "full_path",
+      "identical": true
+    },
+    {
+      "result": "reference-fp-qwen2.5-0.5b.json",
+      "mode": "full_path",
+      "identical": true
+    },
+    {
+      "result": "reference-fp-qwen3.5-4b.json",
+      "mode": "full_path",
+      "identical": true
+    },
+    {
+      "result": "reference-fp-qwen3.5-9b.json",
+      "mode": "full_path",
+      "identical": true
+    },
+    {
+      "result": "reference-tree-b1-qwen2.5-0.5b.json",
+      "mode": "tree",
+      "identical": true
+    },
+    {
+      "result": "reference-tree-b5-qwen2.5-0.5b.json",
+      "mode": "tree",
+      "identical": true
+    }
+  ],
+  "all_identical": true
+}

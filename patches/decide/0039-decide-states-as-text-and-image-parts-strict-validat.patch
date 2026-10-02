@@ -1,0 +1,965 @@
+From 374a038b8b4eb3398c8af52d43fd3b176fa5610b Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 2 Oct 2026 13:26:11 +0200
+Subject: [PATCH 39/45] decide: states as text and image parts, strict
+ validation, vision status (no vision yet)
+
+---
+ tests/CMakeLists.txt            |   4 +
+ tests/test-decide-image.cpp     | 280 ++++++++++++++++++++++++++++++++
+ tests/test-decide-schema.cpp    |   6 +-
+ tools/decide/CMakeLists.txt     |   6 +-
+ tools/decide/decide-api.cpp     |   2 +-
+ tools/decide/decide-engine.cpp  |  23 ++-
+ tools/decide/decide-engine.h    |  13 +-
+ tools/decide/decide-image.cpp   | 257 +++++++++++++++++++++++++++++
+ tools/decide/decide-image.h     |  50 ++++++
+ tools/decide/decide-schema.cpp  |  31 +++-
+ tools/decide/decide-schema.h    |  20 ++-
+ tools/server/server-context.cpp |  11 +-
+ 12 files changed, 681 insertions(+), 22 deletions(-)
+ create mode 100644 tests/test-decide-image.cpp
+ create mode 100644 tools/decide/decide-image.cpp
+ create mode 100644 tools/decide/decide-image.h
+
+diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
+index 01569ea2e..bf6f3a0cc 100644
+--- a/tests/CMakeLists.txt
++++ b/tests/CMakeLists.txt
+@@ -409,6 +409,10 @@ target_link_libraries(test-decide-fullpath PRIVATE llama-decide)
+ llama_build_and_test(test-decide-debias.cpp)
+ target_link_libraries(test-decide-debias PRIVATE llama-decide)
+ 
++# sub-project 4: the image parts of a state, without a model
++llama_build_and_test(test-decide-image.cpp)
++target_link_libraries(test-decide-image PRIVATE llama-decide)
++
+ # spec 5 sequential fields; the tokenizer part runs on the vocab-only files of two families
+ llama_build(test-decide-after.cpp)
+ target_link_libraries(test-decide-after PRIVATE llama-decide)
+diff --git a/tests/test-decide-image.cpp b/tests/test-decide-image.cpp
+new file mode 100644
+index 000000000..7dac04438
+--- /dev/null
++++ b/tests/test-decide-image.cpp
+@@ -0,0 +1,280 @@
++// Sub-project 4 without a model (spec 3.1-3.4, 4.1, 9.1): the states of a request as text and image parts, strict base64,
++// the data URI, the JPEG/PNG header and its pixel limit, every limit, the order of the checks and the vision status
++#include "decide-engine.h"
++#include "decide-image.h"
++#include "decide-schema.h"
++
++#include <cstdint>
++#include <cstdio>
++#include <cstdlib>
++#include <string>
++#include <vector>
++
++static int failures = 0;
++#define CHECK(cond) do { if (!(cond)) { std::fprintf(stderr, "FAIL %s:%d: %s\n", __FILE__, __LINE__, #cond); failures++; } } while (0)
++
++using decide::vision_reason;
++
++// 2 x 3 RGB PNG (rows: red green / blue yellow / cyan magenta) and a 4 x 2 baseline JPEG (Pillow, 2026-10-02). The JPEG's
++// SOF0 marker is at byte 158: precision at 162, height at 163-164, width at 165-166.
++static const char * PNG_B64 = "iVBORw0KGgoAAAANSUhEUgAAAAIAAAADCAIAAAA2iEnWAAAAGElEQVR4nAXBAQEAAAjDIG7/zhOEoHJiPUfdBv3wKgpGAAAAAElFTkSuQmCC";
++static const char * JPG_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAACAAQDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwCpRRRX4ef0gf/Z";
++static const size_t JPG_SOF = 158;
++
++static std::string unb64(const char * s) {
++    std::string out;
++    if (!decide::base64_decode_strict(s, out)) {
++        std::fprintf(stderr, "FAIL fixture is not base64\n");
++        std::exit(1);
++    }
++    return out;
++}
++
++static std::string b64(const std::string & in) {
++    static const char * A = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
++    std::string out;
++    size_t      i = 0;
++    for (; i + 2 < in.size(); i += 3) {
++        const uint32_t v = ((uint32_t) (uint8_t) in[i] << 16) | ((uint32_t) (uint8_t) in[i + 1] << 8) | (uint8_t) in[i + 2];
++        out += A[v >> 18]; out += A[(v >> 12) & 63]; out += A[(v >> 6) & 63]; out += A[v & 63];
++    }
++    if (i + 1 == in.size()) {
++        const uint32_t v = (uint32_t) (uint8_t) in[i] << 16;
++        out += A[v >> 18]; out += A[(v >> 12) & 63]; out += "==";
++    } else if (i + 2 == in.size()) {
++        const uint32_t v = ((uint32_t) (uint8_t) in[i] << 16) | ((uint32_t) (uint8_t) in[i + 1] << 8);
++        out += A[v >> 18]; out += A[(v >> 12) & 63]; out += A[(v >> 6) & 63]; out += '=';
++    }
++    return out;
++}
++
++static std::string be32(uint32_t v) {
++    std::string s(4, '\0');
++    s[0] = (char) (v >> 24); s[1] = (char) (v >> 16); s[2] = (char) (v >> 8); s[3] = (char) v;
++    return s;
++}
++
++// a PNG signature and IHDR chunk only: enough for the header check, no pixel data
++static std::string png_header(uint32_t w, uint32_t h) {
++    return std::string("\x89PNG\r\n\x1a\n", 8) + be32(13) + "IHDR" + be32(w) + be32(h) + std::string("\x08\x02\x00\x00\x00", 5) + be32(0);
++}
++
++static std::string url(const std::string & bytes, const std::string & subtype = "png") { return "data:image/" + subtype + ";base64," + b64(bytes); }
++static std::string img(const std::string & u) { return R"({"type": "image_url", "image_url": {"url": )" + decide::json_string(u) + "}}"; }
++static std::string txt(const std::string & t) { return R"({"type": "text", "text": )" + decide::json_string(t) + "}"; }
++static std::string list(const std::vector<std::string> & items) {
++    std::string s = "[";
++    for (size_t i = 0; i < items.size(); ++i) {
++        s += (i ? ", " : "") + items[i];
++    }
++    return s + "]";
++}
++static common_json body(const std::vector<std::string> & states) { return common_json::parse(R"({"states": )" + list(states) + "}"); }
++
++// states_of must accept the states (raw JSON texts); a rejection ends the test
++static std::vector<decide::state_parts> accept(const std::vector<std::string> & states, vision_reason v = vision_reason::AVAILABLE) {
++    try {
++        return decide::states_of(body(states), v);
++    } catch (const decide::error & e) {
++        std::fprintf(stderr, "FAIL rejected: %s\n", e.what());
++        std::exit(1);
++    }
++}
++
++// states_of must fail with this code (http 400) and field, with `text` in the message
++static void reject(const std::vector<std::string> & states, const std::string & code, const std::string & field, const std::string & text,
++                   vision_reason v = vision_reason::AVAILABLE) {
++    try {
++        (void) decide::states_of(body(states), v);
++    } catch (const decide::error & e) {
++        if (e.code != code || e.http != 400 || e.field != field || std::string(e.what()).find(text) == std::string::npos) {
++            std::fprintf(stderr, "FAIL wrong error: code=%s http=%d field=%s msg=%s (wanted %s, %s, \"%s\")\n", e.code.c_str(), e.http,
++                         e.field.c_str(), e.what(), code.c_str(), field.c_str(), text.c_str());
++            failures++;
++        }
++        return;
++    }
++    std::fprintf(stderr, "FAIL no error (wanted %s %s \"%s\")\n", code.c_str(), field.c_str(), text.c_str());
++    failures++;
++}
++
++int main() {
++    const std::string png = unb64(PNG_B64);
++    const std::string jpg = unb64(JPG_B64);
++    CHECK(png.size() == 81 && jpg.size() == 633);
++
++    // 1. strict base64 (RFC 4648 section 4): round trips, then every malformed form
++    {
++        std::string all;
++        for (int i = 0; i < 256; ++i) {
++            all += (char) i;
++        }
++        std::string out;
++        for (size_t n = 0; n <= 20; ++n) {
++            CHECK(decide::base64_decode_strict(b64(all.substr(0, n)), out) && out == all.substr(0, n));
++        }
++        CHECK(decide::base64_decode_strict(b64(all), out) && out == all);
++        CHECK(decide::base64_decode_strict("", out) && out.empty());
++        for (const char * bad : {"QQ", "QQ=", "QQ=A", "Q===", "====", "QUJD\n", "QU JD", "QUJ-", "QUJ_", "QQ==QUJD", "QUJD====", "Q"}) {
++            CHECK(!decide::base64_decode_strict(bad, out));
++        }
++    }
++
++    // 2. headers: sizes; APP segments, fill bytes and a progressive frame; unreadable headers
++    {
++        decide::image_header h;
++        CHECK(decide::read_image_header(png, h) == "" && h.format == "png" && h.width == 2 && h.height == 3);
++        CHECK(decide::read_image_header(jpg, h) == "" && h.format == "jpeg" && h.width == 4 && h.height == 2);
++        CHECK((unsigned char) jpg[JPG_SOF] == 0xFF && (unsigned char) jpg[JPG_SOF + 1] == 0xC0);
++        const std::string app = jpg.substr(0, 2) + std::string("\xFF\xE1\x00\x06" "abcd", 8) + "\xFF" + jpg.substr(2);   // APP1, then a fill byte
++        CHECK(decide::read_image_header(app, h) == "" && h.width == 4 && h.height == 2);
++        std::string prog = jpg;
++        prog[JPG_SOF + 1] = (char) 0xC2;   // progressive frame header
++        CHECK(decide::read_image_header(prog, h) == "" && h.format == "jpeg" && h.width == 4 && h.height == 2);
++        std::string zero = jpg;
++        zero[JPG_SOF + 5] = 0;
++        zero[JPG_SOF + 6] = 0;   // height 0
++        CHECK(decide::read_image_header(zero, h).find("zero width or height") != std::string::npos);
++        CHECK(decide::read_image_header(jpg.substr(0, 100), h).find("truncated") != std::string::npos);   // ends before the SOF
++        CHECK(decide::read_image_header(std::string("\xFF\xD8\xFF\xDA\x00\x02", 6), h).find("no frame header") != std::string::npos);
++        CHECK(decide::read_image_header(png.substr(0, 20), h).find("PNG header") != std::string::npos);
++        CHECK(decide::read_image_header(std::string("BM") + std::string(60, '\0'), h) == "the image is not a JPEG or PNG file");
++        CHECK(decide::read_image_header(png_header(8000, 4000), h) == "" && h.width == 8000 && h.height == 4000);
++    }
++
++    // 3. a string and its one-part form are the same state; parts keep their order; the format comes from the magic bytes
++    {
++        const auto a = accept({"\"hello\""});
++        const auto b = accept({list({txt("hello")})});
++        CHECK(a.size() == 1 && b.size() == 1 && a[0].size() == 1 && b[0].size() == 1);
++        CHECK(!a[0][0].image && !b[0][0].image && a[0][0].text == "hello" && b[0][0].text == "hello");
++        const auto c = accept({list({txt("a"), img(url(png)), txt("b"), img(url(jpg, "jpeg"))})});
++        CHECK(c[0].size() == 4 && !c[0][0].image && c[0][1].image && !c[0][2].image && c[0][3].image);
++        CHECK(c[0][0].text == "a" && c[0][2].text == "b");
++        CHECK(c[0][1].format == "png" && c[0][1].width == 2 && c[0][1].height == 3 && c[0][1].bytes == png);
++        CHECK(c[0][3].format == "jpeg" && c[0][3].width == 4 && c[0][3].height == 2 && c[0][3].bytes == jpg);
++        const auto d = accept({list({img(url(jpg, "png"))}), list({img(url(png, "svg+xml"))}), "\"text\""});
++        CHECK(d.size() == 3 && d[0][0].format == "jpeg" && d[1][0].format == "png" && !d[2][0].image);
++        CHECK(accept({list({img(url(png))})})[0].size() == 1);
++        CHECK(accept({list({img(url(png)), txt("after")})})[0][1].text == "after");
++    }
++
++    // 4. malformed parts (spec 3.1): field states[i] of the state that breaks a rule
++    {
++        const std::string ok = img(url(png));
++        const std::string is = "invalid_states";
++        reject({"\"x\"", list({})}, is, "states[1]", "must not be empty");
++        reject({list({txt("a"), txt("b")})}, is, "states[0]", "must not be adjacent");
++        reject({list({txt("a"), ok, txt("b"), txt("c")})}, is, "states[0]", "part 3: two text parts must not be adjacent");
++        reject({list({R"({"type": "input_image", "image_url": {"url": "x"}})"})}, is, "states[0]", "unknown part type \"input_image\"");
++        reject({list({R"("text")"})}, is, "states[0]", "a part must be an object");
++        reject({list({R"({"text": "a"})"})}, is, "states[0]", "a part must be an object");
++        reject({list({R"({"type": 1})"})}, is, "states[0]", "a part must be an object");
++        reject({list({txt("")})}, is, "states[0]", "a text part is");
++        reject({list({R"({"type": "text", "text": 5})"})}, is, "states[0]", "a text part is");
++        reject({list({R"({"type": "text", "text": "a", "extra": 1})"})}, is, "states[0]", "a text part is");
++        reject({list({R"({"type": "image_url", "image_url": "data:image/png;base64,AAAA"})"})}, is, "states[0]", "an image part is");
++        reject({list({R"({"type": "image_url", "image_url": {}})"})}, is, "states[0]", "an image part is");
++        reject({list({R"({"type": "image_url", "image_url": {"url": 1}})"})}, is, "states[0]", "an image part is");
++        reject({list({R"({"type": "image_url", "image_url": {"url": ")" + url(png) + R"(", "detail": "auto"}})"})}, is, "states[0]", "an image part is");
++        reject({"\"x\"", "1"}, is, "states[1]", "strings or arrays of parts");
++        reject({"\"x\"", "{}"}, is, "states[1]", "strings or arrays of parts");
++        reject({"\"\""}, is, "", "states entries must not be empty");   // today's message and field
++    }
++
++    // 5. limits: 4 images per state, 32 per request (named at the state with the 33rd image), 10 MiB, 32,000,000 pixels
++    {
++        const std::string ok = img(url(png));
++        const std::string is = "invalid_states";
++        CHECK(accept({list({ok, ok, ok, ok, txt("x")})})[0].size() == 5);
++        reject({list({ok, ok, ok, ok, ok})}, is, "states[0]", "at most 4 images per state");
++        std::vector<std::string> nine(9, list({ok, ok, ok, ok}));
++        reject(nine, is, "states[8]", "at most 32 images per request");
++        nine.pop_back();
++        CHECK(accept(nine).size() == 8);   // exactly 32
++        std::string big = png_header(1, 1);
++        big.resize(decide::MAX_IMAGE_BYTES, '\0');
++        CHECK(accept({list({img(url(big))})})[0][0].bytes.size() == 10485760);
++        big.push_back('\0');
++        reject({list({img(url(big))})}, is, "states[0]", "(at most 10485760)");   // decoded size
++        big.append(3, '\0');
++        reject({list({img(url(big))})}, is, "states[0]", "(at most 10485760)");   // encoded length, before decoding
++        CHECK(accept({list({img(url(png_header(8000, 4000)))})})[0][0].width == 8000);   // 32,000,000 pixels: allowed
++        reject({list({img(url(png_header(8000, 4001)))})}, is, "states[0]", "8000 x 4001 = 32008000 pixels, at most 32000000");
++        std::string tall = jpg;
++        tall[JPG_SOF + 5] = (char) 0x0F; tall[JPG_SOF + 6] = (char) 0xA1;   // height 4001
++        tall[JPG_SOF + 7] = (char) 0x1F; tall[JPG_SOF + 8] = (char) 0x40;   // width 8000
++        reject({list({img(url(tall, "jpeg"))})}, is, "states[0]", "8000 x 4001 = 32008000 pixels");
++    }
++
++    // 6. the URL: data:image/<subtype>;base64,<data> only, case-sensitive, no parameters; strict base64
++    {
++        const std::string is   = "invalid_states";
++        const std::string data = b64(png);
++        for (const std::string & u : {std::string("http://images.cocodataset.org/val2017/000000039769.jpg"), std::string("https://x/y.png"),
++                                      std::string("file:///etc/hostname"), std::string("/home/marduk/x.png"), data,
++                                      "DATA:image/png;base64," + data, "data:IMAGE/png;base64," + data, "data:image/PNG;base64," + data,
++                                      "data:image/png;BASE64," + data, "data:image/png;charset=utf-8;base64," + data,
++                                      "data:image/;base64," + data, "data:text/plain;base64," + data, "data:image/png," + data,
++                                      "data:image/png;base64" + data}) {
++            reject({list({img(u)})}, is, "states[0]", "data:image/<subtype>;base64,<data>");
++        }
++        reject({list({img("data:image/png;base64,")})}, is, "states[0]", "not a JPEG or PNG");                         // empty data
++        reject({list({img("data:image/png;base64," + data.substr(0, data.size() - 2))})}, is, "states[0]", "invalid base64");   // length
++        reject({list({img("data:image/png;base64," + data.substr(0, 40) + "\n" + data.substr(40))})}, is, "states[0]", "invalid base64");
++        std::string urlsafe = data;
++        for (char & c : urlsafe) {
++            if (c == '+') c = '-';
++            if (c == '/') c = '_';
++        }
++        CHECK(urlsafe != data);
++        reject({list({img("data:image/png;base64," + urlsafe)})}, is, "states[0]", "invalid base64");
++        reject({list({img(url(std::string("BM") + std::string(60, '\0')))})}, is, "states[0]", "not a JPEG or PNG");
++        reject({list({img(url(png.substr(0, 20)))})}, is, "states[0]", "PNG header");
++    }
++
++    // 7. passes 1-2 (spec 3.2): pass 1 over every state first, then vision_unavailable at the first state with an image (spec 4.2)
++    {
++        const std::string ok = img(url(png));
++        const std::string vu = "vision_unavailable";
++        reject({list({ok})}, vu, "states[0]", "--mmproj", vision_reason::NO_PROJECTOR);
++        reject({"\"text\"", list({txt("a"), ok})}, vu, "states[1]", "(no_projector)", vision_reason::NO_PROJECTOR);
++        reject({"\"t\"", list({ok})}, vu, "states[1]", "(projector_without_vision)", vision_reason::PROJECTOR_WITHOUT_VISION);
++        reject({"\"t\"", list({ok})}, vu, "states[1]", "(non_causal_projector)", vision_reason::NON_CAUSAL_PROJECTOR);
++        reject({list({ok}), list({txt("a"), txt("b")})}, "invalid_states", "states[1]", "adjacent", vision_reason::NO_PROJECTOR);
++        for (vision_reason v : {vision_reason::NO_PROJECTOR, vision_reason::PROJECTOR_WITHOUT_VISION, vision_reason::NON_CAUSAL_PROJECTOR}) {
++            const auto t = accept({"\"a\"", list({txt("b")})}, v);   // without images the parse does not depend on vision
++            CHECK(t.size() == 2 && t[0][0].text == "a" && t[1][0].text == "b" && !t[0][0].image && !t[1][0].image);
++        }
++    }
++
++    // 8. the vision status (spec 4.1) and its info key (spec 3.4)
++    {
++        CHECK(decide::vision_reason_for(false, true, false, true) == vision_reason::NO_PROJECTOR);
++        CHECK(decide::vision_reason_for(true, false, false, true) == vision_reason::PROJECTOR_WITHOUT_VISION);
++        CHECK(decide::vision_reason_for(true, true, true, false) == vision_reason::NON_CAUSAL_PROJECTOR);
++        CHECK(decide::vision_reason_for(true, true, true, true) == vision_reason::AVAILABLE);
++        CHECK(decide::vision_reason_for(true, true, false, false) == vision_reason::AVAILABLE);
++        const decide::vision_status none = decide::vision_status_of(nullptr);
++        CHECK(none.reason == vision_reason::NO_PROJECTOR && !none.mrope && !none.non_causal);
++        CHECK(decide::vision_json(none).dump() == R"({"available":false,"reason":"no_projector"})");
++        decide::vision_status v;
++        v.reason = vision_reason::AVAILABLE;
++        v.mrope  = true;
++        const common_json j = decide::vision_json(v);
++        CHECK(j.at("available").get<bool>() && j.at("mrope").get<bool>() && !j.at("non_causal").get<bool>());
++        CHECK(j.at("max_images_per_state").get<int64_t>() == 4 && j.at("max_images_per_request").get<int64_t>() == 32);
++        CHECK(j.at("max_image_bytes").get<int64_t>() == 10485760 && j.at("max_image_pixels").get<int64_t>() == 32000000);
++        v.reason = vision_reason::PROJECTOR_WITHOUT_VISION;
++        CHECK(decide::vision_json(v).dump() == R"({"available":false,"reason":"projector_without_vision"})");
++        v.reason = vision_reason::NON_CAUSAL_PROJECTOR;
++        CHECK(decide::vision_json(v).dump() == R"({"available":false,"reason":"non_causal_projector"})");
++    }
++
++    if (failures) {
++        std::fprintf(stderr, "%d failure(s)\n", failures);
++        return 1;
++    }
++    std::printf("test-decide-image: OK\n");
++    return 0;
++}
+diff --git a/tests/test-decide-schema.cpp b/tests/test-decide-schema.cpp
+index 7d7455bc6..ff97ffcd2 100644
+--- a/tests/test-decide-schema.cpp
++++ b/tests/test-decide-schema.cpp
+@@ -96,7 +96,7 @@ static std::string variant_text(size_t queue_start, size_t tone_start) {
+ static std::string expect_error(const std::string & body, const std::string & code) {
+     try {
+         auto cs = decide::compile_request(common_json::parse(body));
+-        (void) decide::states_of(common_json::parse(body));
++        (void) decide::states_of(common_json::parse(body), decide::vision_reason::NO_PROJECTOR);
+         (void) cs;
+     } catch (const decide::error & e) {
+         if (e.code != code || e.http != 400) {
+@@ -187,8 +187,8 @@ int main() {
+     CHECK(decide::branch_text(cs.fields[2], cs.fields[2].options[1]) == "  \"angry\": false");
+ 
+     // states
+-    auto st = decide::states_of(common_json::parse(TRIAGE));
+-    CHECK(st.size() == 1 && st[0] == "hello");
++    auto st = decide::states_of(common_json::parse(TRIAGE), decide::vision_reason::NO_PROJECTOR);
++    CHECK(st.size() == 1 && st[0].size() == 1 && !st[0][0].image && st[0][0].text == "hello");
+ 
+     // hash
+     CHECK(decide::fnv1a64("") == 0xcbf29ce484222325ULL);
+diff --git a/tools/decide/CMakeLists.txt b/tools/decide/CMakeLists.txt
+index eed472cb5..e35aeee54 100644
+--- a/tools/decide/CMakeLists.txt
++++ b/tools/decide/CMakeLists.txt
+@@ -8,9 +8,11 @@ add_library(llama-decide STATIC
+     decide-debias.cpp decide-debias.h
+     decide-engine.cpp decide-engine.h
+     decide-api.cpp decide-api.h
+-    decide-compat.cpp decide-compat.h)
++    decide-compat.cpp decide-compat.h
++    decide-image.cpp decide-image.h)
+ target_include_directories(llama-decide PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+-target_link_libraries(llama-decide PUBLIC llama-common llama)
++# mtmd: image parts of states (sub-project 4); llama-server links it already, so the build has no new option
++target_link_libraries(llama-decide PUBLIC llama-common llama mtmd)
+ target_compile_features(llama-decide PUBLIC cxx_std_17)
+ set_target_properties(llama-decide PROPERTIES POSITION_INDEPENDENT_CODE ON)
+ 
+diff --git a/tools/decide/decide-api.cpp b/tools/decide/decide-api.cpp
+index baeac7f31..6f2e82c35 100644
+--- a/tools/decide/decide-api.cpp
++++ b/tools/decide/decide-api.cpp
+@@ -21,7 +21,7 @@ static scoring_mode mode_of(const compiled_schema & cs) {
+ api_result handle_decide(engine & eng, const llama_vocab * vocab, const common_json & body, bool dump_tokens) {
+     try {
+         const compiled_schema          cs     = compile_request(body);
+-        const std::vector<std::string> states = states_of(body);
++        const std::vector<state_parts> states = states_of(body, eng.vision().reason);   // spec 4.2: the main loop checks vision too
+         const trie_set                 ts     = build_tries(cs, vocab, mode_of(cs));
+         return {200, eng.decide(cs, ts, states, dump_tokens)};
+     } catch (const error & e) {
+diff --git a/tools/decide/decide-engine.cpp b/tools/decide/decide-engine.cpp
+index 458c48f77..56aa16fbc 100644
+--- a/tools/decide/decide-engine.cpp
++++ b/tools/decide/decide-engine.cpp
+@@ -79,6 +79,7 @@ engine::engine(llama_context * ctx_, const llama_model * model_, const common_ch
+     for (int i = 0; i < cfg.decide_seqs; ++i) {
+         llama_set_sampler(ctx, cfg.seq_base + i, nullptr);
+     }
++    vis = vision_status_of(cfg.mctx);   // spec 4.1
+ }
+ 
+ engine::~engine() {
+@@ -88,6 +89,18 @@ engine::~engine() {
+     llama_batch_free(batch);
+ }
+ 
++vision_status vision_status_of(const mtmd_context * mctx) {
++    vision_status v;
++    if (mctx == nullptr) {
++        return v;   // no_projector
++    }
++    const bool vision = mtmd_support_vision(mctx);
++    v.mrope      = vision && mtmd_decode_use_mrope(mctx);
++    v.non_causal = vision && mtmd_decode_use_non_causal(mctx, nullptr);   // nullptr: an image chunk
++    v.reason     = vision_reason_for(true, vision, v.non_causal, NON_CAUSAL_ENABLED);
++    return v;
++}
++
+ engine::rendered engine::render(const compiled_schema * cs, int variant, int variants) const {
+     common_chat_msg sys;
+     sys.role    = "system";
+@@ -626,7 +639,7 @@ int engine::run_round(const compiled_schema & cs, const trie_set & ts, int K,
+     return rc;
+ }
+ 
+-common_json engine::decide(const compiled_schema & cs, const trie_set & ts, const std::vector<std::string> & states, bool dump_tokens) {
++common_json engine::decide(const compiled_schema & cs, const trie_set & ts, const std::vector<state_parts> & states, bool dump_tokens) {
+     // spec 6.1: some 500s are thrown outside the per-round catch (the second rc == 1), so every error exit ends the request here
+     try {
+         return run_request(cs, ts, states, dump_tokens);
+@@ -636,7 +649,7 @@ common_json engine::decide(const compiled_schema & cs, const trie_set & ts, cons
+     }
+ }
+ 
+-common_json engine::run_request(const compiled_schema & cs, const trie_set & ts, const std::vector<std::string> & states, bool dump_tokens) {
++common_json engine::run_request(const compiled_schema & cs, const trie_set & ts, const std::vector<state_parts> & states, bool dump_tokens) {
+     const int64_t t_start = ggml_time_us();
+     stats st;
+ 
+@@ -654,8 +667,9 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+ 
+     std::vector<std::vector<llama_token>> state_tokens;
+     state_tokens.reserve(states.size());
+-    for (const auto & s : states) {
+-        state_tokens.push_back(tokenize_plain(vocab, s));
++    for (const state_parts & s : states) {
++        // spec 4.2: without vision states_of rejects every image part, so each state here is one text part
++        state_tokens.push_back(tokenize_plain(vocab, s.front().text));
+     }
+     // spec 4.5: logit rows per state of the scoring mode
+     const branch_counts counts = count_branches(ts);
+@@ -1016,6 +1030,7 @@ common_json engine::info(const compiled_schema * cs, const trie_set * ts) {
+     j["prefix_cache"]  = prefix_cache;
+     j["temperature"]   = cfg.temperature;
+     j["scoring_modes"] = common_json::array({"tree", "full_path"});
++    j["vision"]        = vision_json(vis);   // spec 3.4
+     if (cs != nullptr && ts != nullptr) {
+         const seq_budget b = sequence_budget(cfg.decide_seqs, effective_variants(*cs), ts->branches_per_state);
+         common_json schema = common_json::object();
+diff --git a/tools/decide/decide-engine.h b/tools/decide/decide-engine.h
+index a039508c5..7175069ba 100644
+--- a/tools/decide/decide-engine.h
++++ b/tools/decide/decide-engine.h
+@@ -1,10 +1,12 @@
+ #pragma once
+ #include "decide-after.h"
++#include "decide-image.h"
+ #include "decide-schema.h"
+ #include "decide-trie.h"
+ #include "decide-vocab.h"
+ #include "chat.h"
+ #include "llama.h"
++#include "mtmd.h"
+ #include <cstdint>
+ #include <functional>
+ #include <string>
+@@ -19,8 +21,12 @@ struct engine_config {
+     std::vector<llama_seq_id> slot_seqs;            // sequences owned by server slots (for the cell check); empty in the CLI
+     int                       prefix_cache = 8;     // spec 6.2: LRU entries of host prefix snapshots (0 = off)
+     double                    temperature  = 1.0;   // spec 8: default when a request has no options.temperature
++    mtmd_context *            mctx         = nullptr;   // spec 4.1: the projector (--mmproj), null without one; used only for image parts
+ };
+ 
++// spec 4.1: the vision status of a projector context: no_projector without one, then mtmd_support_vision, then the gate
++vision_status vision_status_of(const mtmd_context * mctx);
++
+ struct prefix_state {
+     std::string              hash;              // hex64(fnv1a64(prefix_text + "\x1e" + tail_text))
+     std::string              prefix_text, tail_text, assistant_prefix;
+@@ -89,9 +95,11 @@ public:
+     engine & operator=(const engine &) = delete;
+ 
+     // Full request: throws decide::error; never leaves trunks/branches behind, and afterwards only slot 0 holds cells.
+-    common_json decide(const compiled_schema & cs, const trie_set & ts, const std::vector<std::string> & states, bool dump_tokens);
++    common_json decide(const compiled_schema & cs, const trie_set & ts, const std::vector<state_parts> & states, bool dump_tokens);
+     // Info JSON (spec 3.3); builds/validates the prefix for cs in slot 0 when given.
+     common_json info(const compiled_schema * cs, const trie_set * ts);
++    // spec 4.1: computed once, at construction, from cfg.mctx
++    const vision_status & vision() const { return vis; }
+ 
+     static constexpr int    MAX_SLOTS       = 8;                    // spec 6.1: slot v lives in seq_base + v
+     static constexpr size_t CACHE_MAX_BYTES = (size_t) 2 << 30;     // spec 6.2: snapshot bytes over all cache entries
+@@ -162,7 +170,7 @@ private:
+     bool     slot_live(int v) const;
+     int      n_slots() const;
+     size_t   cache_bytes() const;
+-    common_json  run_request(const compiled_schema & cs, const trie_set & ts, const std::vector<std::string> & states, bool dump_tokens);
++    common_json  run_request(const compiled_schema & cs, const trie_set & ts, const std::vector<state_parts> & states, bool dump_tokens);
+     // returns 0, or 1 when a decode found no KV slot (caller cleans up and retries); throws on anything else.
+     // Fills rs.answers[first + c] for every state c of the round from the K catalogue variants. fail_phase: the first decode of that phase returns 1 without decoding (spec 9; -1: none).
+     int      run_round(const compiled_schema & cs, const trie_set & ts, int K,
+@@ -201,6 +209,7 @@ private:
+     uint64_t                      cache_tick  = 0;
+     fault_mode                    fault       = fault_mode::NONE;
+     mutable bool                  fault_armed = false;   // the one-shot modes (rc1-twice, restore, cell-estimate, lines-join, tail-mismatch): not yet fired
++    vision_status                 vis;   // spec 4.1
+ };
+ 
+ } // namespace decide
+diff --git a/tools/decide/decide-image.cpp b/tools/decide/decide-image.cpp
+new file mode 100644
+index 000000000..6518f832b
+--- /dev/null
++++ b/tools/decide/decide-image.cpp
+@@ -0,0 +1,257 @@
++#include "decide-image.h"
++
++namespace decide {
++
++vision_reason vision_reason_for(bool projector, bool supports_vision, bool non_causal, bool non_causal_enabled) {
++    if (!projector) {
++        return vision_reason::NO_PROJECTOR;
++    }
++    if (!supports_vision) {
++        return vision_reason::PROJECTOR_WITHOUT_VISION;
++    }
++    if (non_causal && !non_causal_enabled) {
++        return vision_reason::NON_CAUSAL_PROJECTOR;
++    }
++    return vision_reason::AVAILABLE;
++}
++
++const char * vision_reason_code(vision_reason r) {
++    switch (r) {
++        case vision_reason::NO_PROJECTOR:             return "no_projector";
++        case vision_reason::PROJECTOR_WITHOUT_VISION: return "projector_without_vision";
++        case vision_reason::NON_CAUSAL_PROJECTOR:     return "non_causal_projector";
++        case vision_reason::AVAILABLE:                break;
++    }
++    return "";
++}
++
++std::string vision_unavailable_message(size_t state, vision_reason r) {
++    std::string why;
++    switch (r) {
++        case vision_reason::NO_PROJECTOR:             why = "no projector is loaded; start the server or llama-decide with --mmproj"; break;
++        case vision_reason::PROJECTOR_WITHOUT_VISION: why = "the loaded projector has no vision encoder"; break;
++        case vision_reason::NON_CAUSAL_PROJECTOR:     why = "the projector decodes images with non-causal attention, which this engine does not support"; break;
++        case vision_reason::AVAILABLE:                why = "vision is available"; break;
++    }
++    return "states[" + std::to_string(state) + "] has an image part, but vision is not available (" + vision_reason_code(r) + "): " + why;
++}
++
++common_json vision_json(const vision_status & v) {
++    common_json j = common_json::object();
++    if (v.reason != vision_reason::AVAILABLE) {
++        j["available"] = false;
++        j["reason"]    = std::string(vision_reason_code(v.reason));
++        return j;
++    }
++    j["available"]              = true;
++    j["mrope"]                  = v.mrope;
++    j["non_causal"]             = v.non_causal;
++    j["max_images_per_state"]   = (int64_t) MAX_IMAGES_PER_STATE;
++    j["max_images_per_request"] = (int64_t) MAX_IMAGES_PER_REQUEST;
++    j["max_image_bytes"]        = (int64_t) MAX_IMAGE_BYTES;
++    j["max_image_pixels"]       = (int64_t) MAX_IMAGE_PIXELS;
++    return j;
++}
++
++static int b64_value(unsigned char c) {
++    if (c >= 'A' && c <= 'Z') return c - 'A';
++    if (c >= 'a' && c <= 'z') return c - 'a' + 26;
++    if (c >= '0' && c <= '9') return c - '0' + 52;
++    if (c == '+') return 62;
++    if (c == '/') return 63;
++    return -1;
++}
++
++bool base64_decode_strict(std::string_view in, std::string & out) {
++    out.clear();
++    if (in.size() % 4 != 0) {
++        return false;
++    }
++    size_t pad = 0;   // at most two '=' at the very end; '=' anywhere else fails below
++    while (pad < 2 && pad < in.size() && in[in.size() - 1 - pad] == '=') {
++        pad++;
++    }
++    out.reserve(in.size() / 4 * 3);
++    uint32_t acc  = 0;
++    int      bits = 0;
++    for (size_t i = 0; i + pad < in.size(); ++i) {
++        const int v = b64_value((unsigned char) in[i]);
++        if (v < 0) {
++            return false;
++        }
++        acc = ((acc << 6) | (uint32_t) v) & 0xFFFFFF;
++        bits += 6;
++        if (bits >= 8) {
++            bits -= 8;
++            out.push_back((char) ((acc >> bits) & 0xFF));
++        }
++    }
++    return true;
++}
++
++static uint32_t be16(const std::string & b, size_t p) {
++    return ((uint32_t) (uint8_t) b[p] << 8) | (uint8_t) b[p + 1];
++}
++
++static uint32_t be32(const std::string & b, size_t p) {
++    return (be16(b, p) << 16) | be16(b, p + 2);
++}
++
++std::string read_image_header(const std::string & b, image_header & h) {
++    static const char png_magic[] = "\x89PNG\r\n\x1a\n";
++    if (b.size() >= 8 && b.compare(0, 8, png_magic, 8) == 0) {
++        if (b.size() < 24 || b.compare(12, 4, "IHDR") != 0) {
++            return "cannot read the PNG header (no IHDR chunk)";
++        }
++        h.format = "png";
++        h.width  = be32(b, 16);
++        h.height = be32(b, 20);
++        if (h.width == 0 || h.height == 0) {
++            return "the PNG header gives a zero width or height";
++        }
++        return "";
++    }
++    if (b.size() >= 3 && (uint8_t) b[0] == 0xFF && (uint8_t) b[1] == 0xD8 && (uint8_t) b[2] == 0xFF) {
++        size_t p = 2;   // after SOI: segments until the frame header (SOFn)
++        while (p < b.size()) {
++            if ((uint8_t) b[p] != 0xFF) {
++                return "cannot read the JPEG header (no marker where one is expected)";
++            }
++            while (p < b.size() && (uint8_t) b[p] == 0xFF) {
++                ++p;   // a marker may be preceded by fill bytes
++            }
++            if (p >= b.size()) {
++                break;
++            }
++            const uint8_t m = (uint8_t) b[p++];
++            if (m == 0xD8 || m == 0x01 || (m >= 0xD0 && m <= 0xD7)) {
++                continue;   // markers without a length
++            }
++            if (m == 0xDA || m == 0xD9) {
++                return "cannot read the JPEG header (no frame header before the image data)";
++            }
++            if (p + 2 > b.size()) {
++                break;
++            }
++            const uint32_t len = be16(b, p);
++            if (len < 2 || p + len > b.size()) {
++                break;
++            }
++            const bool sof = m >= 0xC0 && m <= 0xCF && m != 0xC4 && m != 0xC8 && m != 0xCC;
++            if (sof) {
++                if (len < 7) {
++                    return "cannot read the JPEG header (short frame header)";
++                }
++                h.format = "jpeg";
++                h.height = be16(b, p + 3);
++                h.width  = be16(b, p + 5);
++                if (h.width == 0 || h.height == 0) {
++                    return "the JPEG header gives a zero width or height";
++                }
++                return "";
++            }
++            p += len;
++        }
++        return "cannot read the JPEG header (truncated)";
++    }
++    return "the image is not a JPEG or PNG file";
++}
++
++static error invalid(size_t state, const std::string & msg) {
++    const std::string where = "states[" + std::to_string(state) + "]";
++    return error("invalid_states", 400, where + ": " + msg, where);
++}
++
++static bool subtype_char(char c) {
++    return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '.' || c == '+' || c == '-';
++}
++
++// spec 3.1: the data URI of one image part -> its bytes, format and header size; pixel and size limits
++static state_part parse_image(const std::string & url, size_t state, const std::string & part) {
++    static const std::string scheme = "data:image/";
++    static const std::string marker = ";base64,";
++    static const std::string form   = "the url must be data:image/<subtype>;base64,<data>";
++    if (url.compare(0, scheme.size(), scheme) != 0) {
++        throw invalid(state, part + form + "; remote URLs, file: URLs, paths and bare base64 are not accepted");
++    }
++    size_t i = scheme.size();
++    while (i < url.size() && subtype_char(url[i])) {
++        ++i;
++    }
++    if (i == scheme.size() || url.compare(i, marker.size(), marker) != 0) {
++        throw invalid(state, part + form + " with a subtype of a-z 0-9 . + - and no further parameters");
++    }
++    const std::string_view data = std::string_view(url).substr(i + marker.size());
++    if (data.size() > (MAX_IMAGE_BYTES + 2) / 3 * 4) {
++        throw invalid(state, part + "the image has more than " + std::to_string(MAX_IMAGE_BYTES) + " bytes (at most " +
++                                 std::to_string(MAX_IMAGE_BYTES) + ")");
++    }
++    state_part p;
++    p.image = true;
++    if (!base64_decode_strict(data, p.bytes)) {
++        throw invalid(state, part + "invalid base64 (standard alphabet A-Z a-z 0-9 + /, = padding, a length that is a multiple of 4, "
++                                    "no whitespace)");
++    }
++    if (p.bytes.size() > MAX_IMAGE_BYTES) {
++        throw invalid(state, part + "the image has " + std::to_string(p.bytes.size()) + " bytes (at most " + std::to_string(MAX_IMAGE_BYTES) + ")");
++    }
++    image_header      h;
++    const std::string why = read_image_header(p.bytes, h);
++    if (!why.empty()) {
++        throw invalid(state, part + why);
++    }
++    const uint64_t pixels = (uint64_t) h.width * h.height;
++    if (pixels > MAX_IMAGE_PIXELS) {
++        throw invalid(state, part + "the image is " + std::to_string(h.width) + " x " + std::to_string(h.height) + " = " +
++                                 std::to_string(pixels) + " pixels, at most " + std::to_string(MAX_IMAGE_PIXELS));
++    }
++    p.format = h.format;
++    p.width  = h.width;
++    p.height = h.height;
++    return p;
++}
++
++state_parts parse_parts(const common_json & parts, size_t state, int & images) {
++    if (parts.size() == 0) {
++        throw invalid(state, "a part list must not be empty");
++    }
++    state_parts out;
++    int         in_state = 0;
++    for (size_t k = 0; k < parts.size(); ++k) {
++        const std::string where = "part " + std::to_string(k) + ": ";
++        const auto &      pj    = parts.at(k);
++        if (!pj.is_object() || !pj.contains("type") || !pj.at("type").is_string()) {
++            throw invalid(state, where + "a part must be an object with a string \"type\"");
++        }
++        const std::string type = pj.at("type").get<std::string>();
++        if (type == "text") {
++            if (pj.size() != 2 || !pj.contains("text") || !pj.at("text").is_string() || pj.at("text").get<std::string>().empty()) {
++                throw invalid(state, where + "a text part is {\"type\": \"text\", \"text\": <non-empty string>}");
++            }
++            if (!out.empty() && !out.back().image) {
++                throw invalid(state, where + "two text parts must not be adjacent; join them into one");
++            }
++            state_part p;
++            p.text = pj.at("text").get<std::string>();
++            out.push_back(std::move(p));
++        } else if (type == "image_url") {
++            const bool shape = pj.size() == 2 && pj.contains("image_url") && pj.at("image_url").is_object() &&
++                               pj.at("image_url").size() == 1 && pj.at("image_url").contains("url") && pj.at("image_url").at("url").is_string();
++            if (!shape) {
++                throw invalid(state, where + "an image part is {\"type\": \"image_url\", \"image_url\": {\"url\": <data URI>}}");
++            }
++            if (++in_state > MAX_IMAGES_PER_STATE) {
++                throw invalid(state, where + "at most 4 images per state");
++            }
++            if (++images > MAX_IMAGES_PER_REQUEST) {
++                throw invalid(state, where + "at most 32 images per request");
++            }
++            out.push_back(parse_image(pj.at("image_url").at("url").get<std::string>(), state, where));
++        } else {
++            throw invalid(state, where + "unknown part type \"" + type + "\" (text or image_url)");
++        }
++    }
++    return out;
++}
++
++} // namespace decide
+diff --git a/tools/decide/decide-image.h b/tools/decide/decide-image.h
+new file mode 100644
+index 000000000..e3eb8a4c1
+--- /dev/null
++++ b/tools/decide/decide-image.h
+@@ -0,0 +1,50 @@
++#pragma once
++#include "decide-schema.h"
++
++#include <cstddef>
++#include <cstdint>
++#include <string>
++#include <string_view>
++
++// Image parts of a state without a model (spec 3.1-3.4, 4.1): the limits, the vision status as info reports it, strict
++// base64, the JPEG/PNG header and the part list of one state.
++namespace decide {
++
++constexpr int      MAX_IMAGES_PER_STATE   = 4;
++constexpr int      MAX_IMAGES_PER_REQUEST = 32;
++constexpr size_t   MAX_IMAGE_BYTES        = 10485760;   // 10 MiB, decoded
++constexpr uint64_t MAX_IMAGE_PIXELS       = 32000000;   // width x height
++// spec 9.5: whether non-causal projectors (Gemma 3) are enabled; false once gemma-3-4b fails the non-causal gate
++constexpr bool     NON_CAUSAL_ENABLED     = true;
++
++// spec 4.1: the reason (AVAILABLE when vision is available) and, when available, the projector's position and attention kind
++struct vision_status {
++    vision_reason reason     = vision_reason::NO_PROJECTOR;
++    bool          mrope      = false;
++    bool          non_causal = false;
++};
++// spec 4.1: the first condition that fails, in the spec's order
++vision_reason vision_reason_for(bool projector, bool supports_vision, bool non_causal, bool non_causal_enabled);
++// "no_projector", "projector_without_vision", "non_causal_projector"; "" when available
++const char *  vision_reason_code(vision_reason r);
++// spec 4.2: the 400 message for state `state`; names the case and, for no_projector, --mmproj
++std::string   vision_unavailable_message(size_t state, vision_reason r);
++// spec 3.4: the info key
++common_json   vision_json(const vision_status & v);
++
++// RFC 4648 section 4 only: alphabet A-Z a-z 0-9 + /, = padding, a length that is a multiple of 4, no whitespace; false otherwise
++bool base64_decode_strict(std::string_view in, std::string & out);
++
++struct image_header {
++    std::string format;   // "jpeg" or "png"
++    uint32_t    width  = 0;
++    uint32_t    height = 0;
++};
++// spec 3.1: "" and `h` filled from the magic bytes and the header, or why the bytes are not a readable JPEG/PNG header
++std::string read_image_header(const std::string & bytes, image_header & h);
++
++// spec 3.1, 3.2 pass 1 for one array state: parts, limits, URL, base64, format, header pixels. `images` counts the
++// request's images so far (the limit of 32). Throws error{"invalid_states", 400, msg, "states[<state>]"}.
++state_parts parse_parts(const common_json & parts, size_t state, int & images);
++
++} // namespace decide
+diff --git a/tools/decide/decide-schema.cpp b/tools/decide/decide-schema.cpp
+index 2571f0bb8..5edb69fa4 100644
+--- a/tools/decide/decide-schema.cpp
++++ b/tools/decide/decide-schema.cpp
+@@ -1,4 +1,5 @@
+ #include "decide-schema.h"
++#include "decide-image.h"
+ 
+ #include <algorithm>
+ 
+@@ -197,18 +198,36 @@ compiled_schema compile_request(const common_json & body) {
+     return compile(body.at("fields"), instructions, opts_j);
+ }
+ 
+-std::vector<std::string> states_of(const common_json & body) {
++std::vector<state_parts> states_of(const common_json & body, vision_reason vision) {
+     if (!body.is_object() || !body.contains("states")) throw error("invalid_states", 400, "states is required");
+     const auto & sj = body.at("states");
+     if (!sj.is_array()) throw error("invalid_states", 400, "states must be an array");
+     if (sj.size() < 1 || sj.size() > 256) throw error("invalid_states", 400, "states must have 1 to 256 entries");
+-    std::vector<std::string> out;
++    // spec 3.2 pass 1: everything that needs no projector, state by state
++    std::vector<state_parts> out;
++    int                      images = 0;   // over the request (limit 32)
+     for (size_t i = 0; i < sj.size(); ++i) {
+         const auto & ej = sj.at(i);
+-        if (!ej.is_string()) throw error("invalid_states", 400, "states entries must be strings");
+-        std::string s = ej.get<std::string>();
+-        if (s.empty()) throw error("invalid_states", 400, "states entries must not be empty");
+-        out.push_back(std::move(s));
++        if (ej.is_array()) {
++            out.push_back(parse_parts(ej, i, images));
++            continue;
++        }
++        if (!ej.is_string()) {
++            const std::string where = "states[" + std::to_string(i) + "]";
++            throw error("invalid_states", 400, where + ": states entries must be strings or arrays of parts", where);
++        }
++        state_part p;
++        p.text = ej.get<std::string>();
++        if (p.text.empty()) throw error("invalid_states", 400, "states entries must not be empty");
++        out.push_back({std::move(p)});
++    }
++    // spec 3.2 pass 2: vision availability, named at the first state with an image
++    if (vision != vision_reason::AVAILABLE) {
++        for (size_t i = 0; i < out.size(); ++i) {
++            for (const state_part & p : out[i]) {
++                if (p.image) throw error("vision_unavailable", 400, vision_unavailable_message(i, vision), "states[" + std::to_string(i) + "]");
++            }
++        }
+     }
+     return out;
+ }
+diff --git a/tools/decide/decide-schema.h b/tools/decide/decide-schema.h
+index b922a0d19..131a7f69d 100644
+--- a/tools/decide/decide-schema.h
++++ b/tools/decide/decide-schema.h
+@@ -49,8 +49,24 @@ struct compiled_schema {
+ compiled_schema compile(const common_json & fields, const std::string & instructions, const common_json & opts);
+ // Full request body: instructions (optional string), fields (object), options (optional object).
+ compiled_schema compile_request(const common_json & body);
+-// states: 1..256 non-empty strings. Throws error{"invalid_states", 400, msg}.
+-std::vector<std::string> states_of(const common_json & body);
++// spec 4.1: whether image parts can be decoded; the first condition that fails (AVAILABLE when none does)
++enum class vision_reason { AVAILABLE, NO_PROJECTOR, PROJECTOR_WITHOUT_VISION, NON_CAUSAL_PROJECTOR };
++
++// spec 3.1, 5.1: one part of a state: text, or an image's decoded bytes with its format and header size
++struct state_part {
++    bool        image = false;
++    std::string text;         // text part
++    std::string bytes;        // image part: the JPEG or PNG file
++    std::string format;       // image part: "jpeg" or "png", from the magic bytes
++    uint32_t    width  = 0;   // image part: from the header
++    uint32_t    height = 0;
++};
++using state_parts = std::vector<state_part>;   // in request order; a string state is one text part
++
++// spec 3.1, 3.2 passes 1-2: states: 1..256 entries, each a non-empty string or a non-empty array of parts. Pass 1 (every check
++// that needs no projector) runs over all states first; then, unless `vision` is AVAILABLE, the first state with an image part
++// gets error{"vision_unavailable", 400, msg, "states[i]"}. Other errors: error{"invalid_states", 400, msg, field}.
++std::vector<state_parts> states_of(const common_json & body, vision_reason vision);
+ 
+ // highest field level (0 without "after")
+ int         max_level(const compiled_schema & cs);
+diff --git a/tools/server/server-context.cpp b/tools/server/server-context.cpp
+index d6adadd03..968be527f 100644
+--- a/tools/server/server-context.cpp
++++ b/tools/server/server-context.cpp
+@@ -20,6 +20,7 @@
+ #include "decide-compat.h"
+ 
+ #include <algorithm>
++#include <atomic>
+ #include <cstddef>
+ #include <cinttypes>
+ #include <exception>
+@@ -846,6 +847,11 @@ public:
+     llama_model * model_tgt = nullptr;
+ 
+     mtmd_context * mctx = nullptr;
++
++    // spec 4.1: the decide vision status, set in init_decide_engine (once per load; a resume loads the same projector); the HTTP
++    // thread reads it and never dereferences the engine, which is reset on sleep
++    std::atomic<decide::vision_reason> decide_vision{decide::vision_reason::NO_PROJECTOR};
++
+     // note: video_params.ffmpeg_bin_dir points into params_base, which outlives this struct
+     mtmd_helper_init_opt init_opt = mtmd_helper_init_opt_default();
+     const llama_vocab * vocab = nullptr;
+@@ -1427,6 +1433,7 @@ private:
+         for (int i = 0; i < params_base.n_parallel; i++) {
+             cfg.slot_seqs.push_back((llama_seq_id) i);
+         }
++        decide_vision = decide::vision_status_of(cfg.mctx).reason;
+ 
+         try {
+             decide_engine = std::make_unique<decide::engine>(ctx_tgt, model_tgt, chat_params.tmpls.get(), cfg);
+@@ -5420,7 +5427,7 @@ void server_routes::init_routes() {
+         // validate here so that bad requests never reach the model
+         try {
+             decide::compile_request(body);
+-            decide::states_of(body);
++            decide::states_of(body, ctx_server.decide_vision.load());
+         } catch (const decide::error & e) {
+             decide_error(*res, e.http, e.what(), e.code, e.field);
+             return res;
+@@ -5483,7 +5490,7 @@ void server_routes::init_routes() {
+         try {
+             request = decide::systemone_to_decide(body);
+             decide::compile_request(request);
+-            decide::states_of(request);
++            decide::states_of(request, ctx_server.decide_vision.load());
+         } catch (const decide::compat_error & e) {
+             validation_error(e);
+             return res;
+-- 
+2.55.0
+

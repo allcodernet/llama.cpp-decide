@@ -1,0 +1,83 @@
+{
+  "plain_status": 200,
+  "info_before": {
+    "decide_seqs": 32,
+    "n_ctx": 4096,
+    "n_batch": 2048,
+    "kv_unified": true,
+    "n_parallel": 1,
+    "memory": {
+      "recurrent": true,
+      "swa": false
+    },
+    "prefix": {
+      "hash": "6462224defad50d8",
+      "tokens": 254,
+      "assistant_prefix": "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+      "valid": true
+    },
+    "prefixes": [
+      {
+        "slot": 0,
+        "hash": "6462224defad50d8",
+        "tokens": 254,
+        "valid": true
+      }
+    ],
+    "prefix_cache": {
+      "capacity": 8,
+      "entries": 0,
+      "bytes": 0
+    },
+    "temperature": 1.0,
+    "scoring_modes": [
+      "tree",
+      "full_path"
+    ]
+  },
+  "allswitch": {
+    "status": 400,
+    "body": {
+      "error": {
+        "message": "schema needs 44 sequences per state (K_eff 4 × (1 trunk + 10 branch sequences, full_path)); --decide-seqs 32 leaves 28 after 4 prefix slots",
+        "code": "budget"
+      }
+    }
+  },
+  "info_after": {
+    "decide_seqs": 32,
+    "n_ctx": 4096,
+    "n_batch": 2048,
+    "kv_unified": true,
+    "n_parallel": 1,
+    "memory": {
+      "recurrent": true,
+      "swa": false
+    },
+    "prefix": {
+      "hash": "6462224defad50d8",
+      "tokens": 254,
+      "assistant_prefix": "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+      "valid": true
+    },
+    "prefixes": [
+      {
+        "slot": 0,
+        "hash": "6462224defad50d8",
+        "tokens": 254,
+        "valid": true
+      }
+    ],
+    "prefix_cache": {
+      "capacity": 8,
+      "entries": 0,
+      "bytes": 0
+    },
+    "temperature": 1.0,
+    "scoring_modes": [
+      "tree",
+      "full_path"
+    ]
+  },
+  "pass": true
+}

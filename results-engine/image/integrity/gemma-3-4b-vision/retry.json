@@ -1,0 +1,91 @@
+{
+ "command": [
+  "/home/marduk/llama.cpp-decision/engine/build/bin/llama-decide",
+  "-m",
+  "./models/gemma-3-4b-it-Q4_K_M.gguf",
+  "--decide-seqs",
+  "16",
+  "-c",
+  "16384",
+  "-ngl",
+  "99",
+  "-fa",
+  "on",
+  "-ctk",
+  "q8_0",
+  "-ctv",
+  "q8_0",
+  "--mmproj",
+  "./models/mmproj-gemma-3-4b-it-f16.gguf"
+ ],
+ "timings": {
+  "clean": {
+   "prefill_ms": 3658.109,
+   "prefix_ms": 31.886,
+   "scoring_ms": 48.287,
+   "total_ms": 3825.055,
+   "rounds": 3,
+   "decodes": 37,
+   "retries": 0,
+   "image_encode_ms": 2476.73,
+   "image_decode_ms": 654.676
+  },
+  "rc1": {
+   "prefill_ms": 8126.53,
+   "prefix_ms": 32.017,
+   "scoring_ms": 98.542,
+   "total_ms": 8346.24,
+   "rounds": 8,
+   "decodes": 91,
+   "retries": 8,
+   "image_encode_ms": 5452.01,
+   "image_decode_ms": 1458.082
+  }
+ },
+ "statistic": {
+  "n_tickets": 8,
+  "max_abs_diff": 0.8501686493720826,
+  "fields": {
+   "cat": {
+    "median_abs_diff": 4.883339110593501e-08,
+    "max_abs_diff": 0.0004920032693808141,
+    "argmax_agreement": 1,
+    "argmax_disagreements": 0,
+    "disagreements_over_margin": 0,
+    "pass": true
+   },
+   "dog": {
+    "median_abs_diff": 8.240353091548691e-07,
+    "max_abs_diff": 0.8501686493720826,
+    "argmax_agreement": 0.875,
+    "argmax_disagreements": 1,
+    "disagreements_over_margin": 1,
+    "pass": false
+   },
+   "animal": {
+    "median_abs_diff": 1.6498679053617692e-09,
+    "max_abs_diff": 0.00043541398537472187,
+    "argmax_agreement": 1,
+    "argmax_disagreements": 0,
+    "disagreements_over_margin": 0,
+    "pass": true
+   },
+   "indoors": {
+    "median_abs_diff": 4.101970380032682e-08,
+    "max_abs_diff": 5.013901308359436e-06,
+    "argmax_agreement": 1,
+    "argmax_disagreements": 0,
+    "disagreements_over_margin": 0,
+    "pass": true
+   }
+  },
+  "pass": false
+ },
+ "checks": {
+  "run without the fault: no retry": true,
+  "rc1: at least one retry": true,
+  "rc1: the statistic against the run without it": false,
+  "rc1: same image usage": true
+ },
+ "pass": false
+}

@@ -1,0 +1,2279 @@
+{
+  "preset": "qwen3.5-9b",
+  "batch": 5,
+  "baseline_prompt": false,
+  "prompt_variant": "keywords",
+  "switches": {
+    "scoring": "tree",
+    "order_debias": 0,
+    "after": {},
+    "temperature": null
+  },
+  "n_tickets": 320,
+  "fork_commit": "5e9e030d3296e0e0ab712ef13136aa05ea56e6a3",
+  "preset_settings": {
+    "ngl": "99",
+    "fa": "on",
+    "jinja": "1",
+    "reasoning": "off",
+    "parallel": "1",
+    "cache-type-k": "q8_0",
+    "cache-type-v": "q8_0",
+    "ctx-size": "4096",
+    "decide-seqs": "21",
+    "model": "./models/Qwen3.5-9B-Q4_K_M.gguf"
+  },
+  "model_file": "./models/Qwen3.5-9B-Q4_K_M.gguf",
+  "decide_seqs": 21,
+  "vram_mib_after_run": 6416,
+  "prefix_tail": "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+  "prefix_ok": true,
+  "info": {
+    "decide_seqs": 21,
+    "n_ctx": 4096,
+    "n_batch": 2048,
+    "kv_unified": true,
+    "n_parallel": 1,
+    "memory": {
+      "recurrent": true,
+      "swa": false
+    },
+    "prefix": {
+      "hash": "c1d10e41b474ebca",
+      "tokens": 448,
+      "assistant_prefix": "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+      "valid": true
+    },
+    "prefixes": [
+      {
+        "slot": 0,
+        "hash": "c1d10e41b474ebca",
+        "tokens": 448,
+        "valid": true
+      }
+    ],
+    "prefix_cache": {
+      "capacity": 8,
+      "entries": 0,
+      "bytes": 0
+    },
+    "temperature": 1.0,
+    "scoring_modes": [
+      "tree",
+      "full_path"
+    ]
+  },
+  "engine": {
+    "scoring": "tree",
+    "order_debias": 1,
+    "temperature": 1.0,
+    "phases": 1,
+    "seqs_per_state": 4,
+    "states_per_round": 5,
+    "quote_split_fields": [],
+    "prefix_cache": {
+      "capacity": 8,
+      "entries": 0,
+      "hits": 0,
+      "misses": 0
+    }
+  },
+  "distribution": [
+    "full"
+  ],
+  "latency_s_per_ticket": {
+    "p50": 0.09328838159999578,
+    "p90": 0.10134354879992316
+  },
+  "server_ms_per_ticket": {
+    "p50": 92.862,
+    "p90": 100.8746
+  },
+  "rounds": [
+    1
+  ],
+  "usage_sum": {
+    "prompt_tokens": 20386,
+    "cached_tokens": 28672,
+    "state_tokens": 11746,
+    "scored_tokens": 960
+  },
+  "requests": [
+    {
+      "n": 5,
+      "wall_s": 0.45306740600062767,
+      "timings": {
+        "prefill_ms": 297.026,
+        "prefix_ms": 0.105,
+        "scoring_ms": 151.728,
+        "total_ms": 450.468,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 328,
+        "cached_tokens": 448,
+        "state_tokens": 193,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.4910153460004949,
+      "timings": {
+        "prefill_ms": 335.401,
+        "prefix_ms": 0.105,
+        "scoring_ms": 151.308,
+        "total_ms": 488.534,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 371,
+        "cached_tokens": 448,
+        "state_tokens": 236,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.45281931899808114,
+      "timings": {
+        "prefill_ms": 292.051,
+        "prefix_ms": 0.106,
+        "scoring_ms": 156.597,
+        "total_ms": 450.369,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 323,
+        "cached_tokens": 448,
+        "state_tokens": 188,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.46394438500283286,
+      "timings": {
+        "prefill_ms": 309.214,
+        "prefix_ms": 0.105,
+        "scoring_ms": 150.451,
+        "total_ms": 461.414,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 318,
+        "cached_tokens": 448,
+        "state_tokens": 183,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.43851567000092473,
+      "timings": {
+        "prefill_ms": 277.812,
+        "prefix_ms": 0.105,
+        "scoring_ms": 156.532,
+        "total_ms": 435.95,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 277,
+        "cached_tokens": 448,
+        "state_tokens": 142,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.4891248420026386,
+      "timings": {
+        "prefill_ms": 332.656,
+        "prefix_ms": 0.106,
+        "scoring_ms": 151.821,
+        "total_ms": 486.397,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 378,
+        "cached_tokens": 448,
+        "state_tokens": 243,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.48406920599518344,
+      "timings": {
+        "prefill_ms": 317.0,
+        "prefix_ms": 0.106,
+        "scoring_ms": 162.81,
+        "total_ms": 481.501,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 319,
+        "cached_tokens": 448,
+        "state_tokens": 184,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.47848760100168874,
+      "timings": {
+        "prefill_ms": 312.127,
+        "prefix_ms": 0.105,
+        "scoring_ms": 162.082,
+        "total_ms": 475.868,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 322,
+        "cached_tokens": 448,
+        "state_tokens": 187,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.45152316999883624,
+      "timings": {
+        "prefill_ms": 286.151,
+        "prefix_ms": 0.11,
+        "scoring_ms": 161.269,
+        "total_ms": 449.121,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 297,
+        "cached_tokens": 448,
+        "state_tokens": 162,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.44282739300251706,
+      "timings": {
+        "prefill_ms": 275.91,
+        "prefix_ms": 0.11,
+        "scoring_ms": 162.434,
+        "total_ms": 440.054,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 306,
+        "cached_tokens": 448,
+        "state_tokens": 171,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.45514122500026133,
+      "timings": {
+        "prefill_ms": 295.414,
+        "prefix_ms": 0.106,
+        "scoring_ms": 155.134,
+        "total_ms": 452.326,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 315,
+        "cached_tokens": 448,
+        "state_tokens": 180,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.4227238719977322,
+      "timings": {
+        "prefill_ms": 266.448,
+        "prefix_ms": 0.106,
+        "scoring_ms": 152.342,
+        "total_ms": 420.429,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 292,
+        "cached_tokens": 448,
+        "state_tokens": 157,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.5175218279982801,
+      "timings": {
+        "prefill_ms": 353.402,
+        "prefix_ms": 0.107,
+        "scoring_ms": 159.595,
+        "total_ms": 514.766,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 336,
+        "cached_tokens": 448,
+        "state_tokens": 201,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.4596523700020043,
+      "timings": {
+        "prefill_ms": 302.493,
+        "prefix_ms": 0.106,
+        "scoring_ms": 152.918,
+        "total_ms": 457.091,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 339,
+        "cached_tokens": 448,
+        "state_tokens": 204,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.4567521780045354,
+      "timings": {
+        "prefill_ms": 296.26,
+        "prefix_ms": 0.108,
+        "scoring_ms": 156.138,
+        "total_ms": 454.267,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 359,
+        "cached_tokens": 448,
+        "state_tokens": 224,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.43275170100241667,
+      "timings": {
+        "prefill_ms": 266.111,
+        "prefix_ms": 0.108,
+        "scoring_ms": 162.753,
+        "total_ms": 430.545,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 288,
+        "cached_tokens": 448,
+        "state_tokens": 153,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.4559076119985548,
+      "timings": {
+        "prefill_ms": 298.938,
+        "prefix_ms": 0.106,
+        "scoring_ms": 152.698,
+        "total_ms": 453.291,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 325,
+        "cached_tokens": 448,
+        "state_tokens": 190,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.38438557100016624,
+      "timings": {
+        "prefill_ms": 218.775,
+        "prefix_ms": 0.106,
+        "scoring_ms": 161.666,
+        "total_ms": 382.031,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 243,
+        "cached_tokens": 448,
+        "state_tokens": 108,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.4712288580049062,
+      "timings": {
+        "prefill_ms": 304.81,
+        "prefix_ms": 0.109,
+        "scoring_ms": 162.188,
+        "total_ms": 468.645,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 303,
+        "cached_tokens": 448,
+        "state_tokens": 168,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.43530938000185415,
+      "timings": {
+        "prefill_ms": 279.534,
+        "prefix_ms": 0.113,
+        "scoring_ms": 151.791,
+        "total_ms": 432.85,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 259,
+        "cached_tokens": 448,
+        "state_tokens": 124,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.44423927999741863,
+      "timings": {
+        "prefill_ms": 289.507,
+        "prefix_ms": 0.105,
+        "scoring_ms": 150.882,
+        "total_ms": 442.053,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 282,
+        "cached_tokens": 448,
+        "state_tokens": 147,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.43976864899741486,
+      "timings": {
+        "prefill_ms": 283.987,
+        "prefix_ms": 0.106,
+        "scoring_ms": 151.675,
+        "total_ms": 437.301,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 281,
+        "cached_tokens": 448,
+        "state_tokens": 146,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.4673631920013577,
+      "timings": {
+        "prefill_ms": 307.789,
+        "prefix_ms": 0.106,
+        "scoring_ms": 155.617,
+        "total_ms": 465.091,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 291,
+        "cached_tokens": 448,
+        "state_tokens": 156,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.45991095500357915,
+      "timings": {
+        "prefill_ms": 300.962,
+        "prefix_ms": 0.107,
+        "scoring_ms": 154.43,
+        "total_ms": 457.077,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 318,
+        "cached_tokens": 448,
+        "state_tokens": 183,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.46189896800206043,
+      "timings": {
+        "prefill_ms": 301.231,
+        "prefix_ms": 0.106,
+        "scoring_ms": 156.768,
+        "total_ms": 459.765,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 346,
+        "cached_tokens": 448,
+        "state_tokens": 211,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.4733689479980967,
+      "timings": {
+        "prefill_ms": 317.983,
+        "prefix_ms": 0.111,
+        "scoring_ms": 150.87,
+        "total_ms": 470.517,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 297,
+        "cached_tokens": 448,
+        "state_tokens": 162,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.4452402240058291,
+      "timings": {
+        "prefill_ms": 286.043,
+        "prefix_ms": 0.111,
+        "scoring_ms": 154.985,
+        "total_ms": 442.738,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 320,
+        "cached_tokens": 448,
+        "state_tokens": 185,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.514727544003108,
+      "timings": {
+        "prefill_ms": 357.728,
+        "prefix_ms": 0.11,
+        "scoring_ms": 153.03,
+        "total_ms": 512.638,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 371,
+        "cached_tokens": 448,
+        "state_tokens": 236,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.4759491419972619,
+      "timings": {
+        "prefill_ms": 312.047,
+        "prefix_ms": 0.113,
+        "scoring_ms": 159.391,
+        "total_ms": 473.227,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 345,
+        "cached_tokens": 448,
+        "state_tokens": 210,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.5258618189982371,
+      "timings": {
+        "prefill_ms": 366.801,
+        "prefix_ms": 0.113,
+        "scoring_ms": 154.98,
+        "total_ms": 523.823,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 423,
+        "cached_tokens": 448,
+        "state_tokens": 288,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.4608787540055346,
+      "timings": {
+        "prefill_ms": 301.707,
+        "prefix_ms": 0.113,
+        "scoring_ms": 155.227,
+        "total_ms": 458.655,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 314,
+        "cached_tokens": 448,
+        "state_tokens": 179,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.5080020219975268,
+      "timings": {
+        "prefill_ms": 339.482,
+        "prefix_ms": 0.114,
+        "scoring_ms": 164.628,
+        "total_ms": 505.844,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 309,
+        "cached_tokens": 448,
+        "state_tokens": 174,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.4833288049994735,
+      "timings": {
+        "prefill_ms": 323.609,
+        "prefix_ms": 0.111,
+        "scoring_ms": 155.355,
+        "total_ms": 480.858,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 394,
+        "cached_tokens": 448,
+        "state_tokens": 259,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.49455611599842086,
+      "timings": {
+        "prefill_ms": 321.0,
+        "prefix_ms": 0.111,
+        "scoring_ms": 169.121,
+        "total_ms": 491.966,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 336,
+        "cached_tokens": 448,
+        "state_tokens": 201,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.4918763699970441,
+      "timings": {
+        "prefill_ms": 325.891,
+        "prefix_ms": 0.109,
+        "scoring_ms": 161.484,
+        "total_ms": 489.161,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 348,
+        "cached_tokens": 448,
+        "state_tokens": 213,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.45472011899983045,
+      "timings": {
+        "prefill_ms": 292.498,
+        "prefix_ms": 0.111,
+        "scoring_ms": 158.18,
+        "total_ms": 452.514,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 340,
+        "cached_tokens": 448,
+        "state_tokens": 205,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.46821965600247495,
+      "timings": {
+        "prefill_ms": 298.853,
+        "prefix_ms": 0.107,
+        "scoring_ms": 164.956,
+        "total_ms": 465.596,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 325,
+        "cached_tokens": 448,
+        "state_tokens": 190,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.44713545499689644,
+      "timings": {
+        "prefill_ms": 286.812,
+        "prefix_ms": 0.105,
+        "scoring_ms": 156.195,
+        "total_ms": 444.723,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 311,
+        "cached_tokens": 448,
+        "state_tokens": 176,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.48966518999804975,
+      "timings": {
+        "prefill_ms": 326.387,
+        "prefix_ms": 0.106,
+        "scoring_ms": 159.43,
+        "total_ms": 487.464,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 304,
+        "cached_tokens": 448,
+        "state_tokens": 169,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.4447922239996842,
+      "timings": {
+        "prefill_ms": 274.422,
+        "prefix_ms": 0.106,
+        "scoring_ms": 166.412,
+        "total_ms": 442.537,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 309,
+        "cached_tokens": 448,
+        "state_tokens": 174,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.5020225350017427,
+      "timings": {
+        "prefill_ms": 332.839,
+        "prefix_ms": 0.107,
+        "scoring_ms": 165.036,
+        "total_ms": 499.626,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 328,
+        "cached_tokens": 448,
+        "state_tokens": 193,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.4942189049979788,
+      "timings": {
+        "prefill_ms": 331.058,
+        "prefix_ms": 0.107,
+        "scoring_ms": 159.264,
+        "total_ms": 492.001,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 299,
+        "cached_tokens": 448,
+        "state_tokens": 164,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.4413170000043465,
+      "timings": {
+        "prefill_ms": 279.554,
+        "prefix_ms": 0.106,
+        "scoring_ms": 157.506,
+        "total_ms": 438.712,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 303,
+        "cached_tokens": 448,
+        "state_tokens": 168,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.4502572959972895,
+      "timings": {
+        "prefill_ms": 287.238,
+        "prefix_ms": 0.106,
+        "scoring_ms": 158.969,
+        "total_ms": 447.907,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 294,
+        "cached_tokens": 448,
+        "state_tokens": 159,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.508450739995169,
+      "timings": {
+        "prefill_ms": 337.248,
+        "prefix_ms": 0.11,
+        "scoring_ms": 166.924,
+        "total_ms": 506.096,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 355,
+        "cached_tokens": 448,
+        "state_tokens": 220,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.5067177439996158,
+      "timings": {
+        "prefill_ms": 340.821,
+        "prefix_ms": 0.111,
+        "scoring_ms": 161.809,
+        "total_ms": 504.373,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 353,
+        "cached_tokens": 448,
+        "state_tokens": 218,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.4450343890057411,
+      "timings": {
+        "prefill_ms": 282.776,
+        "prefix_ms": 0.106,
+        "scoring_ms": 158.114,
+        "total_ms": 442.515,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 301,
+        "cached_tokens": 448,
+        "state_tokens": 166,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.4925937169973622,
+      "timings": {
+        "prefill_ms": 328.826,
+        "prefix_ms": 0.107,
+        "scoring_ms": 159.712,
+        "total_ms": 490.257,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 326,
+        "cached_tokens": 448,
+        "state_tokens": 191,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.529472230002284,
+      "timings": {
+        "prefill_ms": 356.63,
+        "prefix_ms": 0.105,
+        "scoring_ms": 168.248,
+        "total_ms": 526.643,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 331,
+        "cached_tokens": 448,
+        "state_tokens": 196,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.4903978319998714,
+      "timings": {
+        "prefill_ms": 325.342,
+        "prefix_ms": 0.106,
+        "scoring_ms": 161.067,
+        "total_ms": 488.178,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 372,
+        "cached_tokens": 448,
+        "state_tokens": 237,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.4372192860028008,
+      "timings": {
+        "prefill_ms": 272.899,
+        "prefix_ms": 0.106,
+        "scoring_ms": 160.228,
+        "total_ms": 434.685,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 275,
+        "cached_tokens": 448,
+        "state_tokens": 140,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.46819405799760716,
+      "timings": {
+        "prefill_ms": 305.813,
+        "prefix_ms": 0.105,
+        "scoring_ms": 158.626,
+        "total_ms": 466.063,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 313,
+        "cached_tokens": 448,
+        "state_tokens": 178,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.46063237500493415,
+      "timings": {
+        "prefill_ms": 287.628,
+        "prefix_ms": 0.131,
+        "scoring_ms": 168.91,
+        "total_ms": 458.283,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 303,
+        "cached_tokens": 448,
+        "state_tokens": 168,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.45615732800069964,
+      "timings": {
+        "prefill_ms": 287.569,
+        "prefix_ms": 0.106,
+        "scoring_ms": 164.364,
+        "total_ms": 453.611,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 311,
+        "cached_tokens": 448,
+        "state_tokens": 176,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.4705517780021182,
+      "timings": {
+        "prefill_ms": 304.911,
+        "prefix_ms": 0.121,
+        "scoring_ms": 161.884,
+        "total_ms": 468.401,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 261,
+        "cached_tokens": 448,
+        "state_tokens": 126,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.4415122580030584,
+      "timings": {
+        "prefill_ms": 268.335,
+        "prefix_ms": 0.106,
+        "scoring_ms": 169.005,
+        "total_ms": 439.023,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 279,
+        "cached_tokens": 448,
+        "state_tokens": 144,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.5052106669973,
+      "timings": {
+        "prefill_ms": 336.399,
+        "prefix_ms": 0.106,
+        "scoring_ms": 164.273,
+        "total_ms": 502.453,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 354,
+        "cached_tokens": 448,
+        "state_tokens": 219,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.4612927790003596,
+      "timings": {
+        "prefill_ms": 293.121,
+        "prefix_ms": 0.113,
+        "scoring_ms": 162.149,
+        "total_ms": 456.926,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 285,
+        "cached_tokens": 448,
+        "state_tokens": 150,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.46644190799997887,
+      "timings": {
+        "prefill_ms": 292.095,
+        "prefix_ms": 0.109,
+        "scoring_ms": 170.481,
+        "total_ms": 464.31,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 286,
+        "cached_tokens": 448,
+        "state_tokens": 151,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.4406648530057282,
+      "timings": {
+        "prefill_ms": 276.672,
+        "prefix_ms": 0.106,
+        "scoring_ms": 160.227,
+        "total_ms": 438.515,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 294,
+        "cached_tokens": 448,
+        "state_tokens": 159,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.5002425580023555,
+      "timings": {
+        "prefill_ms": 335.078,
+        "prefix_ms": 0.106,
+        "scoring_ms": 161.412,
+        "total_ms": 498.228,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 347,
+        "cached_tokens": 448,
+        "state_tokens": 212,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.49722180000389926,
+      "timings": {
+        "prefill_ms": 325.104,
+        "prefix_ms": 0.106,
+        "scoring_ms": 168.055,
+        "total_ms": 494.829,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 322,
+        "cached_tokens": 448,
+        "state_tokens": 187,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.48650703499879455,
+      "timings": {
+        "prefill_ms": 319.213,
+        "prefix_ms": 0.105,
+        "scoring_ms": 163.014,
+        "total_ms": 483.935,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 316,
+        "cached_tokens": 448,
+        "state_tokens": 181,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    },
+    {
+      "n": 5,
+      "wall_s": 0.48141707300237613,
+      "timings": {
+        "prefill_ms": 304.536,
+        "prefix_ms": 0.112,
+        "scoring_ms": 172.68,
+        "total_ms": 478.96,
+        "rounds": 1,
+        "decodes": 2,
+        "retries": 0
+      },
+      "usage": {
+        "prompt_tokens": 316,
+        "cached_tokens": 448,
+        "state_tokens": 181,
+        "scored_tokens": 15
+      },
+      "engine": {
+        "scoring": "tree",
+        "order_debias": 1,
+        "temperature": 1.0,
+        "phases": 1,
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 0
+        }
+      }
+    }
+  ]
+}

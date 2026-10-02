@@ -1,0 +1,193 @@
+{
+  "preset": "qwen2.5-0.5b",
+  "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+  "decide_seqs": 84,
+  "row_cap": 85,
+  "n_states": 20,
+  "batch": 5,
+  "full_path": {
+    "vs_b1": {
+      "n_tickets": 20,
+      "max_abs_diff": 0.06348289974628174,
+      "fields": {
+        "queue": {
+          "median_abs_diff": 0.00487682196487951,
+          "max_abs_diff": 0.06348289974628174,
+          "argmax_agreement": 1,
+          "argmax_disagreements": 0,
+          "disagreements_over_margin": 0,
+          "pass": true
+        },
+        "urgency": {
+          "median_abs_diff": 0.0033382936988008843,
+          "max_abs_diff": 0.02976233717968635,
+          "argmax_agreement": 1,
+          "argmax_disagreements": 0,
+          "disagreements_over_margin": 0,
+          "pass": true
+        },
+        "angry": {
+          "median_abs_diff": 0.010407914554648928,
+          "max_abs_diff": 0.05255355230298964,
+          "argmax_agreement": 1,
+          "argmax_disagreements": 0,
+          "disagreements_over_margin": 0,
+          "pass": false
+        }
+      },
+      "pass": false
+    },
+    "lines": [
+      {
+        "states": 5,
+        "rounds": 1,
+        "decodes": 3,
+        "prefix_built": true,
+        "branch_decodes": 1,
+        "rows_read": 85,
+        "states_per_round": 7
+      },
+      {
+        "states": 5,
+        "rounds": 1,
+        "decodes": 2,
+        "prefix_built": false,
+        "branch_decodes": 1,
+        "rows_read": 85,
+        "states_per_round": 7
+      },
+      {
+        "states": 5,
+        "rounds": 1,
+        "decodes": 2,
+        "prefix_built": false,
+        "branch_decodes": 1,
+        "rows_read": 85,
+        "states_per_round": 7
+      },
+      {
+        "states": 5,
+        "rounds": 1,
+        "decodes": 2,
+        "prefix_built": false,
+        "branch_decodes": 1,
+        "rows_read": 85,
+        "states_per_round": 7
+      }
+    ],
+    "split": false,
+    "single_branch_decodes": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "single_unsplit": true
+  },
+  "tree": {
+    "vs_b1": {
+      "n_tickets": 20,
+      "max_abs_diff": 0.05206062982847487,
+      "fields": {
+        "queue": {
+          "median_abs_diff": 0.0030834197071614444,
+          "max_abs_diff": 0.0252868277419932,
+          "argmax_agreement": 1,
+          "argmax_disagreements": 0,
+          "disagreements_over_margin": 0,
+          "pass": true
+        },
+        "urgency": {
+          "median_abs_diff": 0.0037781514152364394,
+          "max_abs_diff": 0.05206062982847487,
+          "argmax_agreement": 1,
+          "argmax_disagreements": 0,
+          "disagreements_over_margin": 0,
+          "pass": true
+        },
+        "angry": {
+          "median_abs_diff": 0.011668257417055683,
+          "max_abs_diff": 0.0352712899991631,
+          "argmax_agreement": 1,
+          "argmax_disagreements": 0,
+          "disagreements_over_margin": 0,
+          "pass": false
+        }
+      },
+      "pass": false
+    },
+    "branch_decodes": [
+      1,
+      1,
+      1,
+      1
+    ]
+  },
+  "side_by_side": {
+    "queue": {
+      "full_path": {
+        "median_abs_diff": 0.00487682196487951,
+        "max_abs_diff": 0.06348289974628174,
+        "argmax_disagreements": 0,
+        "disagreements_over_margin": 0,
+        "pass": true
+      },
+      "tree": {
+        "median_abs_diff": 0.0030834197071614444,
+        "max_abs_diff": 0.0252868277419932,
+        "argmax_disagreements": 0,
+        "disagreements_over_margin": 0,
+        "pass": true
+      }
+    },
+    "urgency": {
+      "full_path": {
+        "median_abs_diff": 0.0033382936988008843,
+        "max_abs_diff": 0.02976233717968635,
+        "argmax_disagreements": 0,
+        "disagreements_over_margin": 0,
+        "pass": true
+      },
+      "tree": {
+        "median_abs_diff": 0.0037781514152364394,
+        "max_abs_diff": 0.05206062982847487,
+        "argmax_disagreements": 0,
+        "disagreements_over_margin": 0,
+        "pass": true
+      }
+    },
+    "angry": {
+      "full_path": {
+        "median_abs_diff": 0.010407914554648928,
+        "max_abs_diff": 0.05255355230298964,
+        "argmax_disagreements": 0,
+        "disagreements_over_margin": 0,
+        "pass": false
+      },
+      "tree": {
+        "median_abs_diff": 0.011668257417055683,
+        "max_abs_diff": 0.0352712899991631,
+        "argmax_disagreements": 0,
+        "disagreements_over_margin": 0,
+        "pass": false
+      }
+    }
+  },
+  "pass": false
+}

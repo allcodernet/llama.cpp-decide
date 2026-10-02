@@ -1,0 +1,1 @@
+{"fields": {"cat": {"type": "bool", "description": "Is there a cat in this picture?"}}, "states": [[{"type": "image_url", "image_url": {"url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAADCAIAAAA2iEnWAAAAGElEQVR4nAXBAQEAAAjDIG7/zhOEoHJiPUfdBv3wKgpGAAAAAElFTkSuQmCC"}}]]}

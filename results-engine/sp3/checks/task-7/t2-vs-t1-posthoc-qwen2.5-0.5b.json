@@ -1,0 +1,9 @@
+{
+  "t1": "results-engine/sp3/checks/task-7/t1-b5-qwen2.5-0.5b.jsonl",
+  "t2": "results-engine/sp3/checks/task-7/t2-b5-qwen2.5-0.5b.jsonl",
+  "T": 2.0,
+  "answers": 60,
+  "max_abs_diff": 6.661338147750939e-16,
+  "problems": [],
+  "pass": true
+}

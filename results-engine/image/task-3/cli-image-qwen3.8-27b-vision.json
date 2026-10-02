@@ -1,0 +1,446 @@
+{
+ "checks": [
+  {
+   "check": "--info with --mmproj: vision available",
+   "pass": true,
+   "detail": "{\"available\": true, \"mrope\": true, \"non_causal\": false, \"max_images_per_state\": 4, \"max_images_per_request\": 32, \"max_image_bytes\": 10485760, \"max_image_pixels\": 32000000}"
+  },
+  {
+   "check": "dump: the line is answered",
+   "pass": true,
+   "detail": "null"
+  },
+  {
+   "check": "dump: prefix_texts (one variant) and tail_text",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "image state: parts text, image, text; no state key",
+   "pass": true,
+   "detail": "['text', 'image', 'text']"
+  },
+  {
+   "check": "image part: SHA-256 of the file",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "image part: cells >= positions > 0, chunks add up",
+   "pass": true,
+   "detail": "{\"n_tokens\": 1038, \"n_pos\": 39}"
+  },
+  {
+   "check": "image state: pieces_hex for every branch token",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "text state: today's entry",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "usage of the image state",
+   "pass": true,
+   "detail": "{\"state_tokens\": 10, \"scored_tokens\": 1, \"images\": 1, \"image_cells\": 1038, \"image_positions\": 39}"
+  },
+  {
+   "check": "without --mmproj: exit 1, 400 vision_unavailable at states[0]",
+   "pass": true,
+   "detail": "{\"error\": {\"message\": \"states[0] has an image part, but vision is not available (no_projector): no projector is loaded; start the server or llama-decide with --mmproj\", \"code\": \"vision_unavailable\", \"field\": \"states[0]\"}}"
+  }
+ ],
+ "info": [
+  {
+   "decide_seqs": 16,
+   "n_ctx": 16384,
+   "n_batch": 2048,
+   "kv_unified": true,
+   "n_parallel": 1,
+   "memory": {
+    "recurrent": true,
+    "swa": false
+   },
+   "prefix": {
+    "hash": "443899715fcaec6a",
+    "tokens": 52,
+    "assistant_prefix": "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+    "valid": true
+   },
+   "prefixes": [
+    {
+     "slot": 0,
+     "hash": "443899715fcaec6a",
+     "tokens": 52,
+     "valid": true
+    }
+   ],
+   "prefix_cache": {
+    "capacity": 8,
+    "entries": 0,
+    "bytes": 0
+   },
+   "temperature": 1.0,
+   "scoring_modes": [
+    "tree",
+    "full_path"
+   ],
+   "vision": {
+    "available": true,
+    "mrope": true,
+    "non_causal": false,
+    "max_images_per_state": 4,
+    "max_images_per_request": 32,
+    "max_image_bytes": 10485760,
+    "max_image_pixels": 32000000
+   },
+   "schema": {
+    "seqs_per_state": 2,
+    "states_per_round": 7
+   }
+  }
+ ],
+ "dump": [
+  {
+   "object": "decide",
+   "results": [
+    {
+     "answers": {
+      "cat": {
+       "value": true,
+       "p_true": 0.991852742100829,
+       "confidence": 0.991852742100829
+      }
+     },
+     "usage": {
+      "state_tokens": 10,
+      "scored_tokens": 1,
+      "images": 1,
+      "image_cells": 1038,
+      "image_positions": 39
+     }
+    },
+    {
+     "answers": {
+      "cat": {
+       "value": true,
+       "p_true": 0.8537520745397745,
+       "confidence": 0.8537520745397745
+      }
+     },
+     "usage": {
+      "state_tokens": 7,
+      "scored_tokens": 1
+     }
+    }
+   ],
+   "usage": {
+    "prompt_tokens": 1137,
+    "cached_tokens": 0,
+    "state_tokens": 17,
+    "scored_tokens": 2
+   },
+   "timings": {
+    "prefill_ms": 1387.558,
+    "prefix_ms": 125.238,
+    "scoring_ms": 51.043,
+    "total_ms": 1457.699,
+    "rounds": 1,
+    "decodes": 7,
+    "retries": 0,
+    "image_encode_ms": 308.418,
+    "image_decode_ms": 783.994
+   },
+   "engine": {
+    "scoring": "tree",
+    "order_debias": 1,
+    "temperature": 1.0,
+    "phases": 1,
+    "seqs_per_state": 2,
+    "states_per_round": 7,
+    "quote_split_fields": [],
+    "prefix_cache": {
+     "capacity": 8,
+     "entries": 0,
+     "hits": 0,
+     "misses": 1
+    }
+   },
+   "tokens": {
+    "prefix": [
+     248045,
+     8678,
+     198,
+     15666,
+     1754,
+     3296,
+     883,
+     411,
+     2099,
+     13,
+     271,
+     15666,
+     440,
+     799,
+     4566,
+     1576,
+     13,
+     4310,
+     279,
+     1879,
+     11,
+     1179,
+     4990,
+     1396,
+     2002,
+     3559,
+     13,
+     271,
+     8671,
+     25,
+     198,
+     12,
+     328,
+     4466,
+     763,
+     2091,
+     1017,
+     264,
+     7993,
+     303,
+     411,
+     6588,
+     30,
+     804,
+     466,
+     867,
+     13,
+     248046,
+     198,
+     248045,
+     846,
+     198
+    ],
+    "prefixes": [
+     [
+      248045,
+      8678,
+      198,
+      15666,
+      1754,
+      3296,
+      883,
+      411,
+      2099,
+      13,
+      271,
+      15666,
+      440,
+      799,
+      4566,
+      1576,
+      13,
+      4310,
+      279,
+      1879,
+      11,
+      1179,
+      4990,
+      1396,
+      2002,
+      3559,
+      13,
+      271,
+      8671,
+      25,
+      198,
+      12,
+      328,
+      4466,
+      763,
+      2091,
+      1017,
+      264,
+      7993,
+      303,
+      411,
+      6588,
+      30,
+      804,
+      466,
+      867,
+      13,
+      248046,
+      198,
+      248045,
+      846,
+      198
+     ]
+    ],
+    "states": [
+     {
+      "parts": [
+       {
+        "type": "text",
+        "tokens": [
+         10150,
+         494,
+         1004,
+         17593,
+         13,
+         220
+        ]
+       },
+       {
+        "type": "image",
+        "sha256": "dea9e7ef97386345f7cff32f9055da4982da5471c48d575146c796ab4563b04e",
+        "n_tokens": 1038,
+        "n_pos": 39,
+        "chunks": [
+         {
+          "type": "text",
+          "tokens": [
+           248053
+          ]
+         },
+         {
+          "type": "image",
+          "n_tokens": 1036,
+          "n_pos": 37
+         },
+         {
+          "type": "text",
+          "tokens": [
+           248054
+          ]
+         }
+        ]
+       },
+       {
+        "type": "text",
+        "tokens": [
+         2091,
+         424,
+         52239,
+         30
+        ]
+       }
+      ],
+      "tail": [
+       248046,
+       198,
+       248045,
+       74455,
+       198,
+       248068,
+       271,
+       248069,
+       271,
+       90,
+       198
+      ],
+      "branches": [
+       {
+        "field": "cat",
+        "mode": "tree",
+        "node": 0,
+        "tokens": [
+         220,
+         328,
+         4466,
+         763
+        ],
+        "pieces_hex": [
+         "20",
+         "2022",
+         "636174",
+         "223a"
+        ],
+        "children": [
+         804,
+         867
+        ],
+        "options": [
+         [
+          0
+         ],
+         [
+          1
+         ]
+        ],
+        "variant": 0,
+        "phase": 0
+       }
+      ]
+     },
+     {
+      "state": [
+       32,
+       7993,
+       68967,
+       383,
+       279,
+       30051,
+       13
+      ],
+      "tail": [
+       248046,
+       198,
+       248045,
+       74455,
+       198,
+       248068,
+       271,
+       248069,
+       271,
+       90,
+       198
+      ],
+      "branches": [
+       {
+        "field": "cat",
+        "mode": "tree",
+        "node": 0,
+        "tokens": [
+         220,
+         328,
+         4466,
+         763
+        ],
+        "children": [
+         804,
+         867
+        ],
+        "options": [
+         [
+          0
+         ],
+         [
+          1
+         ]
+        ],
+        "variant": 0,
+        "phase": 0
+       }
+      ]
+     }
+    ],
+    "prefix_texts": [
+     "<|im_start|>system\nAnswer each question about this image.\n\nAnswer with one JSON object. Read the input, then fill every field below.\n\nFields:\n- \"cat\": Is there a cat in this picture? true or false.<|im_end|>\n<|im_start|>user\n"
+    ],
+    "tail_text": "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n{\n"
+   }
+  }
+ ],
+ "no_mmproj": {
+  "returncode": 1,
+  "error": {
+   "error": {
+    "message": "states[0] has an image part, but vision is not available (no_projector): no projector is loaded; start the server or llama-decide with --mmproj",
+    "code": "vision_unavailable",
+    "field": "states[0]"
+   }
+  }
+ }
+}

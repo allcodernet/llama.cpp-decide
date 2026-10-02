@@ -1,0 +1,94 @@
+{
+  "preset": "qwen2.5-0.5b",
+  "batch": 12,
+  "n_tickets": 12,
+  "fork_commit": "5ffb34671fc12693a55dfd7c571b797bc4b6c33d",
+  "preset_settings": {
+    "ngl": "99",
+    "fa": "on",
+    "jinja": "1",
+    "reasoning": "off",
+    "parallel": "1",
+    "cache-type-k": "f16",
+    "cache-type-v": "f16",
+    "ctx-size": "4096",
+    "decide-seqs": "21",
+    "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf"
+  },
+  "model_file": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+  "decide_seqs": 21,
+  "vram_mib_after_run": 844,
+  "prefix_tail": "<|im_end|>\n<|im_start|>assistant\n",
+  "prefix_ok": true,
+  "info": {
+    "decide_seqs": 21,
+    "n_ctx": 4096,
+    "n_batch": 2048,
+    "kv_unified": true,
+    "n_parallel": 1,
+    "memory": {
+      "recurrent": false,
+      "swa": false
+    },
+    "prefix": {
+      "hash": "",
+      "tokens": 0,
+      "assistant_prefix": "<|im_end|>\n<|im_start|>assistant\n",
+      "valid": false
+    },
+    "scoring_modes": [
+      "tree"
+    ]
+  },
+  "engine": {
+    "scoring": "tree",
+    "seqs_per_state": 4,
+    "states_per_round": 5,
+    "quote_split_fields": []
+  },
+  "distribution": [
+    "full"
+  ],
+  "latency_s_per_ticket": {
+    "p50": 0.006156823250118275,
+    "p90": 0.006156823250118275
+  },
+  "server_ms_per_ticket": {
+    "p50": 5.981916666666667,
+    "p90": 5.981916666666668
+  },
+  "rounds": [
+    3
+  ],
+  "usage_sum": {
+    "prompt_tokens": 718,
+    "cached_tokens": 248,
+    "state_tokens": 454,
+    "scored_tokens": 36
+  },
+  "requests": [
+    {
+      "n": 12,
+      "wall_s": 0.07388187900141929,
+      "timings": {
+        "prefill_ms": 39.017,
+        "scoring_ms": 30.951,
+        "total_ms": 71.783,
+        "rounds": 3,
+        "decodes": 6
+      },
+      "usage": {
+        "prompt_tokens": 718,
+        "cached_tokens": 248,
+        "state_tokens": 454,
+        "scored_tokens": 36
+      },
+      "engine": {
+        "scoring": "tree",
+        "seqs_per_state": 4,
+        "states_per_round": 5,
+        "quote_split_fields": []
+      }
+    }
+  ]
+}

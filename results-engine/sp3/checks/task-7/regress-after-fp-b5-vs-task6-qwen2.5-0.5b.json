@@ -1,0 +1,20 @@
+{
+  "ref": "results-engine/sp3/checks/task-6/after-fp-b5-qwen2.5-0.5b.jsonl",
+  "run": "results-engine/sp3/checks/task-7/regress-after-fp-b5-qwen2.5-0.5b.jsonl",
+  "ignored": {
+    "engine": [
+      "order_debias",
+      "temperature"
+    ],
+    "tokens": [
+      "prefixes"
+    ],
+    "entry": [
+      "variant"
+    ]
+  },
+  "lines": 4,
+  "max_abs_diff": 0.0,
+  "problems": [],
+  "pass": true
+}

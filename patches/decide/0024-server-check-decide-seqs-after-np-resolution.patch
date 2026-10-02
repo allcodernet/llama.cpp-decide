@@ -1,0 +1,34 @@
+From 93bb513f777b394bc070fc3d9d42c736a5ff11e0 Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 22:12:33 +0200
+Subject: [PATCH 24/45] server: check --decide-seqs after -np resolution
+
+The argument parser counts -np -1 as one slot; the server turns it into
+4 later, before it loads the model. Check n_parallel + decide_seqs
+against llama_max_parallel_sequences() again there, so
+-np -1 --decide-seqs 253 fails at start and names both numbers.
+---
+ tools/server/server.cpp | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/tools/server/server.cpp b/tools/server/server.cpp
+index cfc27fc91..5e4abfc86 100644
+--- a/tools/server/server.cpp
++++ b/tools/server/server.cpp
+@@ -155,6 +155,13 @@ int llama_server(common_params & params, int argc, char ** argv) {
+             params.n_parallel = 4;
+             params.kv_unified = true;
+         }
++
++        // the argument parser counted -np -1 as one slot; repeat its --decide-seqs bound with the final n_parallel
++        if (params.decide_seqs > 0 && params.n_parallel + params.decide_seqs > (int) llama_max_parallel_sequences()) {
++            SRV_ERR("--decide-seqs %d plus %d slot sequence(s) (-np) needs %d sequences, the maximum is %zu\n",
++                    params.decide_seqs, params.n_parallel, params.n_parallel + params.decide_seqs, llama_max_parallel_sequences());
++            return 1;
++        }
+     }
+ 
+     // size the KV pool from --kv-unified-per-slot, unless the user pinned it with -c
+-- 
+2.55.0
+

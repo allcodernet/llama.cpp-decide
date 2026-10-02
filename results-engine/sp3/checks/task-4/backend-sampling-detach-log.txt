@@ -1,0 +1,20 @@
+# llama-decide --decide-seqs 9 --backend-sampling -v (one b5 request): common_init attaches samplers to seqs 0-9, the engine detaches the decide seqs 1-9
+0.00.489.729 D set_sampler: seq_id = 0, sampler = 0x5561c0d97d30
+0.00.489.766 D set_sampler: seq_id = 1, sampler = 0x5561c0c6f380
+0.00.489.775 D set_sampler: seq_id = 2, sampler = 0x5561c0c297a0
+0.00.489.782 D set_sampler: seq_id = 3, sampler = 0x5561c0bde890
+0.00.489.790 D set_sampler: seq_id = 4, sampler = 0x5561c0c95800
+0.00.489.798 D set_sampler: seq_id = 5, sampler = 0x5561c0c8d4c0
+0.00.489.806 D set_sampler: seq_id = 6, sampler = 0x5561c0d01a00
+0.00.489.813 D set_sampler: seq_id = 7, sampler = 0x5561c0c791e0
+0.00.489.820 D set_sampler: seq_id = 8, sampler = 0x5561c0cc8690
+0.00.489.828 D set_sampler: seq_id = 9, sampler = 0x5561c4a06140
+0.00.532.555 D set_sampler: seq_id = 1, sampler = (nil)
+0.00.532.556 D set_sampler: seq_id = 2, sampler = (nil)
+0.00.532.557 D set_sampler: seq_id = 3, sampler = (nil)
+0.00.532.557 D set_sampler: seq_id = 4, sampler = (nil)
+0.00.532.557 D set_sampler: seq_id = 5, sampler = (nil)
+0.00.532.557 D set_sampler: seq_id = 6, sampler = (nil)
+0.00.532.557 D set_sampler: seq_id = 7, sampler = (nil)
+0.00.532.558 D set_sampler: seq_id = 8, sampler = (nil)
+0.00.532.558 D set_sampler: seq_id = 9, sampler = (nil)

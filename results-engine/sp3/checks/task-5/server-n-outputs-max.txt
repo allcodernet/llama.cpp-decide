@@ -1,0 +1,4 @@
+0.00.349.366 I llama_context: n_seq_max             = 65
+0.00.349.370 I llama_context: n_outputs_max         = 65
+0.00.349.370 I llama_context: n_outputs_max_per_seq = 1
+0.00.569.335 I llama_context: n_seq_max             = 65

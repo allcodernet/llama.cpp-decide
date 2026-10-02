@@ -1,0 +1,52 @@
+{
+ "command": [
+  "/home/marduk/llama.cpp-decision/engine/build/bin/llama-decide",
+  "-m",
+  "./models/gemma-3-4b-it-Q4_K_M.gguf",
+  "--decide-seqs",
+  "16",
+  "-c",
+  "16384",
+  "-ngl",
+  "99",
+  "-fa",
+  "on",
+  "-ctk",
+  "q8_0",
+  "-ctv",
+  "q8_0",
+  "--mmproj",
+  "./models/mmproj-gemma-3-4b-it-f16.gguf",
+  "--info",
+  "-v"
+ ],
+ "returncode": 0,
+ "n_ctx": 16384,
+ "memory": {
+  "recurrent": false,
+  "swa": true,
+  "swa_cells": 16384
+ },
+ "logged_swa_cells": [
+  16384,
+  16384
+ ],
+ "kv_lines": [
+  "0.00.425.825 I print_info: n_swa                 = 1024",
+  "0.00.430.474 I llama_context: n_seq_max             = 17",
+  "0.00.430.475 I llama_context: n_ubatch              = 512",
+  "0.00.442.212 I llama_kv_cache_iswa: creating non-SWA KV cache, size = 16384 cells",
+  "0.00.442.368 I llama_kv_cache_iswa: creating     SWA KV cache, size = 16384 cells",
+  "0.00.767.018 I print_info: n_swa                 = 1024",
+  "0.01.160.009 I llama_context: n_seq_max             = 17",
+  "0.01.160.010 I llama_context: n_ubatch              = 512",
+  "0.01.171.216 I llama_kv_cache_iswa: creating non-SWA KV cache, size = 16384 cells",
+  "0.01.171.724 I llama_kv_cache_iswa: creating     SWA KV cache, size = 16384 cells"
+ ],
+ "checks": {
+  "llama-decide --info: exit 0": true,
+  "info: memory.swa_cells equals the SWA KV cache size in the log": true,
+  "info: memory.swa_cells 16384": true
+ },
+ "pass": true
+}

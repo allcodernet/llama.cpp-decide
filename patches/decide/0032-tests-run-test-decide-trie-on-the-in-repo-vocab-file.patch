@@ -1,0 +1,39 @@
+From f989ecdeaea9d6377075374cd927f853504712af Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Sat, 26 Sep 2026 03:47:28 +0200
+Subject: [PATCH 32/45] tests: run test-decide-trie on the in-repo vocab files
+
+test-decide-trie reads its tokenizer from DECIDE_TEST_MODEL and prints SKIP
+(exit 0) without one, so the plain registration passed without running the
+tokenizer part. Register it like test-decide-after: test-decide-trie-qwen2
+and test-decide-trie-gemma-4 on models/ggml-vocab-{qwen2,gemma-4}.gguf
+(ENVIRONMENT), with FAIL_REGULAR_EXPRESSION SKIP so a missing vocab fails.
+---
+ tests/CMakeLists.txt | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
+index e239ecbb0..01569ea2e 100644
+--- a/tests/CMakeLists.txt
++++ b/tests/CMakeLists.txt
+@@ -389,8 +389,16 @@ target_link_libraries(test-decide-score PRIVATE llama-decide)
+ llama_build_and_test(test-decide-compat.cpp)
+ target_link_libraries(test-decide-compat PRIVATE llama-decide)
+ 
+-llama_build_and_test(test-decide-trie.cpp)
++# the tokenizer part reads DECIDE_TEST_MODEL (unset: it prints SKIP and exits 0): run it on the vocab-only files of two
++# families, a skip fails
++llama_build(test-decide-trie.cpp)
+ target_link_libraries(test-decide-trie PRIVATE llama-decide)
++llama_test(test-decide-trie NAME test-decide-trie-qwen2)
++llama_test(test-decide-trie NAME test-decide-trie-gemma-4)
++set_tests_properties(test-decide-trie-qwen2 PROPERTIES FAIL_REGULAR_EXPRESSION "SKIP"
++                     ENVIRONMENT "DECIDE_TEST_MODEL=${PROJECT_SOURCE_DIR}/models/ggml-vocab-qwen2.gguf")
++set_tests_properties(test-decide-trie-gemma-4 PROPERTIES FAIL_REGULAR_EXPRESSION "SKIP"
++                     ENVIRONMENT "DECIDE_TEST_MODEL=${PROJECT_SOURCE_DIR}/models/ggml-vocab-gemma-4.gguf")
+ 
+ llama_build_and_test(test-decide-cache.cpp)
+ target_link_libraries(test-decide-cache PRIVATE llama-decide)
+-- 
+2.55.0
+

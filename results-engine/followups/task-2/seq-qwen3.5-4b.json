@@ -1,0 +1,138 @@
+{
+  "preset": "qwen3.5-4b",
+  "decide_seqs": 32,
+  "flags": [
+    "-m",
+    "./models/Qwen3.5-4B-Q4_K_M.gguf",
+    "-c",
+    "4096",
+    "-ngl",
+    "99",
+    "-fa",
+    "on",
+    "-ctk",
+    "q8_0",
+    "-ctv",
+    "q8_0"
+  ],
+  "aba": {
+    "requests": "aba-requests-qwen3.5-4b.jsonl",
+    "prefix_cache": 8,
+    "hits_misses_entries_old": [
+      [
+        0,
+        1,
+        0
+      ],
+      [
+        0,
+        1,
+        1
+      ],
+      [
+        1,
+        0,
+        2
+      ]
+    ],
+    "hits_misses_entries_new": [
+      [
+        0,
+        1,
+        0
+      ],
+      [
+        0,
+        1,
+        1
+      ],
+      [
+        1,
+        0,
+        2
+      ]
+    ],
+    "counts_equal": true,
+    "answers_max_abs_diff": 0.0,
+    "cached_tokens_old": [
+      0,
+      0,
+      448
+    ],
+    "cached_tokens_new": [
+      0,
+      0,
+      448
+    ]
+  },
+  "abca": {
+    "requests": "lru-abca-requests-qwen3.5-4b.jsonl",
+    "prefix_cache": 2,
+    "hits_misses_entries_old": [
+      [
+        0,
+        1,
+        0
+      ],
+      [
+        0,
+        1,
+        1
+      ],
+      [
+        0,
+        1,
+        2
+      ],
+      [
+        1,
+        0,
+        2
+      ]
+    ],
+    "hits_misses_entries_new": [
+      [
+        0,
+        1,
+        0
+      ],
+      [
+        0,
+        1,
+        1
+      ],
+      [
+        0,
+        1,
+        2
+      ],
+      [
+        1,
+        0,
+        2
+      ]
+    ],
+    "counts_equal": true,
+    "answers_max_abs_diff": 0.0,
+    "cached_tokens_old": [
+      0,
+      0,
+      0,
+      448
+    ],
+    "cached_tokens_new": [
+      0,
+      0,
+      0,
+      448
+    ]
+  },
+  "tree": {
+    "requests": "requests-tree-b5-qwen3.5-4b.jsonl",
+    "results_max_abs_diff": 0.0,
+    "tokens_dump_identical": true,
+    "engine_identical": true,
+    "rounds_identical": true
+  },
+  "pass": true
+}

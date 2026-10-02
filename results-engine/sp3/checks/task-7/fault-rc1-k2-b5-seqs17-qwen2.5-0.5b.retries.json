@@ -1,0 +1,29 @@
+{
+  "resp": "results-engine/sp3/checks/task-7/fault-rc1-k2-b5-seqs17-qwen2.5-0.5b.jsonl",
+  "min": 1,
+  "retries": [
+    5,
+    5,
+    5,
+    5
+  ],
+  "rounds": [
+    5,
+    5,
+    5,
+    5
+  ],
+  "states_per_round": [
+    1,
+    1,
+    1,
+    1
+  ],
+  "order_debias": [
+    2,
+    2,
+    2,
+    2
+  ],
+  "pass": true
+}

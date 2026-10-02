@@ -1,0 +1,29 @@
+{
+  "preds_a": "results-engine/integrity/decide-qwen2.5-0.5b-b1-lim20.jsonl",
+  "preds_b": "results-engine/integrity/decide-qwen2.5-0.5b-b5-lim20.jsonl",
+  "n": 20,
+  "fields": {
+    "queue": {
+      "median_abs_diff": 0.0030834197071614444,
+      "max_abs_diff": 0.0252868277419932,
+      "argmax_agreement": 1,
+      "disagreements_over_margin": 0,
+      "argmax_abs_diff_median": 0.008340927885180982
+    },
+    "urgency": {
+      "median_abs_diff": 0.0037781514152364394,
+      "max_abs_diff": 0.05206062982847487,
+      "argmax_agreement": 1,
+      "disagreements_over_margin": 0,
+      "argmax_abs_diff_median": 0.008534437292038122
+    },
+    "angry": {
+      "median_abs_diff": 0.011668257417055683,
+      "max_abs_diff": 0.0352712899991631,
+      "argmax_agreement": 1,
+      "disagreements_over_margin": 0,
+      "argmax_abs_diff_median": 0.011668257417055627
+    }
+  },
+  "pass": false
+}

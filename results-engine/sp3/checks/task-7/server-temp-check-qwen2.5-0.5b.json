@@ -1,0 +1,12 @@
+{
+  "a": "results-engine/sp3/checks/task-7/server-temp-default-qwen2.5-0.5b.json",
+  "b": "results-engine/sp3/checks/task-7/server-temp-2-qwen2.5-0.5b.json",
+  "T": 2.0,
+  "max_abs_diff": {
+    "decide": 4.440892098500626e-16,
+    "decide_t1": 0.0,
+    "systemone": 2.220446049250313e-16
+  },
+  "problems": [],
+  "pass": true
+}

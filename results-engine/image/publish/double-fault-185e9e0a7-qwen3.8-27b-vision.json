@@ -1,0 +1,44 @@
+{
+ "model": "qwen3.8-27b-vision",
+ "decide_seqs": 16,
+ "budget": {
+  "needs": 20067,
+  "held": 0,
+  "prefix": 52,
+  "K": 1,
+  "state": 20000,
+  "tail": 11,
+  "branches": 4,
+  "limit": 16368,
+  "swa_cells": null
+ },
+ "sequences only": {
+  "status": 400,
+  "error": {
+   "message": "schema needs 17 sequences per state (K_eff 1 \u00d7 (1 trunk + 16 branch sequences, tree)); --decide-seqs 16 leaves 15 after 1 prefix slots",
+   "code": "budget"
+  }
+ },
+ "cells only": {
+  "status": 400,
+  "error": {
+   "message": "state 0 needs 16887 cells (held 0, prefix 52, state 16820 (image cells 1038), tail 11, branches 4), n_ctx - 16 is 16368",
+   "code": "budget"
+  }
+ },
+ "both": {
+  "status": 400,
+  "error": {
+   "message": "schema needs 17 sequences per state (K_eff 1 \u00d7 (1 trunk + 16 branch sequences, tree)); --decide-seqs 16 leaves 15 after 1 prefix slots",
+   "code": "budget"
+  }
+ },
+ "checks": {
+  "probes: the image alone 200, a long text 400 budget with the cell counts": true,
+  "sequences only: 400 budget naming the sequences": true,
+  "cells only: 400 budget naming the image cells (the early check after the image)": true,
+  "both: the sequence budget answers first": true,
+  "info unchanged by the rejected requests": true
+ },
+ "pass": true
+}

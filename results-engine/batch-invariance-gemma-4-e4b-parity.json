@@ -1,0 +1,29 @@
+{
+  "preds_a": "results-engine/preds/decide-gemma-4-e4b-b1.jsonl",
+  "preds_b": "results-engine/preds/decide-gemma-4-e4b-b5.jsonl",
+  "n": 80,
+  "fields": {
+    "queue": {
+      "median_abs_diff": 6.5040690604501795e-06,
+      "max_abs_diff": 0.07708744989166638,
+      "argmax_agreement": 0.9875,
+      "disagreements_over_margin": 0,
+      "argmax_abs_diff_median": 0.00010066469441238901
+    },
+    "urgency": {
+      "median_abs_diff": 8.955997572352676e-05,
+      "max_abs_diff": 0.029089682538562645,
+      "argmax_agreement": 0.975,
+      "disagreements_over_margin": 0,
+      "argmax_abs_diff_median": 0.0012086450830919304
+    },
+    "angry": {
+      "median_abs_diff": 0.0001579849670856337,
+      "max_abs_diff": 0.06071589381994713,
+      "argmax_agreement": 1,
+      "disagreements_over_margin": 0,
+      "argmax_abs_diff_median": 0.0001579849670856337
+    }
+  },
+  "pass": true
+}

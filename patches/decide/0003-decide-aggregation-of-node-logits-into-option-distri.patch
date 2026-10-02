@@ -1,0 +1,338 @@
+From bf7c9e8dd5e124fd0c99b6bfa0b9efd35c5cb9d0 Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 13:39:35 +0200
+Subject: [PATCH 03/45] decide: aggregation of node logits into option
+ distributions
+
+Add decide-score.{h,cpp}: score_field aggregates per-branch-node
+log-softmax over children into per-option log-probabilities (summed
+along each option's trie path), normalises with softmax, and throws
+error{"engine", 500} when every option scores -inf. answer_json
+renders the CHOICE/SCORE/BOOL answer shapes from a field_answer.
+---
+ tests/CMakeLists.txt          |   3 +
+ tests/test-decide-score.cpp   |  97 ++++++++++++++++++++++++
+ tools/decide/CMakeLists.txt   |   3 +-
+ tools/decide/decide-score.cpp | 137 ++++++++++++++++++++++++++++++++++
+ tools/decide/decide-score.h   |  38 ++++++++++
+ 5 files changed, 277 insertions(+), 1 deletion(-)
+ create mode 100644 tests/test-decide-score.cpp
+ create mode 100644 tools/decide/decide-score.cpp
+ create mode 100644 tools/decide/decide-score.h
+
+diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
+index 7ebb9bd16..c733899b8 100644
+--- a/tests/CMakeLists.txt
++++ b/tests/CMakeLists.txt
+@@ -382,3 +382,6 @@ endif()
+ 
+ llama_build_and_test(test-decide-schema.cpp)
+ target_link_libraries(test-decide-schema PRIVATE llama-decide)
++
++llama_build_and_test(test-decide-score.cpp)
++target_link_libraries(test-decide-score PRIVATE llama-decide)
+diff --git a/tests/test-decide-score.cpp b/tests/test-decide-score.cpp
+new file mode 100644
+index 000000000..4ca3a9c3e
+--- /dev/null
++++ b/tests/test-decide-score.cpp
+@@ -0,0 +1,97 @@
++#include "decide-score.h"
++#include <cmath>
++#include <cstdio>
++#include <limits>
++
++static int failures = 0;
++#define CHECK(cond) do { if (!(cond)) { std::fprintf(stderr, "FAIL %s:%d: %s\n", __FILE__, __LINE__, #cond); failures++; } } while (0)
++static bool near(double a, double b, double eps = 1e-6) { return std::fabs(a - b) < eps; }
++static const float NEG_INF = -std::numeric_limits<float>::infinity();
++
++// flat trie: root -> 4 leaves, one option each
++static decide::field_trie flat4() {
++    decide::field_trie t;
++    t.nodes.resize(5);
++    t.nodes[0].tok = -1;
++    for (int i = 1; i <= 4; ++i) { t.nodes[0].children.push_back(i); t.nodes[i].tok = 100 + i; t.nodes[i].options_through = {i - 1}; t.nodes[0].options_through.push_back(i - 1); }
++    t.branch_nodes = {0};
++    t.paths = {{101}, {102}, {103}, {104}};
++    return t;
++}
++static decide::field choice4() {
++    decide::field f; f.name = "q"; f.type = decide::field_type::CHOICE;
++    for (const char * k : {"a", "b", "c", "d"}) f.options.push_back({k, "", decide::json_string(k)});
++    return f;
++}
++
++int main() {
++    // 1. flat softmax
++    {
++        auto f = choice4(); auto t = flat4();
++        auto a = decide::score_field(f, t, {{0, {1.0f, 2.0f, 3.0f, 4.0f}}});
++        double z = std::exp(1.0) + std::exp(2.0) + std::exp(3.0) + std::exp(4.0);
++        CHECK(near(a.probs[0], std::exp(1.0) / z) && near(a.probs[3], std::exp(4.0) / z));
++        CHECK(a.argmax == 3);
++        CHECK(near(a.probs[0] + a.probs[1] + a.probs[2] + a.probs[3], 1.0));
++        auto j = decide::answer_json(f, a);
++        CHECK(j.at("value").get<std::string>() == "d");
++        CHECK(near(j.at("probabilities").at("d").get<double>(), a.probs[3]));
++        CHECK(near(j.at("confidence").get<double>(), a.probs[3]));
++    }
++    // 2. tie -> first
++    {
++        auto a = decide::score_field(choice4(), flat4(), {{0, {1.0f, 1.0f, 0.0f, 0.0f}}});
++        CHECK(a.argmax == 0);
++    }
++    // 3. one -inf option
++    {
++        auto a = decide::score_field(choice4(), flat4(), {{0, {0.0f, NEG_INF, 0.0f, 0.0f}}});
++        CHECK(a.probs[1] == 0.0 && near(a.probs[0], 1.0 / 3));
++    }
++    // 4. all -inf -> engine error
++    {
++        bool threw = false;
++        try { decide::score_field(choice4(), flat4(), {{0, {NEG_INF, NEG_INF, NEG_INF, NEG_INF}}}); }
++        catch (const decide::error & e) { threw = (e.code == "engine" && e.http == 500); }
++        CHECK(threw);
++    }
++    // 5. two-level trie: root -> A(opts 0,1), B(opt 2); A -> leaf0, leaf1
++    {
++        decide::field f; f.name = "q"; f.type = decide::field_type::CHOICE;
++        for (const char * k : {"aa", "ab", "b"}) f.options.push_back({k, "", decide::json_string(k)});
++        decide::field_trie t; t.nodes.resize(5);
++        t.nodes[0].children = {1, 2}; t.nodes[0].options_through = {0, 1, 2};
++        t.nodes[1].tok = 10; t.nodes[1].children = {3, 4}; t.nodes[1].options_through = {0, 1};
++        t.nodes[2].tok = 11; t.nodes[2].options_through = {2};
++        t.nodes[3].tok = 20; t.nodes[3].options_through = {0};
++        t.nodes[4].tok = 21; t.nodes[4].options_through = {1};
++        t.branch_nodes = {0, 1};
++        // P(A)=0.5, P(B)=0.5 ; P(aa|A)=0.8, P(ab|A)=0.2
++        const float la = std::log(0.8f), lb = std::log(0.2f);
++        auto a = decide::score_field(f, t, {{0, {0.0f, 0.0f}}, {1, {la, lb}}});
++        CHECK(near(a.probs[0], 0.4, 1e-5) && near(a.probs[1], 0.1, 1e-5) && near(a.probs[2], 0.5, 1e-5));
++    }
++    // 6. score field: expected value and json
++    {
++        decide::field f; f.name = "u"; f.type = decide::field_type::SCORE;
++        for (int i = 0; i < 4; ++i) f.options.push_back({std::to_string(i), "L", std::to_string(i)});
++        auto a = decide::score_field(f, flat4(), {{0, {0.0f, 0.0f, std::log(2.0f), 0.0f}}});   // probs .2 .2 .4 .2
++        CHECK(near(a.expected, 0.2 * 1 + 0.4 * 2 + 0.2 * 3, 1e-5) && a.argmax == 2);
++        auto j = decide::answer_json(f, a);
++        CHECK(j.at("value").get<int>() == 2 && j.at("probabilities").is_array() && near(j.at("expected").get<double>(), a.expected, 1e-5));
++    }
++    // 7. bool json
++    {
++        decide::field f; f.name = "b"; f.type = decide::field_type::BOOL;
++        f.options = {{"true", "", "true"}, {"false", "", "false"}};
++        decide::field_trie t; t.nodes.resize(3); t.nodes[0].children = {1, 2}; t.nodes[0].options_through = {0, 1};
++        t.nodes[1].tok = 5; t.nodes[1].options_through = {0}; t.nodes[2].tok = 6; t.nodes[2].options_through = {1};
++        t.branch_nodes = {0}; t.paths = {{5}, {6}};
++        auto a = decide::score_field(f, t, {{0, {std::log(0.3f), std::log(0.7f)}}});
++        auto j = decide::answer_json(f, a);
++        CHECK(j.at("value").get<bool>() == false && near(j.at("p_true").get<double>(), 0.3, 1e-5) && near(j.at("confidence").get<double>(), 0.7, 1e-5));
++    }
++    if (failures) { std::fprintf(stderr, "%d failure(s)\n", failures); return 1; }
++    std::printf("test-decide-score: OK\n");
++    return 0;
++}
+diff --git a/tools/decide/CMakeLists.txt b/tools/decide/CMakeLists.txt
+index 507b7b565..35e800af2 100644
+--- a/tools/decide/CMakeLists.txt
++++ b/tools/decide/CMakeLists.txt
+@@ -1,5 +1,6 @@
+ add_library(llama-decide STATIC
+-    decide-schema.cpp decide-schema.h)
++    decide-schema.cpp decide-schema.h
++    decide-score.cpp decide-score.h)
+ target_include_directories(llama-decide PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+ target_link_libraries(llama-decide PUBLIC llama-common llama)
+ target_compile_features(llama-decide PUBLIC cxx_std_17)
+diff --git a/tools/decide/decide-score.cpp b/tools/decide/decide-score.cpp
+new file mode 100644
+index 000000000..c21d695e6
+--- /dev/null
++++ b/tools/decide/decide-score.cpp
+@@ -0,0 +1,137 @@
++#include "decide-score.h"
++#include "ggml.h"
++
++#include <algorithm>
++#include <cmath>
++#include <limits>
++
++namespace decide {
++
++// log_softmax over x, -inf inputs stay -inf and are skipped in the normalising sum.
++// If every input is -inf, every output is -inf.
++static std::vector<double> log_softmax(const std::vector<float> & x) {
++    double max = -std::numeric_limits<double>::infinity();
++    for (float v : x) {
++        if (!std::isinf(v) && v > max) {
++            max = v;
++        }
++    }
++    std::vector<double> lsm(x.size());
++    if (std::isinf(max)) {
++        // all inputs -inf
++        for (double & v : lsm) {
++            v = -std::numeric_limits<double>::infinity();
++        }
++        return lsm;
++    }
++    double sum = 0.0;
++    for (float v : x) {
++        if (!std::isinf(v)) {
++            sum += std::exp((double) v - max);
++        }
++    }
++    double log_z = max + std::log(sum);
++    for (size_t i = 0; i < x.size(); ++i) {
++        lsm[i] = std::isinf(x[i]) ? -std::numeric_limits<double>::infinity() : (double) x[i] - log_z;
++    }
++    return lsm;
++}
++
++field_answer score_field(const field & f, const field_trie & t, const std::vector<node_scores> & scores) {
++    std::vector<double> logp(f.options.size(), 0.0);
++
++    for (const node_scores & s : scores) {
++        auto lsm = log_softmax(s.child_logits);
++        const trie_node & node = t.nodes[s.node];
++        for (size_t k = 0; k < node.children.size(); ++k) {
++            const trie_node & child = t.nodes[node.children[k]];
++            for (int opt : child.options_through) {
++                logp[opt] += lsm[k];
++            }
++        }
++    }
++
++    std::vector<float> logp_f(logp.begin(), logp.end());
++    auto lsm = log_softmax(logp_f);
++
++    bool all_inf = true;
++    for (double v : lsm) {
++        if (!std::isinf(v)) {
++            all_inf = false;
++            break;
++        }
++    }
++    if (all_inf) {
++        throw error("engine", 500, "field '" + f.name + "': all options scored -inf");
++    }
++
++    field_answer a;
++    a.probs.resize(f.options.size());
++    for (size_t i = 0; i < a.probs.size(); ++i) {
++        a.probs[i] = std::isinf(lsm[i]) ? 0.0 : std::exp(lsm[i]);
++    }
++
++#ifndef NDEBUG
++    {
++        double sum = 0.0;
++        for (double p : a.probs) {
++            sum += p;
++        }
++        GGML_ASSERT(std::fabs(sum - 1.0) < 1e-4);
++    }
++#endif
++
++    a.argmax = 0;
++    for (size_t i = 1; i < a.probs.size(); ++i) {
++        if (a.probs[i] > a.probs[a.argmax]) {
++            a.argmax = (int) i;
++        }
++    }
++
++    a.expected = 0.0;
++    if (f.type == field_type::SCORE) {
++        for (size_t i = 0; i < a.probs.size(); ++i) {
++            a.expected += (double) i * a.probs[i];
++        }
++    }
++
++    return a;
++}
++
++common_json answer_json(const field & f, const field_answer & a) {
++    double confidence = a.probs[a.argmax];
++
++    if (f.type == field_type::CHOICE) {
++        common_json probs = common_json::object();
++        for (size_t i = 0; i < f.options.size(); ++i) {
++            probs[f.options[i].key] = a.probs[i];
++        }
++        common_json j = common_json::object();
++        j["value"]         = f.options[a.argmax].key;
++        j["probabilities"] = probs;
++        j["confidence"]    = confidence;
++        return j;
++    }
++
++    if (f.type == field_type::SCORE) {
++        common_json probs = common_json::array();
++        for (double p : a.probs) {
++            probs.push_back(p);
++        }
++        common_json j = common_json::object();
++        j["value"]         = a.argmax;
++        j["expected"]      = a.expected;
++        j["probabilities"] = probs;
++        j["confidence"]    = confidence;
++        return j;
++    }
++
++    // BOOL: options[0] = "true", options[1] = "false"
++    common_json j = common_json::object();
++    j["value"]      = a.probs[0] >= 0.5;
++    j["p_true"]     = a.probs[0];
++    j["confidence"] = std::max(a.probs[0], a.probs[1]);
++    return j;
++}
++
++} // namespace decide
+diff --git a/tools/decide/decide-score.h b/tools/decide/decide-score.h
+new file mode 100644
+index 000000000..93d140c11
+--- /dev/null
++++ b/tools/decide/decide-score.h
+@@ -0,0 +1,38 @@
++#pragma once
++#include "decide-schema.h"
++#include "llama.h"
++#include <vector>
++
++namespace decide {
++
++// One trie node. nodes[0] is the root (= end of the stem). A node with >= 2 children is a branch node.
++struct trie_node {
++    llama_token      tok      = -1;   // token on the edge into this node (-1 for the root)
++    std::vector<int> children;        // node indices, in first-insertion order
++    std::vector<int> options_through; // option indices whose path passes through this node (leaf: exactly one)
++};
++
++struct field_trie {
++    std::vector<llama_token>              stem;         // tokens shared by every option (includes the stem text)
++    std::vector<std::vector<llama_token>> paths;        // per option: tokens after the stem
++    std::vector<trie_node>                nodes;
++    std::vector<int>                      branch_nodes; // node indices with >= 2 children, pre-order
++    bool                                  quote_split = false; // true when the quote-anchored fallback was used (choice fields only)
++};
++
++struct node_scores {
++    int                node;          // index into field_trie::nodes (must be a branch node)
++    std::vector<float> child_logits;  // logits of nodes[node].children[k].tok, same order as children
++};
++
++struct field_answer {
++    int                 argmax;       // option index; ties -> first
++    std::vector<double> probs;        // per option, sums to 1
++    double              expected;     // score fields: sum i * p_i; others 0
++};
++
++// Throws error{"engine", 500, ...} when every option ends with -inf.
++field_answer score_field(const field & f, const field_trie & t, const std::vector<node_scores> & scores);
++common_json  answer_json(const field & f, const field_answer & a);
++
++} // namespace decide
+-- 
+2.55.0
+

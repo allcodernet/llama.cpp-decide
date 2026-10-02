@@ -1,0 +1,124 @@
+{
+  "ours": "results-engine/preds/decide-qwen3.5-9b-b5-framing.jsonl",
+  "baseline": "results/preds/decision-qwen3.5-9b-b5.jsonl",
+  "fields": {
+    "queue": {
+      "disagreements": 6,
+      "tickets": [
+        {
+          "ticket": 42,
+          "label": "feedback",
+          "baseline": "feedback",
+          "ours": "technical",
+          "baseline_margin": 0.4614,
+          "ours_margin": 0.7471
+        },
+        {
+          "ticket": 50,
+          "label": "feedback",
+          "baseline": "feedback",
+          "ours": "technical",
+          "baseline_margin": 0.0382,
+          "ours_margin": 0.2925
+        },
+        {
+          "ticket": 52,
+          "label": "feedback",
+          "baseline": "feedback",
+          "ours": "technical",
+          "baseline_margin": 0.0053,
+          "ours_margin": 0.2609
+        },
+        {
+          "ticket": 59,
+          "label": "billing",
+          "baseline": "feedback",
+          "ours": "billing",
+          "baseline_margin": 0.0157,
+          "ours_margin": 0.8476
+        },
+        {
+          "ticket": 61,
+          "label": "billing",
+          "baseline": "feedback",
+          "ours": "billing",
+          "baseline_margin": 0.4178,
+          "ours_margin": 0.803
+        },
+        {
+          "ticket": 64,
+          "label": "feedback",
+          "baseline": "feedback",
+          "ours": "technical",
+          "baseline_margin": 0.0207,
+          "ours_margin": 0.3558
+        }
+      ]
+    },
+    "urgency": {
+      "disagreements": 7,
+      "tickets": [
+        {
+          "ticket": 14,
+          "label": 2,
+          "baseline": 2,
+          "ours": 3,
+          "baseline_margin": 0.0178,
+          "ours_margin": 0.6009
+        },
+        {
+          "ticket": 29,
+          "label": 1,
+          "baseline": 2,
+          "ours": 3,
+          "baseline_margin": 0.3671,
+          "ours_margin": 0.0769
+        },
+        {
+          "ticket": 36,
+          "label": 2,
+          "baseline": 2,
+          "ours": 3,
+          "baseline_margin": 0.1472,
+          "ours_margin": 0.1133
+        },
+        {
+          "ticket": 46,
+          "label": 0,
+          "baseline": 0,
+          "ours": 2,
+          "baseline_margin": 0.2504,
+          "ours_margin": 0.2053
+        },
+        {
+          "ticket": 64,
+          "label": 0,
+          "baseline": 0,
+          "ours": 1,
+          "baseline_margin": 0.2137,
+          "ours_margin": 0.2771
+        },
+        {
+          "ticket": 68,
+          "label": 1,
+          "baseline": 0,
+          "ours": 1,
+          "baseline_margin": 0.633,
+          "ours_margin": 0.0906
+        },
+        {
+          "ticket": 73,
+          "label": 2,
+          "baseline": 1,
+          "ours": 2,
+          "baseline_margin": 0.2071,
+          "ours_margin": 0.1975
+        }
+      ]
+    },
+    "angry": {
+      "disagreements": 0,
+      "tickets": []
+    }
+  }
+}

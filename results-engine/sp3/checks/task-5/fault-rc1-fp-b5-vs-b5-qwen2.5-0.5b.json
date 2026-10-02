@@ -1,0 +1,34 @@
+{
+  "ref": "results-engine/sp3/checks/task-5/fp-b5-nodump-qwen2.5-0.5b.jsonl",
+  "run": "results-engine/sp3/checks/task-5/fault-rc1-fp-b5-qwen2.5-0.5b.jsonl",
+  "n_tickets": 20,
+  "max_abs_diff": 0.06519922427010882,
+  "fields": {
+    "queue": {
+      "median_abs_diff": 0.004896652937771473,
+      "max_abs_diff": 0.06348281349421558,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    },
+    "urgency": {
+      "median_abs_diff": 0.0033838271621683957,
+      "max_abs_diff": 0.037715494466278365,
+      "argmax_agreement": 0.95,
+      "argmax_disagreements": 1,
+      "disagreements_over_margin": 0,
+      "pass": true
+    },
+    "angry": {
+      "median_abs_diff": 0.012486927879674536,
+      "max_abs_diff": 0.06519922427010882,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": false
+    }
+  },
+  "pass": false,
+  "pass_all": false
+}

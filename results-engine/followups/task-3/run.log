@@ -1,0 +1,64 @@
+08:27:50 gemma-4-e4b-baseline-test: 612 MiB, 53 C before start
+08:27:53 gemma-4-e4b-baseline-test: 4032 MiB, 59 at stop
+decide-gemma-4-e4b-b5-keywords.json: engine {'scoring': 'tree', 'order_debias': 1, 'phases': 1, 'temperature': 1.0}: ok
+08:27:56 gemma-4-e4b-baseline-train: 612 MiB, 53 C before start
+08:27:59 gemma-4-e4b-baseline-train: 4032 MiB, 58 at stop
+decide-gemma-4-e4b-b5-keywords.json: engine {'scoring': 'tree', 'order_debias': 1, 'phases': 1, 'temperature': 1.0}: ok
+run                             queue    urg  urg±1  angry  NLL q  NLL u  NLL a  NLL Σ  ECE q  ECE u  ECE a Brier a  p50 ms rounds
+----------------------------------------------------------------------------------------------------------------------------------
+decide-gemma-4-e4b-b5-keywords  90.0%  90.0% 100.0% 100.0%  0.448  0.107  0.014  0.569  0.136  0.081  0.013   0.002    13.8      1
+wrote /tmp/t3-smoke/baseline/test/preds/score.json
+run                             queue    urg  urg±1  angry  NLL q  NLL u  NLL a  NLL Σ  ECE q  ECE u  ECE a Brier a  p50 ms rounds
+----------------------------------------------------------------------------------------------------------------------------------
+decide-gemma-4-e4b-b5-keywords 100.0%  70.0% 100.0% 100.0%  0.001  1.048  0.003  1.051  0.001  0.295  0.003   0.000    14.5      1
+wrote /tmp/t3-smoke/baseline/train/preds/score.json
+08:28:02 gemma-4-e4b-full-path-test: 612 MiB, 53 C before start
+08:28:05 gemma-4-e4b-full-path-test: 4044 MiB, 61 at stop
+decide-gemma-4-e4b-b5-keywords-full_path.json: engine {'scoring': 'full_path', 'order_debias': 1, 'phases': 1, 'temperature': 1.0}: ok
+08:28:08 gemma-4-e4b-full-path-train: 612 MiB, 53 C before start
+08:28:12 gemma-4-e4b-full-path-train: 4044 MiB, 59 at stop
+decide-gemma-4-e4b-b5-keywords-full_path.json: engine {'scoring': 'full_path', 'order_debias': 1, 'phases': 1, 'temperature': 1.0}: ok
+08:28:14 gemma-4-e4b-after-a-test: 612 MiB, 53 C before start
+08:28:18 gemma-4-e4b-after-a-test: 4032 MiB, 59 at stop
+decide-gemma-4-e4b-b5-keywords-after-urgency=queue.json: engine {'scoring': 'tree', 'order_debias': 1, 'phases': 2, 'temperature': 1.0}: ok
+08:28:20 gemma-4-e4b-after-a-train: 612 MiB, 54 C before start
+08:28:24 gemma-4-e4b-after-a-train: 4032 MiB, 60 at stop
+decide-gemma-4-e4b-b5-keywords-after-urgency=queue.json: engine {'scoring': 'tree', 'order_debias': 1, 'phases': 2, 'temperature': 1.0}: ok
+08:28:26 gemma-4-e4b-after-b-test: 612 MiB, 54 C before start
+08:28:30 gemma-4-e4b-after-b-test: 4032 MiB, 60 at stop
+decide-gemma-4-e4b-b5-keywords-after-urgency=queue-angry=queue.json: engine {'scoring': 'tree', 'order_debias': 1, 'phases': 2, 'temperature': 1.0}: ok
+08:28:32 gemma-4-e4b-after-b-train: 612 MiB, 54 C before start
+08:28:36 gemma-4-e4b-after-b-train: 4032 MiB, 59 at stop
+decide-gemma-4-e4b-b5-keywords-after-urgency=queue-angry=queue.json: engine {'scoring': 'tree', 'order_debias': 1, 'phases': 2, 'temperature': 1.0}: ok
+08:28:38 gemma-4-e4b-debias4-test: 612 MiB, 54 C before start
+08:28:42 gemma-4-e4b-debias4-test: 4044 MiB, 61 at stop
+decide-gemma-4-e4b-b5-keywords-debias4.json: engine {'scoring': 'tree', 'order_debias': 4, 'phases': 1, 'temperature': 1.0}: ok
+08:28:45 gemma-4-e4b-debias4-train: 612 MiB, 54 C before start
+08:28:49 gemma-4-e4b-debias4-train: 4044 MiB, 61 at stop
+decide-gemma-4-e4b-b5-keywords-debias4.json: engine {'scoring': 'tree', 'order_debias': 4, 'phases': 1, 'temperature': 1.0}: ok
+run                                                             queue    urg  urg±1  angry  NLL q  NLL u  NLL a  NLL Σ  ECE q  ECE u  ECE a Brier a  p50 ms rounds
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+decide-gemma-4-e4b-b5-keywords-after-urgency=queue-angry=queue  90.0% 100.0% 100.0% 100.0%  0.440  0.071  0.008  0.519  0.136  0.062  0.008   0.001    18.3      1
+decide-gemma-4-e4b-b5-keywords-after-urgency=queue              90.0% 100.0% 100.0% 100.0%  0.438  0.069  0.015  0.521  0.136  0.060  0.014   0.002    16.8      1
+decide-gemma-4-e4b-b5-keywords-debias4                          80.0% 100.0% 100.0% 100.0%  0.489  0.094  0.015  0.598  0.152  0.076  0.014   0.002    58.7      5
+decide-gemma-4-e4b-b5-keywords-full_path                        90.0%  90.0% 100.0% 100.0%  0.410  0.117  0.013  0.540  0.131  0.086  0.012   0.001    43.0      5
+wrote /tmp/t3-smoke/eval/test/preds/score.json
+run                                                             queue    urg  urg±1  angry  NLL q  NLL u  NLL a  NLL Σ  ECE q  ECE u  ECE a Brier a  p50 ms rounds
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+decide-gemma-4-e4b-b5-keywords-after-urgency=queue-angry=queue 100.0%  70.0% 100.0% 100.0%  0.001  1.017  0.002  1.020  0.001  0.251  0.002   0.000    19.6      1
+decide-gemma-4-e4b-b5-keywords-after-urgency=queue             100.0%  70.0% 100.0% 100.0%  0.001  1.007  0.003  1.011  0.001  0.250  0.003   0.000    17.8      1
+decide-gemma-4-e4b-b5-keywords-debias4                         100.0%  70.0% 100.0% 100.0%  0.000  1.023  0.003  1.026  0.000  0.241  0.003   0.000    63.2      5
+decide-gemma-4-e4b-b5-keywords-full_path                       100.0%  70.0% 100.0% 100.0%  0.001  1.064  0.003  1.067  0.001  0.296  0.003   0.000    42.8      5
+wrote /tmp/t3-smoke/eval/train/preds/score.json
+Checks (engine blocks, answer keys, given): 0 problems.
+gemma-4-e4b: T = 1.9346 (grid best 1.8929, golden-section in [1.8114, 1.9781] -> 1.934592)
+set          T  NLL q  NLL u  NLL a  NLL Σ  ECE q  ECE u  ECE a Brier a
+-----------------------------------------------------------------------
+train   1.0000  0.001  1.048  0.003  1.051  0.001  0.295  0.003   0.000
+train   1.9346  0.022  0.727  0.031  0.779  0.021  0.194  0.029   0.002
+test    1.0000  0.448  0.107  0.014  0.569  0.136  0.081  0.013   0.002
+test    1.9346  0.343  0.198  0.049  0.590  0.150  0.149  0.045   0.008
+rule: test summed NLL 0.5691 -> 0.5902: keep the preset without decide-temperature
+wrote /tmp/t3-smoke/eval/calibration-gemma-4-e4b.json
+
+gemma-4-e4b: the rule keeps the preset without decide-temperature; no preset check

@@ -1,0 +1,115 @@
+{
+  "resp": "results-engine/sp3/checks/task-7/k4-qwen3.5-9b.jsonl",
+  "K": 4,
+  "max_abs_sum_minus_1": 2.220446049250313e-16,
+  "prefix_cache": [
+    {
+      "capacity": 8,
+      "entries": 3,
+      "hits": 0,
+      "misses": 4
+    },
+    {
+      "capacity": 8,
+      "entries": 3,
+      "hits": 3,
+      "misses": 0
+    }
+  ],
+  "engine": [
+    {
+      "scoring": "tree",
+      "order_debias": 4,
+      "temperature": 1.0,
+      "phases": 1,
+      "seqs_per_state": 16,
+      "states_per_round": 1,
+      "quote_split_fields": [],
+      "prefix_cache": {
+        "capacity": 8,
+        "entries": 3,
+        "hits": 0,
+        "misses": 4
+      }
+    },
+    {
+      "scoring": "tree",
+      "order_debias": 4,
+      "temperature": 1.0,
+      "phases": 1,
+      "seqs_per_state": 16,
+      "states_per_round": 1,
+      "quote_split_fields": [],
+      "prefix_cache": {
+        "capacity": 8,
+        "entries": 3,
+        "hits": 3,
+        "misses": 0
+      }
+    }
+  ],
+  "timings": [
+    {
+      "prefill_ms": 1607.688,
+      "prefix_ms": 802.153,
+      "scoring_ms": 698.074,
+      "total_ms": 2314.125,
+      "rounds": 5,
+      "decodes": 14,
+      "retries": 0
+    },
+    {
+      "prefill_ms": 802.566,
+      "prefix_ms": 20.772,
+      "scoring_ms": 692.85,
+      "total_ms": 1499.841,
+      "rounds": 5,
+      "decodes": 10,
+      "retries": 0
+    }
+  ],
+  "usage": [
+    {
+      "prompt_tokens": 2220,
+      "cached_tokens": 0,
+      "state_tokens": 166,
+      "scored_tokens": 60
+    },
+    {
+      "prompt_tokens": 1204,
+      "cached_tokens": 1016,
+      "state_tokens": 166,
+      "scored_tokens": 60
+    }
+  ],
+  "second_vs_first": {
+    "n_tickets": 5,
+    "max_abs_diff": 0.0,
+    "fields": {
+      "queue": {
+        "median_abs_diff": 0.0,
+        "max_abs_diff": 0.0,
+        "argmax_disagreements": 0,
+        "disagreements_over_margin": 0,
+        "pass": true
+      },
+      "urgency": {
+        "median_abs_diff": 0.0,
+        "max_abs_diff": 0.0,
+        "argmax_disagreements": 0,
+        "disagreements_over_margin": 0,
+        "pass": true
+      },
+      "angry": {
+        "median_abs_diff": 0.0,
+        "max_abs_diff": 0.0,
+        "argmax_disagreements": 0,
+        "disagreements_over_margin": 0,
+        "pass": true
+      }
+    },
+    "pass": true
+  },
+  "problems": [],
+  "pass": true
+}

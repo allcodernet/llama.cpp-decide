@@ -1,0 +1,297 @@
+From 42137732cb33acd4a86afdd5a43d5b7f25a3e173 Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 22:38:44 +0200
+Subject: [PATCH 25/45] decide: protect wanted cache entries from trimming;
+ restore fault mode
+
+fill_slot snapshotted the evicted slot before it looked up the wanted
+entry, so a full cache could drop exactly that entry (A,B,C,A at
+--decide-prefix-cache 2 rebuilt A). run_request now collects the
+hashes of every slot it fills; the trim after a snapshot drops the
+least recently used entry that is not wanted, and drops the new
+snapshot itself when only wanted entries are left (cache_victim).
+info protects the slot 0 prefix it fills. test-decide-cache checks the
+choice without a model.
+
+LLAMA_DECIDE_FAULT=restore passes the first cache restore after start a
+snapshot one byte short, so llama_state_seq_set_data fails after the
+first part of a hybrid or iSWA state is in; the slot is cleared, the
+entry dropped and the prefix decoded (spec 6.2). The one-shot flag is
+now consumed only by its own mode: the round loop cleared it for every
+mode, so "restore" never fired. llama-decide --help lists the mode.
+---
+ tests/CMakeLists.txt           |  3 ++
+ tests/test-decide-cache.cpp    | 31 +++++++++++++++++++
+ tools/decide/decide-cli.cpp    |  7 +++--
+ tools/decide/decide-engine.cpp | 54 ++++++++++++++++++++++++++--------
+ tools/decide/decide-engine.h   | 15 ++++++----
+ 5 files changed, 88 insertions(+), 22 deletions(-)
+ create mode 100644 tests/test-decide-cache.cpp
+
+diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
+index de125056e..c89d15909 100644
+--- a/tests/CMakeLists.txt
++++ b/tests/CMakeLists.txt
+@@ -391,3 +391,6 @@ target_link_libraries(test-decide-compat PRIVATE llama-decide)
+ 
+ llama_build_and_test(test-decide-trie.cpp)
+ target_link_libraries(test-decide-trie PRIVATE llama-decide)
++
++llama_build_and_test(test-decide-cache.cpp)
++target_link_libraries(test-decide-cache PRIVATE llama-decide)
+diff --git a/tests/test-decide-cache.cpp b/tests/test-decide-cache.cpp
+new file mode 100644
+index 000000000..73c8cc5aa
+--- /dev/null
++++ b/tests/test-decide-cache.cpp
+@@ -0,0 +1,31 @@
++// spec 6.2 prefix cache trim: cache_victim picks the entry to drop while the cache is over its limits
++#include "decide-engine.h"
++#include <cstdio>
++
++static int failures = 0;
++#define CHECK(cond) do { if (!(cond)) { std::fprintf(stderr, "FAIL %s:%d: %s\n", __FILE__, __LINE__, #cond); failures++; } } while (0)
++
++int main() {
++    using decide::cache_victim;
++
++    // capacity 2 after A, B, C: the request for A snapshots C (last); B goes, not the wanted A
++    CHECK(cache_victim({1, 2, 3}, {true, false, false}) == 1);
++    // nothing wanted: plain LRU
++    CHECK(cache_victim({1, 2, 3}, {false, false, false}) == 0);
++    // LRU by tick, not by position
++    CHECK(cache_victim({5, 2, 9}, {false, false, false}) == 1);
++    CHECK(cache_victim({5, 2, 9}, {false, true, false}) == 0);
++    // every older entry wanted: the new snapshot goes instead
++    CHECK(cache_victim({1, 2, 3}, {true, true, false}) == 2);
++    CHECK(cache_victim({1, 2, 3}, {true, true, true}) == 2);
++    // a wanted new snapshot does not protect older entries that are not wanted
++    CHECK(cache_victim({1, 2, 3}, {false, false, true}) == 0);
++    // one entry over the byte limit: that entry
++    CHECK(cache_victim({7}, {false}) == 0);
++    CHECK(cache_victim({7}, {true}) == 0);
++
++    if (failures == 0) {
++        std::printf("test-decide-cache: OK\n");
++    }
++    return failures == 0 ? 0 : 1;
++}
+diff --git a/tools/decide/decide-cli.cpp b/tools/decide/decide-cli.cpp
+index c228bd3bc..370ffcd6a 100644
+--- a/tools/decide/decide-cli.cpp
++++ b/tools/decide/decide-cli.cpp
+@@ -6,7 +6,7 @@
+ // --info prints the info JSON for each line's schema instead of deciding.
+ // --dump-tokens adds the "tokens" object (prefix, state, tail, branch ids) to every response.
+ // Exits 1 on the first error, with the error JSON on stderr.
+-// LLAMA_DECIDE_FAULT (testing, see --help) makes chosen decodes report "no KV slot".
++// LLAMA_DECIDE_FAULT (testing, see --help) makes chosen decodes report "no KV slot" or one prefix restore fail.
+ 
+ #include "decide-api.h"
+ 
+@@ -29,10 +29,11 @@ static void print_usage(int, char ** argv) {
+     printf("  one /v1/decide request body per stdin line, one response per stdout line; stops at the first error\n");
+     printf("  --info         print the info JSON for each line's schema instead of deciding\n");
+     printf("  --dump-tokens  add the \"tokens\" object (prefix, state, tail, branch ids) to every response\n\n");
+-    printf("  LLAMA_DECIDE_FAULT (testing) makes a decode return 1 (\"no KV slot\") without decoding:\n");
++    printf("  LLAMA_DECIDE_FAULT (testing) makes a decode return 1 (\"no KV slot\") without decoding, or a prefix restore fail:\n");
+     printf("    rc1         the first branch-phase decode of the first attempt of every round (the retry runs normally)\n");
+     printf("    rc1-twice   the first branch-phase decode of both attempts of the first round after start (a 500)\n");
+-    printf("    rc1-phase1  as rc1, for the first phase-1 decode (fields with \"after\")\n\n");
++    printf("    rc1-phase1  as rc1, for the first phase-1 decode (fields with \"after\")\n");
++    printf("    restore     the first prefix cache restore after start gets its snapshot one byte short (the slot is cleared and decoded)\n\n");
+ }
+ 
+ int main(int argc, char ** argv) {
+diff --git a/tools/decide/decide-engine.cpp b/tools/decide/decide-engine.cpp
+index d5150918f..25767e416 100644
+--- a/tools/decide/decide-engine.cpp
++++ b/tools/decide/decide-engine.cpp
+@@ -43,8 +43,11 @@ engine::engine(llama_context * ctx_, const llama_model * model_, const common_ch
+         fault_armed = true;
+     } else if (fault_str == "rc1-phase1") {
+         fault = fault_mode::RC1_PHASE1;   // no phase 1 yet: nothing to fail
++    } else if (fault_str == "restore") {
++        fault       = fault_mode::RESTORE;
++        fault_armed = true;
+     } else if (!fault_str.empty()) {
+-        throw error("engine", 500, "LLAMA_DECIDE_FAULT must be rc1, rc1-twice or rc1-phase1, got \"" + fault_str + "\"");
++        throw error("engine", 500, "LLAMA_DECIDE_FAULT must be rc1, rc1-twice, rc1-phase1 or restore, got \"" + fault_str + "\"");
+     }
+     char desc[128];
+     llama_model_desc(model, desc, sizeof(desc));
+@@ -116,6 +119,16 @@ size_t engine::cache_bytes() const {
+     return n;
+ }
+ 
++size_t cache_victim(const std::vector<uint64_t> & used, const std::vector<bool> & wanted) {
++    size_t victim = used.size() - 1;
++    for (size_t i = 0; i + 1 < used.size(); ++i) {
++        if (!wanted[i] && (victim + 1 == used.size() || used[i] < used[victim])) {
++            victim = i;
++        }
++    }
++    return victim;
++}
++
+ llama_seq_id engine::trunk_seq(int K, int B, size_t c, int v) const {
+     return cfg.seq_base + K + (llama_seq_id) c * K * (1 + B) + v * (1 + B);
+ }
+@@ -169,7 +182,7 @@ prefix_state engine::prepare_prefix(const compiled_schema & cs, int variant, int
+     return ps;
+ }
+ 
+-void engine::evict_slot(int v) {
++void engine::evict_slot(int v, const std::vector<std::string> & wanted) {
+     const llama_seq_id S = cfg.seq_base + v;
+     if (cfg.prefix_cache > 0 && slot_live(v)) {
+         const std::string & hash   = slots[v].hash;
+@@ -183,10 +196,14 @@ void engine::evict_slot(int v) {
+                     e.ps   = slots[v];
+                     e.used = ++cache_tick;
+                     cache.push_back(std::move(e));
+-                    // the new entry is the most recent, so this drops only older ones
+                     while (cache.size() > (size_t) cfg.prefix_cache || cache_bytes() > CACHE_MAX_BYTES) {
+-                        cache.erase(std::min_element(cache.begin(), cache.end(),
+-                                                     [](const cache_entry & a, const cache_entry & b) { return a.used < b.used; }));
++                        std::vector<uint64_t> used;
++                        std::vector<bool>     keep;
++                        for (const cache_entry & c : cache) {
++                            used.push_back(c.used);
++                            keep.push_back(std::find(wanted.begin(), wanted.end(), c.ps.hash) != wanted.end());
++                        }
++                        cache.erase(cache.begin() + cache_victim(used, keep));
+                     }
+                 }
+             }
+@@ -198,17 +215,22 @@ void engine::evict_slot(int v) {
+     slots[v] = prefix_state();
+ }
+ 
+-void engine::fill_slot(int v, const prefix_state & ps, stats & st) {
++void engine::fill_slot(int v, const prefix_state & ps, const std::vector<std::string> & wanted, stats & st) {
+     const llama_seq_id S = cfg.seq_base + v;
+     if (slots[v].hash == ps.hash && slot_live(v)) {
+         st.cached_tokens += (int64_t) ps.tokens.size();
+         return;
+     }
+-    evict_slot(v);
++    evict_slot(v, wanted);
+ 
+     const auto it = std::find_if(cache.begin(), cache.end(), [&](const cache_entry & e) { return e.ps.hash == ps.hash; });
+     if (it != cache.end()) {
+-        const size_t ret = llama_state_seq_set_data(ctx, it->bytes.data(), it->bytes.size(), S);
++        size_t n = it->bytes.size();
++        if (fault == fault_mode::RESTORE && fault_armed) {
++            fault_armed = false;
++            n -= 1;   // a snapshot one byte short makes the restore fail
++        }
++        const size_t ret = llama_state_seq_set_data(ctx, it->bytes.data(), n, S);
+         if (ret != 0 && llama_memory_seq_pos_max(mem, S) == (llama_pos) ps.tokens.size() - 1) {
+             it->used       = ++cache_tick;
+             slots[v]       = ps;
+@@ -248,7 +270,7 @@ void engine::fill_slot(int v, const prefix_state & ps, stats & st) {
+ 
+ void engine::end_request() {
+     for (int v = 1; v < n_slots(); ++v) {
+-        evict_slot(v);
++        evict_slot(v, {});
+     }
+     // trunk and branch cells an error path may have left
+     for (int i = 1; i < cfg.decide_seqs; ++i) {
+@@ -444,6 +466,10 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+         prefix_total += (int64_t) ps.back().tokens.size();
+     }
+     check_trie_joins(cs, ts, vocab, ps[0].tail_text, who);
++    std::vector<std::string> wanted;
++    for (const prefix_state & p : ps) {
++        wanted.push_back(p.hash);
++    }
+ 
+     // every state must fit alone before anything is decoded; slots cannot change `held` during this call
+     const int64_t n_ctx = llama_n_ctx(ctx);
+@@ -463,13 +489,13 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+     // spec 6.1 slot hygiene: no trunk may inherit stale cells; then slots 0..K-1 get their prefixes
+     int64_t t0 = ggml_time_us();
+     for (int v = K; v < n_slots(); ++v) {
+-        evict_slot(v);
++        evict_slot(v, wanted);
+     }
+     for (int i = K; i < cfg.decide_seqs; ++i) {
+         llama_memory_seq_rm(mem, cfg.seq_base + i, -1, -1);
+     }
+     for (int v = 0; v < K; ++v) {
+-        fill_slot(v, ps[v], st);
++        fill_slot(v, ps[v], wanted, st);
+     }
+     llama_synchronize(ctx);
+     int64_t dt = ggml_time_us() - t0;
+@@ -494,7 +520,9 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+ 
+         // spec 9: rc1-twice fails both attempts of the first round after construction
+         const bool fail_both = fault == fault_mode::RC1_TWICE && fault_armed;
+-        fault_armed = false;
++        if (fail_both) {
++            fault_armed = false;
++        }
+         bool retried = false;
+         for (;;) {
+             const bool inject = fail_both || (fault == fault_mode::RC1 && !retried);
+@@ -639,7 +667,7 @@ common_json engine::info(const compiled_schema * cs, const trie_set * ts) {
+             throw error("budget", 400, "prefix needs " + std::to_string(ps.tokens.size()) + " cells with " +
+                                            std::to_string(held) + " held by slots, n_ctx - 16 is " + std::to_string(n_ctx - 16));
+         }
+-        fill_slot(0, ps, st);
++        fill_slot(0, ps, {ps.hash}, st);
+         prefix["hash"]             = slots[0].hash;
+         prefix["tokens"]           = (int64_t) slots[0].tokens.size();
+         prefix["assistant_prefix"] = slots[0].assistant_prefix;
+diff --git a/tools/decide/decide-engine.h b/tools/decide/decide-engine.h
+index 3ab84b123..6c1cbb059 100644
+--- a/tools/decide/decide-engine.h
++++ b/tools/decide/decide-engine.h
+@@ -26,6 +26,9 @@ struct prefix_state {
+     bool                     valid = false;
+ };
+ 
++// spec 6.2 LRU trim, one entry per call: the least recently used entry the running request does not want, else the last one (the new snapshot)
++size_t cache_victim(const std::vector<uint64_t> & used, const std::vector<bool> & wanted);
++
+ class engine {
+ public:
+     // Throws error{"engine", 500, "no chat template; pass --chat-template"} when
+@@ -78,17 +81,17 @@ private:
+         uint64_t             used = 0;   // tick of the last store or hit (LRU order)
+     };
+     // spec 9: LLAMA_DECIDE_FAULT
+-    enum class fault_mode { NONE, RC1, RC1_TWICE, RC1_PHASE1 };
++    enum class fault_mode { NONE, RC1, RC1_TWICE, RC1_PHASE1, RESTORE };
+ 
+     rendered render(const compiled_schema * cs, int variant, int variants) const;
+     // throws error{"engine", 500} when prefix|state, state|tail or tail|stem do not tokenise independently
+     void     check_template_joins(const rendered & r) const;
+     // rendered and tokenised prefix of catalogue variant `variant` of `variants`, no decode; a resident slot's or a cache entry's prefix when the hash matches
+     prefix_state prepare_prefix(const compiled_schema & cs, int variant, int variants) const;
+-    // spec 6.2: slot v holds ps afterwards (resident, restored from the cache or decoded); throws when decoding fails
+-    void     fill_slot(int v, const prefix_state & ps, stats & st);
+-    // spec 6.2: snapshot slot v into the cache (cache on, slot valid, hash not cached), then clear its sequence. Never throws.
+-    void     evict_slot(int v);
++    // spec 6.2: slot v holds ps afterwards (resident, restored from the cache or decoded); throws when decoding fails. wanted: hashes of every slot the request fills
++    void     fill_slot(int v, const prefix_state & ps, const std::vector<std::string> & wanted, stats & st);
++    // spec 6.2: snapshot slot v into the cache (cache on, slot valid, hash not cached; the trim keeps entries in `wanted`), then clear its sequence. Never throws.
++    void     evict_slot(int v, const std::vector<std::string> & wanted);
+     // spec 6.1 end of request: evict slots >= 1, clear every decide sequence above slot 0. Never throws.
+     void     end_request();
+     bool     slot_live(int v) const;
+@@ -121,7 +124,7 @@ private:
+     std::vector<cache_entry>      cache;   // spec 6.2: at most cfg.prefix_cache entries and CACHE_MAX_BYTES bytes
+     uint64_t                      cache_tick  = 0;
+     fault_mode                    fault       = fault_mode::NONE;
+-    bool                          fault_armed = false;   // rc1-twice: not yet fired
++    bool                          fault_armed = false;   // rc1-twice, restore: not yet fired
+ };
+ 
+ } // namespace decide
+-- 
+2.55.0
+

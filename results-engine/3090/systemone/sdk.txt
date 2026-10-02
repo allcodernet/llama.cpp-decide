@@ -1,0 +1,8 @@
+   Building typesafe-sdk @ file:///home/marduk/llama.cpp-decision/local/typesafe-sdk-python
+warning: Found license classifier `License :: OSI Approved :: MIT License`. License classifiers are ambiguous and deprecated per PEP 639; projects should use `project.license` and `project.license-files` instead.
+      Built typesafe-sdk @ file:///home/marduk/llama.cpp-decision/local/typesafe-sdk-python
+Downloading pydantic-core (2.0MiB)
+ Downloaded pydantic-core
+Installed 13 packages in 17ms
+..                                                                       [100%]
+2 passed in 0.62s

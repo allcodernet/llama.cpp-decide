@@ -1,0 +1,50 @@
+{
+ "model": "gemma-4-e4b-vision",
+ "build": "old",
+ "chat": {
+  "status": 200,
+  "usage": {
+   "completion_tokens": 1,
+   "prompt_tokens": 148,
+   "total_tokens": 149,
+   "prompt_tokens_details": {
+    "cached_tokens": 0
+   }
+  }
+ },
+ "probe": {
+  "status": 400,
+  "response": {
+   "error": {
+    "message": "state 0 needs 20212 cells (held 148, prefix 53, state 20000, tail 7, branches 4), n_ctx - 16 is 16368",
+    "code": "budget"
+   }
+  }
+ },
+ "budget": {
+  "needs": 20212,
+  "held": 148,
+  "prefix": 53,
+  "K": 1,
+  "state": 20000,
+  "tail": 7,
+  "branches": 4,
+  "limit": 16368,
+  "swa_cells": null
+ },
+ "size": 16156,
+ "sized": {
+  "status": 500,
+  "response": {
+   "error": {
+    "message": "no KV cell space (rc=1)",
+    "code": "engine"
+   }
+  }
+ },
+ "checks": {
+  "chat request: 200": true,
+  "probe: 400 budget with the cell counts": true
+ },
+ "pass": true
+}

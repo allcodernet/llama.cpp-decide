@@ -1,0 +1,13 @@
+{
+  "ref": "results-engine/sp3/checks/task-7/k0-b5-qwen2.5-0.5b.jsonl",
+  "run": "results-engine/sp3/checks/task-7/k1-b5-qwen2.5-0.5b.jsonl",
+  "ignored": {
+    "engine": [],
+    "tokens": [],
+    "entry": []
+  },
+  "lines": 4,
+  "max_abs_diff": 0.0,
+  "problems": [],
+  "pass": true
+}

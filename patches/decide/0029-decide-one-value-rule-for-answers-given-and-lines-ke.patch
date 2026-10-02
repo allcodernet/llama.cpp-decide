@@ -1,0 +1,259 @@
+From 518540229ab69e37e27eb112694e0afd903dcec0 Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Sat, 26 Sep 2026 00:31:53 +0200
+Subject: [PATCH 29/45] decide: one value rule for answers, given and lines;
+ keep join-check detail
+
+answer_option (the option an answer reports: bool true when p_true >= 0.5,
+else the argmax) and option_value (its JSON: key, level, true/false) move to
+decide-score; answer_json, lines_for and the context tries use them, so a
+dependent field's given and lines always equal the value its ancestor returns.
+The context join error keeps the spec text and appends check_join's token
+detail. Behaviour-neutral: the tree dump and the live `after` runs are unchanged.
+---
+ tests/test-decide-after.cpp   | 17 ++++++++++++++++-
+ tests/test-decide-score.cpp   | 21 +++++++++++++++++++++
+ tools/decide/decide-after.cpp | 31 +++++++++----------------------
+ tools/decide/decide-after.h   |  5 +----
+ tools/decide/decide-score.cpp | 24 +++++++++++++++++++++---
+ tools/decide/decide-score.h   |  5 +++++
+ 6 files changed, 73 insertions(+), 30 deletions(-)
+
+diff --git a/tests/test-decide-after.cpp b/tests/test-decide-after.cpp
+index a588b030c..ee9b285ba 100644
+--- a/tests/test-decide-after.cpp
++++ b/tests/test-decide-after.cpp
+@@ -82,6 +82,16 @@ template <typename F> static bool throws_engine(F f, const std::string & field,
+     return false;
+ }
+ 
++// the message of the decide::error f() throws, "" when it throws nothing
++template <typename F> static std::string error_message(F f) {
++    try {
++        f();
++    } catch (const decide::error & e) {
++        return e.what();
++    }
++    return "";
++}
++
+ template <typename F> static bool no_throw(F f) {
+     try {
+         f();
+@@ -130,7 +140,7 @@ static void model_free() {
+         CHECK(decide::answer_option(angry, tie) == 0 && decide::answer_json(angry, tie).at("value").dump() == "true");
+         const auto no = answer({0.3, 0.7}, 1);
+         CHECK(decide::answer_option(angry, no) == 1 && decide::answer_json(angry, no).at("value").dump() == "false");
+-        // probabilities one rounding short of 1: the argmax is "true", the reported value is false; the lines follow the value
++        // probabilities 3e-8 short of 1 (0.49999999 + 0.49999998): the argmax is "true", the reported value is false; the lines follow the value
+         const auto short_sum = answer({0.49999999, 0.49999998}, 0);
+         CHECK(decide::answer_option(angry, short_sum) == 1 && decide::answer_json(angry, short_sum).at("value").dump() == "false");
+     }
+@@ -299,6 +309,11 @@ static void with_vocab(const llama_vocab * vocab) {
+         ct.stem.back() = ct.stem.back() == 0 ? 1 : 0;
+         CHECK(throws_engine([&] { decide::check_context_join(vocab, tail, cs.fields[1], ct, al.text, "test"); }, "urgency",
+                             "answer lines change the tokenisation of field \"urgency\""));
++        // the spec 11 text first, then check_join's token detail (without its "model not supported" part)
++        const std::string m = error_message([&] { decide::check_context_join(vocab, tail, cs.fields[1], ct, al.text, "test"); });
++        CHECK(m.rfind("answer lines change the tokenisation of field \"urgency\"; remove its \"after\" (trunk/branch (field \"urgency\") join \"", 0) == 0);
++        CHECK(m.find("tokenises jointly as [") != std::string::npos && m.find("separately as [") != std::string::npos && m.back() == ')');
++        CHECK(m.find("model not supported") == std::string::npos);
+         // the probe includes the first option's path: a changed path fails too
+         auto cp = decide::context_trie(ts.fields[2], cs.fields[2], al.text, vocab);
+         cp.paths[0].push_back(cp.paths[0].back());
+diff --git a/tests/test-decide-score.cpp b/tests/test-decide-score.cpp
+index 033102e75..489b6b060 100644
+--- a/tests/test-decide-score.cpp
++++ b/tests/test-decide-score.cpp
+@@ -2,6 +2,8 @@
+ #include <cmath>
+ #include <cstdio>
+ #include <limits>
++#include <utility>
++#include <vector>
+ 
+ static int failures = 0;
+ #define CHECK(cond) do { if (!(cond)) { std::fprintf(stderr, "FAIL %s:%d: %s\n", __FILE__, __LINE__, #cond); failures++; } } while (0)
+@@ -339,6 +341,25 @@ int main() {
+         CHECK(decide::answer_json(bool2(), b).dump() ==
+               R"({"value":true,"p_true":0.75,"confidence":0.75,"coverage":0.5,"order_spread":0.125,"given":{"queue":"billing"}})");
+     }
++    // 21. one value rule: answer_option picks the option an answer reports (choice and score: the argmax; bool: true when
++    //     p_true >= 0.5), option_value writes it, and answer_json's "value" is exactly that
++    {
++        const auto answer = [](std::vector<double> p, int argmax) {
++            decide::field_answer a; a.probs = std::move(p); a.argmax = argmax; a.expected = 0.0; return a;
++        };
++        const decide::field q = choice4(), s = score4(), b = bool2();
++        const auto qa = answer({0.2, 0.5, 0.1, 0.2}, 1);
++        CHECK(decide::answer_option(q, qa) == 1 && decide::option_value(q, 1).dump() == R"("b")");
++        const auto sa = answer({0.1, 0.2, 0.3, 0.4}, 3);
++        CHECK(decide::answer_option(s, sa) == 3 && decide::option_value(s, 3).dump() == "3");
++        CHECK(decide::option_value(b, 0).dump() == "true" && decide::option_value(b, 1).dump() == "false");
++        // bool: the tie reports true; 0.49999999 vs 0.49999998 (3e-8 short of 1) has argmax 0 but reports false
++        const auto tie = answer({0.5, 0.5}, 0), no = answer({0.3, 0.7}, 1), short_sum = answer({0.49999999, 0.49999998}, 0);
++        CHECK(decide::answer_option(b, tie) == 0 && decide::answer_option(b, no) == 1 && decide::answer_option(b, short_sum) == 1);
++        for (const auto & [f, a] : std::vector<std::pair<decide::field, decide::field_answer>>{{q, qa}, {s, sa}, {b, tie}, {b, no}, {b, short_sum}}) {
++            CHECK(decide::answer_json(f, a).at("value").dump() == decide::option_value(f, decide::answer_option(f, a)).dump());
++        }
++    }
+     if (failures) { std::fprintf(stderr, "%d failure(s)\n", failures); return 1; }
+     std::printf("test-decide-score: OK\n");
+     return 0;
+diff --git a/tools/decide/decide-after.cpp b/tools/decide/decide-after.cpp
+index 0f4fe3542..fe4d06dac 100644
+--- a/tools/decide/decide-after.cpp
++++ b/tools/decide/decide-after.cpp
+@@ -12,24 +12,6 @@ std::vector<std::vector<size_t>> phase_fields(const compiled_schema & cs) {
+     return out;
+ }
+ 
+-int answer_option(const field & f, const field_answer & a) {
+-    if (f.type == field_type::BOOL) {
+-        return a.probs[0] >= 0.5 ? 0 : 1;
+-    }
+-    return a.argmax;
+-}
+-
+-// option o as the answer's "value": the key, the level or true/false
+-static common_json answer_value(const field & f, int o) {
+-    if (f.type == field_type::CHOICE) {
+-        return common_json(f.options[o].key);
+-    }
+-    if (f.type == field_type::SCORE) {
+-        return common_json(o);
+-    }
+-    return common_json(o == 0);
+-}
+-
+ answer_lines lines_for(const compiled_schema & cs, size_t f, const std::vector<int> & option_of) {
+     const field & F = cs.fields[f];
+     answer_lines  out;
+@@ -43,7 +25,7 @@ answer_lines lines_for(const compiled_schema & cs, size_t f, const std::vector<i
+         if (out.given.is_null()) {
+             out.given = common_json::object();
+         }
+-        out.given[G.name] = answer_value(G, o);
++        out.given[G.name] = option_value(G, o);
+     }
+     return out;
+ }
+@@ -100,10 +82,15 @@ void check_context_join(const llama_vocab * vocab, const std::string & tail_text
+     if (tokenize_template(vocab, text) != tokenize_plain(vocab, text)) {
+         return;   // control-token text: the joint probe would parse it differently
+     }
++    const std::string join = "trunk/branch (field \"" + f.name + "\")";
+     try {
+-        check_join(vocab, tail_text, text, toks, who, "trunk/branch (field \"" + f.name + "\")");
+-    } catch (const error &) {
+-        throw error("engine", 500, "answer lines change the tokenisation of field \"" + f.name + "\" at the trunk/branch join; remove its \"after\"", f.name);
++        check_join(vocab, tail_text, text, toks, who, join);
++    } catch (const error & e) {
++        // keep check_join's token detail from the join name on; its first part blames the model, not the lines
++        const std::string what = e.what();
++        const size_t      at   = what.find(join);
++        throw error("engine", 500, "answer lines change the tokenisation of field \"" + f.name + "\"; remove its \"after\" (" +
++                                       (at == std::string::npos ? what : what.substr(at)) + ")", f.name);
+     }
+ }
+ 
+diff --git a/tools/decide/decide-after.h b/tools/decide/decide-after.h
+index 2fffbed21..162192afe 100644
+--- a/tools/decide/decide-after.h
++++ b/tools/decide/decide-after.h
+@@ -17,9 +17,6 @@ namespace decide {
+ // spec 5.1: per level, its field indices in declaration order; phase L scores the fields of level L
+ std::vector<std::vector<size_t>> phase_fields(const compiled_schema & cs);
+ 
+-// the option the answer reports as its value (answer_json): bool "true" when p_true >= 0.5, else the argmax
+-int answer_option(const field & f, const field_answer & a);
+-
+ // spec 5.2: lines(F) of one state: over F's ancestors G in declaration order, stem_text(G) + the encoded answer of G + ",\n".
+ // option_of[G] is the option G answered in that state. given = {G name: answer value}; null without ancestors.
+ struct answer_lines {
+@@ -54,7 +51,7 @@ private:
+ 
+ // spec 5.3: the tail|context-stem join, checked as check_trie_joins does for the lines-free stem: tail_text + lines + stem_text(f) +
+ // first option ("\"" when quote-split) must tokenise as the tail + ct.stem (+ ct.paths[0]). Text with control tokens is skipped.
+-// Throws error{"engine", 500, "answer lines change the tokenisation of field ...", f.name}.
++// Throws error{"engine", 500, "answer lines change the tokenisation of field \"F\"; remove its \"after\" (<token detail>)", f.name}.
+ void check_context_join(const llama_vocab * vocab, const std::string & tail_text, const field & f, const field_trie & ct,
+                         const std::string & lines, const std::string & who);
+ 
+diff --git a/tools/decide/decide-score.cpp b/tools/decide/decide-score.cpp
+index 3a4fa1027..7ada0b336 100644
+--- a/tools/decide/decide-score.cpp
++++ b/tools/decide/decide-score.cpp
+@@ -306,8 +306,26 @@ field_answer average_variants(const field & f, const std::vector<field_answer> &
+     return rebuild_answer(f, mean, extras);
+ }
+ 
++int answer_option(const field & f, const field_answer & a) {
++    if (f.type == field_type::BOOL) {
++        return a.probs[0] >= 0.5 ? 0 : 1;
++    }
++    return a.argmax;
++}
++
++common_json option_value(const field & f, int o) {
++    if (f.type == field_type::CHOICE) {
++        return common_json(f.options[o].key);
++    }
++    if (f.type == field_type::SCORE) {
++        return common_json(o);
++    }
++    return common_json(o == 0);
++}
++
+ static common_json answer_json_base(const field & f, const field_answer & a) {
+     double confidence = a.probs[a.argmax];
++    const common_json value = option_value(f, answer_option(f, a));
+ 
+     if (f.type == field_type::CHOICE) {
+         common_json probs = common_json::object();
+@@ -315,7 +333,7 @@ static common_json answer_json_base(const field & f, const field_answer & a) {
+             probs[f.options[i].key] = a.probs[i];
+         }
+         common_json j = common_json::object();
+-        j["value"]         = f.options[a.argmax].key;
++        j["value"]         = value;
+         j["probabilities"] = probs;
+         j["confidence"]    = confidence;
+         return j;
+@@ -327,7 +345,7 @@ static common_json answer_json_base(const field & f, const field_answer & a) {
+             probs.push_back(p);
+         }
+         common_json j = common_json::object();
+-        j["value"]         = a.argmax;
++        j["value"]         = value;
+         j["expected"]      = a.expected;
+         j["probabilities"] = probs;
+         j["confidence"]    = confidence;
+@@ -336,7 +354,7 @@ static common_json answer_json_base(const field & f, const field_answer & a) {
+ 
+     // BOOL: options[0] = "true", options[1] = "false"
+     common_json j = common_json::object();
+-    j["value"]      = a.probs[0] >= 0.5;
++    j["value"]      = value;
+     j["p_true"]     = a.probs[0];
+     j["confidence"] = std::max(a.probs[0], a.probs[1]);
+     return j;
+diff --git a/tools/decide/decide-score.h b/tools/decide/decide-score.h
+index 9541dd4e4..5cb619ce3 100644
+--- a/tools/decide/decide-score.h
++++ b/tools/decide/decide-score.h
+@@ -56,6 +56,11 @@ field_answer rebuild_answer(const field & f, const std::vector<double> & probs,
+ std::vector<double> apply_temperature(const std::vector<double> & p, double T);
+ // Spec 7.2: mean probabilities and coverage over the variants, order_spread when there are 2 or more, given of variant 0.
+ field_answer average_variants(const field & f, const std::vector<field_answer> & per_variant);
++// The option an answer reports as its "value": bool "true" (option 0) when p_true >= 0.5, else the argmax.
++// answer_json and the lines and given of dependent fields (spec 5.2) use it.
++int          answer_option(const field & f, const field_answer & a);
++// The "value" JSON of option o: choice its key, score its level, bool true/false.
++common_json  option_value(const field & f, int o);
+ // Adds coverage, order_spread and given only when they are set.
+ common_json  answer_json(const field & f, const field_answer & a);
+ 
+-- 
+2.55.0
+

@@ -1,0 +1,84 @@
+{
+  "b5": "results-engine/sp3/checks/task-5/fp-b5-qwen2.5-0.5b.jsonl",
+  "b1": "results-engine/sp3/checks/task-5/fp-b1-qwen2.5-0.5b.jsonl",
+  "row_cap": 65,
+  "n_batch": 2048,
+  "b5_vs_b1": {
+    "n_tickets": 20,
+    "max_abs_diff": 0.06519922427010882,
+    "fields": {
+      "queue": {
+        "median_abs_diff": 0.004133267829265845,
+        "max_abs_diff": 0.06348281349421558,
+        "argmax_agreement": 1,
+        "argmax_disagreements": 0,
+        "disagreements_over_margin": 0,
+        "pass": true
+      },
+      "urgency": {
+        "median_abs_diff": 0.0032173566928728053,
+        "max_abs_diff": 0.037715494466278365,
+        "argmax_agreement": 0.95,
+        "argmax_disagreements": 1,
+        "disagreements_over_margin": 0,
+        "pass": true
+      },
+      "angry": {
+        "median_abs_diff": 0.012469948836073802,
+        "max_abs_diff": 0.06519922427010882,
+        "argmax_agreement": 1,
+        "argmax_disagreements": 0,
+        "disagreements_over_margin": 0,
+        "pass": false
+      }
+    },
+    "pass": false
+  },
+  "b5_lines": [
+    {
+      "states": 5,
+      "rounds": 1,
+      "decodes": 4,
+      "prefix_built": true,
+      "branch_decodes": 2,
+      "predicted_branch_chunks": 2,
+      "rows_read": 85,
+      "split_sequences": [],
+      "states_per_round": 5
+    },
+    {
+      "states": 5,
+      "rounds": 1,
+      "decodes": 3,
+      "prefix_built": false,
+      "branch_decodes": 2,
+      "predicted_branch_chunks": 2,
+      "rows_read": 85,
+      "split_sequences": [],
+      "states_per_round": 5
+    },
+    {
+      "states": 5,
+      "rounds": 1,
+      "decodes": 3,
+      "prefix_built": false,
+      "branch_decodes": 2,
+      "predicted_branch_chunks": 2,
+      "rows_read": 85,
+      "split_sequences": [],
+      "states_per_round": 5
+    },
+    {
+      "states": 5,
+      "rounds": 1,
+      "decodes": 3,
+      "prefix_built": false,
+      "branch_decodes": 2,
+      "predicted_branch_chunks": 2,
+      "rows_read": 85,
+      "split_sequences": [],
+      "states_per_round": 5
+    }
+  ],
+  "pass": false
+}

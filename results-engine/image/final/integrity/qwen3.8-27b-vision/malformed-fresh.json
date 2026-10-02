@@ -1,0 +1,150 @@
+{
+ "model": "qwen3.8-27b-vision",
+ "skip_cases": true,
+ "fixed": [
+  {
+   "status": 200,
+   "response": {
+    "object": "decide",
+    "results": [
+     {
+      "answers": {
+       "cat": {
+        "value": true,
+        "p_true": 0.9994312292413698,
+        "confidence": 0.9994312292413698
+       }
+      },
+      "usage": {
+       "state_tokens": 0,
+       "scored_tokens": 1,
+       "images": 1,
+       "image_cells": 1038,
+       "image_positions": 39
+      }
+     },
+     {
+      "answers": {
+       "cat": {
+        "value": true,
+        "p_true": 0.8691082367551223,
+        "confidence": 0.8691082367551223
+       }
+      },
+      "usage": {
+       "state_tokens": 7,
+       "scored_tokens": 1
+      }
+     }
+    ],
+    "usage": {
+     "prompt_tokens": 1127,
+     "cached_tokens": 0,
+     "state_tokens": 7,
+     "scored_tokens": 2
+    },
+    "timings": {
+     "prefill_ms": 1374.462,
+     "prefix_ms": 132.066,
+     "scoring_ms": 52.012,
+     "total_ms": 1444.77,
+     "rounds": 1,
+     "decodes": 6,
+     "retries": 0,
+     "image_encode_ms": 304.582,
+     "image_decode_ms": 796.73
+    },
+    "engine": {
+     "scoring": "tree",
+     "order_debias": 1,
+     "temperature": 1.0,
+     "phases": 1,
+     "seqs_per_state": 2,
+     "states_per_round": 7,
+     "quote_split_fields": [],
+     "prefix_cache": {
+      "capacity": 8,
+      "entries": 0,
+      "hits": 0,
+      "misses": 1
+     }
+    }
+   }
+  },
+  {
+   "status": 200,
+   "response": {
+    "object": "decide",
+    "results": [
+     {
+      "answers": {
+       "cat": {
+        "value": true,
+        "p_true": 0.9994312292413698,
+        "confidence": 0.9994312292413698
+       }
+      },
+      "usage": {
+       "state_tokens": 0,
+       "scored_tokens": 1,
+       "images": 1,
+       "image_cells": 1038,
+       "image_positions": 39
+      }
+     },
+     {
+      "answers": {
+       "cat": {
+        "value": true,
+        "p_true": 0.8691082367551223,
+        "confidence": 0.8691082367551223
+       }
+      },
+      "usage": {
+       "state_tokens": 7,
+       "scored_tokens": 1
+      }
+     }
+    ],
+    "usage": {
+     "prompt_tokens": 1075,
+     "cached_tokens": 52,
+     "state_tokens": 7,
+     "scored_tokens": 2
+    },
+    "timings": {
+     "prefill_ms": 1233.012,
+     "prefix_ms": 0.426,
+     "scoring_ms": 57.541,
+     "total_ms": 1312.162,
+     "rounds": 1,
+     "decodes": 5,
+     "retries": 0,
+     "image_encode_ms": 304.669,
+     "image_decode_ms": 795.135
+    },
+    "engine": {
+     "scoring": "tree",
+     "order_debias": 1,
+     "temperature": 1.0,
+     "phases": 1,
+     "seqs_per_state": 2,
+     "states_per_round": 7,
+     "quote_split_fields": [],
+     "prefix_cache": {
+      "capacity": 8,
+      "entries": 0,
+      "hits": 0,
+      "misses": 0
+     }
+    }
+   }
+  }
+ ],
+ "cases": [],
+ "checks": {
+  "info unchanged": true,
+  "the fixed request: 200 before and after": true
+ },
+ "pass": true
+}

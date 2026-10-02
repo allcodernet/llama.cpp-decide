@@ -1,0 +1,133 @@
+{
+  "ours": "results-engine/preds/decide-gemma-4-e4b-b1.jsonl",
+  "baseline": "results/preds/decision-gemma-4-e4b-b1.jsonl",
+  "fields": {
+    "queue": {
+      "disagreements": 5,
+      "tickets": [
+        {
+          "ticket": 20,
+          "label": "feedback",
+          "baseline": "feedback",
+          "ours": "technical",
+          "baseline_margin": 0.5681,
+          "ours_margin": 0.0825
+        },
+        {
+          "ticket": 25,
+          "label": "feedback",
+          "baseline": "technical",
+          "ours": "feedback",
+          "baseline_margin": 0.0155,
+          "ours_margin": 0.0417
+        },
+        {
+          "ticket": 50,
+          "label": "feedback",
+          "baseline": "feedback",
+          "ours": "technical",
+          "baseline_margin": 0.7803,
+          "ours_margin": 0.7631
+        },
+        {
+          "ticket": 59,
+          "label": "billing",
+          "baseline": "feedback",
+          "ours": "billing",
+          "baseline_margin": 0.5293,
+          "ours_margin": 0.6554
+        },
+        {
+          "ticket": 70,
+          "label": "technical",
+          "baseline": "feedback",
+          "ours": "technical",
+          "baseline_margin": 0.3019,
+          "ours_margin": 0.1414
+        }
+      ]
+    },
+    "urgency": {
+      "disagreements": 8,
+      "tickets": [
+        {
+          "ticket": 1,
+          "label": 1,
+          "baseline": 0,
+          "ours": 1,
+          "baseline_margin": 0.7067,
+          "ours_margin": 0.4024
+        },
+        {
+          "ticket": 20,
+          "label": 2,
+          "baseline": 0,
+          "ours": 1,
+          "baseline_margin": 0.0523,
+          "ours_margin": 0.8568
+        },
+        {
+          "ticket": 25,
+          "label": 1,
+          "baseline": 0,
+          "ours": 1,
+          "baseline_margin": 0.3556,
+          "ours_margin": 0.8076
+        },
+        {
+          "ticket": 32,
+          "label": 1,
+          "baseline": 1,
+          "ours": 2,
+          "baseline_margin": 0.0219,
+          "ours_margin": 0.573
+        },
+        {
+          "ticket": 33,
+          "label": 0,
+          "baseline": 0,
+          "ours": 1,
+          "baseline_margin": 0.6288,
+          "ours_margin": 0.0284
+        },
+        {
+          "ticket": 44,
+          "label": 2,
+          "baseline": 0,
+          "ours": 1,
+          "baseline_margin": 0.9292,
+          "ours_margin": 0.0056
+        },
+        {
+          "ticket": 57,
+          "label": 2,
+          "baseline": 2,
+          "ours": 3,
+          "baseline_margin": 0.2611,
+          "ours_margin": 0.4212
+        },
+        {
+          "ticket": 73,
+          "label": 2,
+          "baseline": 1,
+          "ours": 2,
+          "baseline_margin": 0.1046,
+          "ours_margin": 0.7428
+        }
+      ]
+    },
+    "angry": {
+      "disagreements": 1,
+      "tickets": [
+        {
+          "ticket": 32,
+          "label": true,
+          "baseline": false,
+          "ours": true,
+          "baseline_margin": 0.0108,
+          "ours_margin": 0.5285
+        }
+      ]
+    }
+  }
+}

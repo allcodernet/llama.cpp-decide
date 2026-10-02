@@ -1,0 +1,37 @@
+{
+  "a": "results-engine/sp3/baseline/test/preds/decide-qwen3.5-9b-b5-keywords.jsonl",
+  "b": "/tmp/t0-probe/q9/preds/decide-qwen3.5-9b-b5-keywords.jsonl",
+  "formats": [
+    "preds",
+    "preds"
+  ],
+  "n_tickets": 80,
+  "max_abs_diff": 0.13012852485960213,
+  "fields": {
+    "queue": {
+      "median_abs_diff": 0.0004675607706193744,
+      "max_abs_diff": 0.10150159324787378,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    },
+    "urgency": {
+      "median_abs_diff": 0.0015511365316756103,
+      "max_abs_diff": 0.13012852485960213,
+      "argmax_agreement": 0.975,
+      "argmax_disagreements": 2,
+      "disagreements_over_margin": 0,
+      "pass": true
+    },
+    "angry": {
+      "median_abs_diff": 0.0004590426915086318,
+      "max_abs_diff": 0.03907710458981961,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    }
+  },
+  "pass": true
+}

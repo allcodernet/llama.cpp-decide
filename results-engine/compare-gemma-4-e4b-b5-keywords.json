@@ -1,0 +1,117 @@
+{
+  "ours": "results-engine/preds/decide-gemma-4-e4b-b5-keywords.jsonl",
+  "baseline": "results/preds/decision-gemma-4-e4b-b5.jsonl",
+  "fields": {
+    "queue": {
+      "disagreements": 5,
+      "tickets": [
+        {
+          "ticket": 4,
+          "label": "feedback",
+          "baseline": "feedback",
+          "ours": "technical",
+          "baseline_margin": 0.8978,
+          "ours_margin": 0.0309
+        },
+        {
+          "ticket": 20,
+          "label": "feedback",
+          "baseline": "feedback",
+          "ours": "technical",
+          "baseline_margin": 0.6098,
+          "ours_margin": 0.0962
+        },
+        {
+          "ticket": 59,
+          "label": "billing",
+          "baseline": "feedback",
+          "ours": "billing",
+          "baseline_margin": 0.5717,
+          "ours_margin": 0.9484
+        },
+        {
+          "ticket": 65,
+          "label": "sales",
+          "baseline": "technical",
+          "ours": "sales",
+          "baseline_margin": 0.4643,
+          "ours_margin": 0.1583
+        },
+        {
+          "ticket": 70,
+          "label": "technical",
+          "baseline": "feedback",
+          "ours": "technical",
+          "baseline_margin": 0.3416,
+          "ours_margin": 0.5627
+        }
+      ]
+    },
+    "urgency": {
+      "disagreements": 5,
+      "tickets": [
+        {
+          "ticket": 1,
+          "label": 1,
+          "baseline": 0,
+          "ours": 1,
+          "baseline_margin": 0.6984,
+          "ours_margin": 0.4353
+        },
+        {
+          "ticket": 14,
+          "label": 2,
+          "baseline": 2,
+          "ours": 3,
+          "baseline_margin": 0.2927,
+          "ours_margin": 0.4418
+        },
+        {
+          "ticket": 20,
+          "label": 2,
+          "baseline": 0,
+          "ours": 1,
+          "baseline_margin": 0.047,
+          "ours_margin": 0.9273
+        },
+        {
+          "ticket": 46,
+          "label": 0,
+          "baseline": 2,
+          "ours": 1,
+          "baseline_margin": 0.6141,
+          "ours_margin": 0.0733
+        },
+        {
+          "ticket": 73,
+          "label": 2,
+          "baseline": 1,
+          "ours": 2,
+          "baseline_margin": 0.0807,
+          "ours_margin": 0.9736
+        }
+      ]
+    },
+    "angry": {
+      "disagreements": 2,
+      "tickets": [
+        {
+          "ticket": 14,
+          "label": true,
+          "baseline": true,
+          "ours": false,
+          "baseline_margin": 0.5737,
+          "ours_margin": 0.0242
+        },
+        {
+          "ticket": 32,
+          "label": true,
+          "baseline": false,
+          "ours": true,
+          "baseline_margin": 0.0869,
+          "ours_margin": 0.4023
+        }
+      ]
+    }
+  }
+}

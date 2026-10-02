@@ -1,0 +1,317 @@
+{
+  "preset": "qwen2.5-0.5b",
+  "tag": "diag-angryonly",
+  "n_records": 20,
+  "fields": {
+    "angry": {
+      "median_abs_diff": 0.01552793464788918,
+      "max_abs_diff": 0.05653579583924562,
+      "argmax_agreement": 0.95,
+      "disagreements_over_margin": 0,
+      "argmax_abs_diff_median": 0.01552793464788918
+    }
+  },
+  "pass": false,
+  "detail": [
+    {
+      "ticket": 0,
+      "field": "angry",
+      "branch_nodes": 1,
+      "reference": [
+        0.13274956317466766,
+        0.8672504368253323
+      ],
+      "engine": [
+        0.15115085545309254,
+        0.8488491445469075
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.7345008736506646
+    },
+    {
+      "ticket": 1,
+      "field": "angry",
+      "branch_nodes": 1,
+      "reference": [
+        0.18441380002118768,
+        0.8155861999788123
+      ],
+      "engine": [
+        0.19808083662578785,
+        0.8019191633742122
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.6311723999576246
+    },
+    {
+      "ticket": 2,
+      "field": "angry",
+      "branch_nodes": 1,
+      "reference": [
+        0.8511813267235205,
+        0.14881867327647946
+      ],
+      "engine": [
+        0.846442150360956,
+        0.15355784963904395
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.7023626534470411
+    },
+    {
+      "ticket": 3,
+      "field": "angry",
+      "branch_nodes": 1,
+      "reference": [
+        0.3750347412330536,
+        0.6249652587669465
+      ],
+      "engine": [
+        0.3404282246403235,
+        0.6595717753596765
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.24993051753389295
+    },
+    {
+      "ticket": 4,
+      "field": "angry",
+      "branch_nodes": 1,
+      "reference": [
+        0.14243189813433746,
+        0.8575681018656626
+      ],
+      "engine": [
+        0.14044973028070507,
+        0.8595502697192949
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.7151362037313251
+    },
+    {
+      "ticket": 5,
+      "field": "angry",
+      "branch_nodes": 1,
+      "reference": [
+        0.0895337183407416,
+        0.9104662816592584
+      ],
+      "engine": [
+        0.07141518410310944,
+        0.9285848158968906
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.8209325633185167
+    },
+    {
+      "ticket": 6,
+      "field": "angry",
+      "branch_nodes": 1,
+      "reference": [
+        0.12475744363696835,
+        0.8752425563630317
+      ],
+      "engine": [
+        0.13802029599315288,
+        0.8619797040068471
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.7504851127260633
+    },
+    {
+      "ticket": 7,
+      "field": "angry",
+      "branch_nodes": 1,
+      "reference": [
+        0.5056760405902514,
+        0.4943239594097486
+      ],
+      "engine": [
+        0.48828720789907315,
+        0.5117127921009268
+      ],
+      "argmax_agree": false,
+      "ref_top2_margin": 0.011352081180502793
+    },
+    {
+      "ticket": 8,
+      "field": "angry",
+      "branch_nodes": 1,
+      "reference": [
+        0.6844308788313376,
+        0.31556912116866237
+      ],
+      "engine": [
+        0.654303917044028,
+        0.345696082955972
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.3688617576626752
+    },
+    {
+      "ticket": 9,
+      "field": "angry",
+      "branch_nodes": 1,
+      "reference": [
+        0.7152460987583044,
+        0.2847539012416956
+      ],
+      "engine": [
+        0.7352026008493925,
+        0.2647973991506075
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.4304921975166088
+    },
+    {
+      "ticket": 10,
+      "field": "angry",
+      "branch_nodes": 1,
+      "reference": [
+        0.6369584499835215,
+        0.3630415500164786
+      ],
+      "engine": [
+        0.5804226541442759,
+        0.41957734585572415
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.2739168999670429
+    },
+    {
+      "ticket": 11,
+      "field": "angry",
+      "branch_nodes": 1,
+      "reference": [
+        0.4641448748510387,
+        0.5358551251489613
+      ],
+      "engine": [
+        0.4882204875395478,
+        0.5117795124604523
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.07171025029792255
+    },
+    {
+      "ticket": 12,
+      "field": "angry",
+      "branch_nodes": 1,
+      "reference": [
+        0.5744176325240657,
+        0.4255823674759342
+      ],
+      "engine": [
+        0.6068753007455843,
+        0.39312469925441573
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.14883526504813155
+    },
+    {
+      "ticket": 13,
+      "field": "angry",
+      "branch_nodes": 1,
+      "reference": [
+        0.11117768062182937,
+        0.8888223193781706
+      ],
+      "engine": [
+        0.10440310914707059,
+        0.8955968908529294
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.7776446387563412
+    },
+    {
+      "ticket": 14,
+      "field": "angry",
+      "branch_nodes": 1,
+      "reference": [
+        0.0812371507110676,
+        0.9187628492889324
+      ],
+      "engine": [
+        0.06885940817085888,
+        0.9311405918291411
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.8375256985778647
+    },
+    {
+      "ticket": 15,
+      "field": "angry",
+      "branch_nodes": 1,
+      "reference": [
+        0.8199656966591514,
+        0.18003430334084863
+      ],
+      "engine": [
+        0.8250447116991426,
+        0.17495528830085738
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.6399313933183028
+    },
+    {
+      "ticket": 16,
+      "field": "angry",
+      "branch_nodes": 1,
+      "reference": [
+        0.6133202688748448,
+        0.3866797311251551
+      ],
+      "engine": [
+        0.5916061945859962,
+        0.40839380541400383
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.22664053774968973
+    },
+    {
+      "ticket": 17,
+      "field": "angry",
+      "branch_nodes": 1,
+      "reference": [
+        0.22884579544030426,
+        0.7711542045596957
+      ],
+      "engine": [
+        0.21591012663476913,
+        0.7840898733652308
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.5423084091193915
+    },
+    {
+      "ticket": 18,
+      "field": "angry",
+      "branch_nodes": 1,
+      "reference": [
+        0.1012624738082144,
+        0.8987375261917856
+      ],
+      "engine": [
+        0.08831911823254739,
+        0.9116808817674527
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.7974750523835712
+    },
+    {
+      "ticket": 19,
+      "field": "angry",
+      "branch_nodes": 1,
+      "reference": [
+        0.300608811558441,
+        0.699391188441559
+      ],
+      "engine": [
+        0.2979452933438048,
+        0.7020547066561952
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.398782376883118
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+From 15d01ac28ed82c0d3acd24ffc2d6c300a214990d Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 2 Oct 2026 14:52:41 +0200
+Subject: [PATCH 42/45] decide: non-causal projectors off after the failed gate
+ (spec 9.5)
+
+---
+ tools/decide/decide-image.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/tools/decide/decide-image.h b/tools/decide/decide-image.h
+index e3eb8a4c1..ebc831d6f 100644
+--- a/tools/decide/decide-image.h
++++ b/tools/decide/decide-image.h
+@@ -14,8 +14,8 @@ constexpr int      MAX_IMAGES_PER_STATE   = 4;
+ constexpr int      MAX_IMAGES_PER_REQUEST = 32;
+ constexpr size_t   MAX_IMAGE_BYTES        = 10485760;   // 10 MiB, decoded
+ constexpr uint64_t MAX_IMAGE_PIXELS       = 32000000;   // width x height
+-// spec 9.5: whether non-causal projectors (Gemma 3) are enabled; false once gemma-3-4b fails the non-causal gate
+-constexpr bool     NON_CAUSAL_ENABLED     = true;
++// spec 9.5: the gate failed on gemma-3-4b (results-engine/image/gate.json), so non-causal projectors are not available
++constexpr bool     NON_CAUSAL_ENABLED     = false;
+ 
+ // spec 4.1: the reason (AVAILABLE when vision is available) and, when available, the projector's position and attention kind
+ struct vision_status {
+-- 
+2.55.0
+

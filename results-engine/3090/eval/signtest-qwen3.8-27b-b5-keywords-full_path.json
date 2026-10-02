@@ -1,0 +1,97 @@
+{
+  "pairs": [
+    {
+      "a": "results-engine/3090/baseline/test/preds/decide-qwen3.8-27b-b5-keywords.jsonl",
+      "b": "results-engine/3090/eval/test/preds/decide-qwen3.8-27b-b5-keywords-full_path.jsonl",
+      "test_set": "local/data/triage_test.jsonl",
+      "n_tickets": 80,
+      "fields": {
+        "queue": {
+          "a_right": 79,
+          "b_right": 79,
+          "a_only_right": 0,
+          "b_only_right": 0,
+          "discordant": 0,
+          "p": 1.0
+        },
+        "urgency": {
+          "a_right": 71,
+          "b_right": 71,
+          "a_only_right": 0,
+          "b_only_right": 0,
+          "discordant": 0,
+          "p": 1.0
+        },
+        "angry": {
+          "a_right": 80,
+          "b_right": 80,
+          "a_only_right": 0,
+          "b_only_right": 0,
+          "discordant": 0,
+          "p": 1.0
+        }
+      }
+    },
+    {
+      "a": "results-engine/3090/baseline/train/preds/decide-qwen3.8-27b-b5-keywords.jsonl",
+      "b": "results-engine/3090/eval/train/preds/decide-qwen3.8-27b-b5-keywords-full_path.jsonl",
+      "test_set": "local/data/triage_train.jsonl",
+      "n_tickets": 320,
+      "fields": {
+        "queue": {
+          "a_right": 309,
+          "b_right": 310,
+          "a_only_right": 0,
+          "b_only_right": 1,
+          "discordant": 1,
+          "p": 1.0
+        },
+        "urgency": {
+          "a_right": 273,
+          "b_right": 274,
+          "a_only_right": 0,
+          "b_only_right": 1,
+          "discordant": 1,
+          "p": 1.0
+        },
+        "angry": {
+          "a_right": 320,
+          "b_right": 320,
+          "a_only_right": 0,
+          "b_only_right": 0,
+          "discordant": 0,
+          "p": 1.0
+        }
+      }
+    }
+  ],
+  "pooled": {
+    "n_tickets": 400,
+    "fields": {
+      "queue": {
+        "a_right": 388,
+        "b_right": 389,
+        "a_only_right": 0,
+        "b_only_right": 1,
+        "discordant": 1,
+        "p": 1.0
+      },
+      "urgency": {
+        "a_right": 344,
+        "b_right": 345,
+        "a_only_right": 0,
+        "b_only_right": 1,
+        "discordant": 1,
+        "p": 1.0
+      },
+      "angry": {
+        "a_right": 400,
+        "b_right": 400,
+        "a_only_right": 0,
+        "b_only_right": 0,
+        "discordant": 0,
+        "p": 1.0
+      }
+    }
+  }
+}

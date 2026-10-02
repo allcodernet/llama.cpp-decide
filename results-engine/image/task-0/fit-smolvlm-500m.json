@@ -1,0 +1,3 @@
+{
+ "unavailable": "does not load: tokenizer does not tokenise the trunk/branch join independently (add_space_prefix?); model not supported: llama 8B Q8_0, vocab type BPE: prefix/state join \"...end_of_utterance>\\nUser: \" + \"Hi\" tokenises jointly as [21041], separately as [216 26843] (from token 8, left part has 9)"
+}

@@ -1,0 +1,657 @@
+From 023d3ff3467bde8b9401009ad5243ece069df731 Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 2 Oct 2026 13:36:17 +0200
+Subject: [PATCH 40/45] decide: image states: stb_image pixels, mtmd trunks,
+ cell budget, held cells from the server
+
+---
+ tests/test-decide-debias.cpp    |  22 ++++
+ tests/test-decide-image.cpp     |  29 ++++-
+ tools/decide/CMakeLists.txt     |   9 +-
+ tools/decide/decide-debias.cpp  |  14 ++-
+ tools/decide/decide-debias.h    |   8 +-
+ tools/decide/decide-engine.cpp  | 187 ++++++++++++++++++++++++++++----
+ tools/decide/decide-engine.h    |  44 +++++++-
+ tools/decide/decide-pixels.cpp  |  29 +++++
+ tools/decide/decide-pixels.h    |  13 +++
+ tools/server/server-context.cpp |   9 ++
+ 10 files changed, 336 insertions(+), 28 deletions(-)
+ create mode 100644 tools/decide/decide-pixels.cpp
+ create mode 100644 tools/decide/decide-pixels.h
+
+diff --git a/tests/test-decide-debias.cpp b/tests/test-decide-debias.cpp
+index 4d128915b..de8c65159 100644
+--- a/tests/test-decide-debias.cpp
++++ b/tests/test-decide-debias.cpp
+@@ -120,6 +120,28 @@ int main() {
+               "state 3 needs 1384 cells (held 100, prefix 900, K_eff 4 \u00d7 (state 50, tail 6, branches 40)), n_ctx - 16 is 1000");
+     }
+ 
++    // 2c. sub-project 4 (spec 5.3): image cells are part of a state's cells and its 400 text names them; the n_ubatch rule of
++    //     non-causal projectors
++    {
++        CHECK(decide::state_cells(0, 248, 1, 1100, 6, 16) == 1370);
++        CHECK(decide::state_cells_message(0, 0, 248, 1, 1100, 6, 16, 1000, 1082) ==
++              "state 0 needs 1370 cells (held 0, prefix 248, state 1100 (image cells 1082), tail 6, branches 16), n_ctx - 16 is 1000");
++        CHECK(decide::state_cells_message(1, 50, 496, 2, 1100, 6, 16, 1000, 1082) ==
++              "state 1 needs 2790 cells (held 50, prefix 496, K_eff 2 \u00d7 (state 1100 (image cells 1082), tail 6, branches 16)), n_ctx - 16 is 1000");
++        CHECK(decide::state_cells_message(0, 0, 248, 1, 3176, 6, 16, 2032, 0) == decide::state_cells_message(0, 0, 248, 1, 3176, 6, 16, 2032));
++        decide::check_image_ubatch(0, false, 4096, 512);   // causal: any size
++        decide::check_image_ubatch(0, true, 512, 512);     // non-causal and fits
++        bool thrown = false;
++        try {
++            decide::check_image_ubatch(3, true, 513, 512);
++        } catch (const decide::error & e) {
++            thrown = e.code == "budget" && e.http == 400 && e.field.empty() &&
++                     std::string(e.what()) == "state 3 has an image chunk of 513 cells, which the projector decodes with non-causal attention "
++                                              "in one micro-batch, but n_ubatch is 512; start with --ubatch-size 513 or more";
++        }
++        CHECK(thrown);
++    }
++
+     // 3. spec 8: options.temperature when given (0 = not given), else the server default
+     {
+         CHECK(decide::resolve_temperature(0.0, 1.0) == 1.0);
+diff --git a/tests/test-decide-image.cpp b/tests/test-decide-image.cpp
+index 7dac04438..f08fd38b3 100644
+--- a/tests/test-decide-image.cpp
++++ b/tests/test-decide-image.cpp
+@@ -2,6 +2,7 @@
+ // the data URI, the JPEG/PNG header and its pixel limit, every limit, the order of the checks and the vision status
+ #include "decide-engine.h"
+ #include "decide-image.h"
++#include "decide-pixels.h"
+ #include "decide-schema.h"
+ 
+ #include <cstdint>
+@@ -20,6 +21,8 @@ using decide::vision_reason;
+ static const char * PNG_B64 = "iVBORw0KGgoAAAANSUhEUgAAAAIAAAADCAIAAAA2iEnWAAAAGElEQVR4nAXBAQEAAAjDIG7/zhOEoHJiPUfdBv3wKgpGAAAAAElFTkSuQmCC";
+ static const char * JPG_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAACAAQDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwCpRRRX4ef0gf/Z";
+ static const size_t JPG_SOF = 158;
++static const char * GRAY_B64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAAAAAC86un7AAAADElEQVR4nGPgYjgBAADqANPCoAVAAAAAAElFTkSuQmCC";
++static const char * RGBA_B64 = "iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAD0In+KAAAAEUlEQVR4nGNgZGJm+PX7z38ACgED91hlTfYAAAAASUVORK5CYII=";
+ 
+ static std::string unb64(const char * s) {
+     std::string out;
+@@ -198,7 +201,7 @@ int main() {
+         big.push_back('\0');
+         reject({list({img(url(big))})}, is, "states[0]", "(at most 10485760)");   // decoded size
+         big.append(3, '\0');
+-        reject({list({img(url(big))})}, is, "states[0]", "(at most 10485760)");   // encoded length, before decoding
++        reject({list({img(url(big))})}, is, "states[0]", "more than 10485760 bytes");   // encoded length, before decoding
+         CHECK(accept({list({img(url(png_header(8000, 4000)))})})[0][0].width == 8000);   // 32,000,000 pixels: allowed
+         reject({list({img(url(png_header(8000, 4001)))})}, is, "states[0]", "8000 x 4001 = 32008000 pixels, at most 32000000");
+         std::string tall = jpg;
+@@ -271,6 +274,30 @@ int main() {
+         CHECK(decide::vision_json(v).dump() == R"({"available":false,"reason":"non_causal_projector"})");
+     }
+ 
++    // 9. pixels (spec 3.1): the library's own stb_image (JPEG and PNG only) gives RGB; gray and RGBA PNGs become RGB, alpha dropped;
++    //    what stb_image rejects is an error with a reason (spec 3.2 pass 3)
++    {
++        std::vector<unsigned char> rgb;
++        uint32_t                   nx = 0, ny = 0;
++        std::string                why;
++        CHECK(decide::decode_rgb(png, rgb, nx, ny, why) && nx == 2 && ny == 3);
++        CHECK((rgb == std::vector<unsigned char>{255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 0, 0, 255, 255, 255, 0, 255}));
++        CHECK(decide::decode_rgb(jpg, rgb, nx, ny, why) && nx == 4 && ny == 2 && rgb.size() == 24);
++        CHECK(decide::decode_rgb(unb64(GRAY_B64), rgb, nx, ny, why) && nx == 1 && ny == 2 &&
++              (rgb == std::vector<unsigned char>{10, 10, 10, 200, 200, 200}));
++        CHECK(decide::decode_rgb(unb64(RGBA_B64), rgb, nx, ny, why) && nx == 2 && ny == 1 &&
++              (rgb == std::vector<unsigned char>{1, 2, 3, 250, 251, 252}));
++        std::string twelve = jpg;
++        twelve[JPG_SOF + 4] = 12;   // 12-bit samples: stb_image decodes 8-bit JPEGs only
++        decide::image_header h;
++        CHECK(decide::read_image_header(twelve, h) == "");   // pass 1 lets it through, pass 3 rejects it
++        why.clear();
++        CHECK(!decide::decode_rgb(twelve, rgb, nx, ny, why) && !why.empty());
++        why.clear();
++        CHECK(!decide::decode_rgb(png_header(2, 2), rgb, nx, ny, why) && !why.empty());   // no pixel data
++        CHECK(!decide::decode_rgb(std::string("BM") + std::string(60, '\0'), rgb, nx, ny, why));   // BMP is not compiled in
++    }
++
+     if (failures) {
+         std::fprintf(stderr, "%d failure(s)\n", failures);
+         return 1;
+diff --git a/tools/decide/CMakeLists.txt b/tools/decide/CMakeLists.txt
+index e35aeee54..89128a8e3 100644
+--- a/tools/decide/CMakeLists.txt
++++ b/tools/decide/CMakeLists.txt
+@@ -9,10 +9,17 @@ add_library(llama-decide STATIC
+     decide-engine.cpp decide-engine.h
+     decide-api.cpp decide-api.h
+     decide-compat.cpp decide-compat.h
+-    decide-image.cpp decide-image.h)
++    decide-image.cpp decide-image.h
++    decide-pixels.cpp decide-pixels.h)
+ target_include_directories(llama-decide PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+ # mtmd: image parts of states (sub-project 4); llama-server links it already, so the build has no new option
+ target_link_libraries(llama-decide PUBLIC llama-common llama mtmd)
++# spec 3.1: the library's own static stb_image (decide-pixels.cpp)
++target_link_libraries(llama-decide PRIVATE vendor::stb)
++if (NOT MSVC)
++    # stb_image.h, as in tools/mtmd
++    set_source_files_properties(decide-pixels.cpp PROPERTIES COMPILE_OPTIONS "-Wno-cast-qual;-Wno-unused-function")
++endif()
+ target_compile_features(llama-decide PUBLIC cxx_std_17)
+ set_target_properties(llama-decide PROPERTIES POSITION_INDEPENDENT_CODE ON)
+ 
+diff --git a/tools/decide/decide-debias.cpp b/tools/decide/decide-debias.cpp
+index e9c7e76ea..eb41df82e 100644
+--- a/tools/decide/decide-debias.cpp
++++ b/tools/decide/decide-debias.cpp
+@@ -25,13 +25,23 @@ int64_t state_cells(int64_t held, int64_t prefix, int K, int64_t state, int64_t
+     return held + prefix + K * (state + tail + branches);
+ }
+ 
+-std::string state_cells_message(size_t i, int64_t held, int64_t prefix, int K, int64_t state, int64_t tail, int64_t branches, int64_t limit) {
+-    const std::string per_variant = "state " + std::to_string(state) + ", tail " + std::to_string(tail) + ", branches " + std::to_string(branches);
++std::string state_cells_message(size_t i, int64_t held, int64_t prefix, int K, int64_t state, int64_t tail, int64_t branches, int64_t limit,
++                                int64_t image_cells) {
++    const std::string state_text  = "state " + std::to_string(state) + (image_cells > 0 ? " (image cells " + std::to_string(image_cells) + ")" : "");
++    const std::string per_variant = state_text + ", tail " + std::to_string(tail) + ", branches " + std::to_string(branches);
+     return "state " + std::to_string(i) + " needs " + std::to_string(state_cells(held, prefix, K, state, tail, branches)) + " cells (held " +
+            std::to_string(held) + ", prefix " + std::to_string(prefix) + ", " +
+            (K == 1 ? per_variant : "K_eff " + std::to_string(K) + " \u00d7 (" + per_variant + ")") + "), n_ctx - 16 is " + std::to_string(limit);
+ }
+ 
++void check_image_ubatch(size_t state, bool non_causal, int64_t chunk_cells, int64_t n_ubatch) {
++    if (non_causal && chunk_cells > n_ubatch) {
++        throw error("budget", 400, "state " + std::to_string(state) + " has an image chunk of " + std::to_string(chunk_cells) +
++                                       " cells, which the projector decodes with non-causal attention in one micro-batch, but n_ubatch is " +
++                                       std::to_string(n_ubatch) + "; start with --ubatch-size " + std::to_string(chunk_cells) + " or more");
++    }
++}
++
+ double resolve_temperature(double requested, double server_default) {
+     return requested > 0 ? requested : server_default;
+ }
+diff --git a/tools/decide/decide-debias.h b/tools/decide/decide-debias.h
+index 85a63a7d2..35d8f43a5 100644
+--- a/tools/decide/decide-debias.h
++++ b/tools/decide/decide-debias.h
+@@ -27,8 +27,12 @@ std::string sequence_budget_message(int decide_seqs, int K, int B, const std::st
+ // spec 7.3: the cells one state needs alone: held + the K prefixes + K x (state + tail + branch tokens); for a round of n states
+ // (need_for) the state, tail and branch arguments are the sums over its states
+ int64_t     state_cells(int64_t held, int64_t prefix, int K, int64_t state, int64_t tail, int64_t branches);
+-// spec 7.3: the 400 budget message when state i needs more than `limit` (n_ctx - 16) cells; K = 1 is the text without debiasing
+-std::string state_cells_message(size_t i, int64_t held, int64_t prefix, int K, int64_t state, int64_t tail, int64_t branches, int64_t limit);
++// spec 7.3: the 400 budget message when state i needs more than `limit` (n_ctx - 16) cells; K = 1 is the text without debiasing.
++// Sub-project 4 (spec 3.2, 5.3): `state` counts text tokens and image cells; with image_cells > 0 the text names them
++std::string state_cells_message(size_t i, int64_t held, int64_t prefix, int K, int64_t state, int64_t tail, int64_t branches, int64_t limit,
++                                int64_t image_cells = 0);
++// spec 5.3: a non-causal projector decodes an image chunk in one micro-batch; a chunk over n_ubatch is error{"budget", 400}
++void        check_image_ubatch(size_t state, bool non_causal, int64_t chunk_cells, int64_t n_ubatch);
+ 
+ // spec 8: options.temperature when given (> 0; 0 = not given), else the server default
+ double resolve_temperature(double requested, double server_default);
+diff --git a/tools/decide/decide-engine.cpp b/tools/decide/decide-engine.cpp
+index 56aa16fbc..1f70d6b2c 100644
+--- a/tools/decide/decide-engine.cpp
++++ b/tools/decide/decide-engine.cpp
+@@ -1,11 +1,14 @@
+ #include "decide-engine.h"
+ #include "decide-debias.h"
+ #include "decide-fullpath.h"
++#include "decide-pixels.h"
+ #include "common.h"
+ #include "ggml.h"
++#include "mtmd-helper.h"
+ 
+ #include <algorithm>
+ #include <cstdlib>
++#include <cstring>
+ #include <utility>
+ 
+ namespace decide {
+@@ -278,6 +281,9 @@ bool engine::fault_fires(fault_mode m) const {
+ }
+ 
+ int64_t engine::held_cells() const {
++    if (cfg.held_cells) {
++        return cfg.held_cells();   // spec 5.3: the server's slot cells, media included
++    }
+     int64_t held = 0;
+     for (llama_seq_id s : cfg.slot_seqs) {
+         held += std::max<int64_t>(0, (int64_t) llama_memory_seq_pos_max(mem, s) + 1);
+@@ -578,28 +584,146 @@ int engine::branch_phase(const compiled_schema & cs, const trie_set & ts, int K,
+     }, st, inject);
+ }
+ 
+-int engine::run_round(const compiled_schema & cs, const trie_set & ts, int K,
+-                      const std::vector<std::vector<llama_token>> & state_tokens, size_t first, size_t count,
++engine::image_input engine::tokenize_image(const state_part & p, size_t state, size_t part) const {
++    const std::string where = "states[" + std::to_string(state) + "]";
++    std::vector<unsigned char> rgb;
++    uint32_t                   nx = 0, ny = 0;
++    std::string                why;
++    if (!decode_rgb(p.bytes, rgb, nx, ny, why)) {
++        throw error("invalid_states", 400, where + ": part " + std::to_string(part) + ": the image cannot be decoded (" + why + ")", where);
++    }
++    mtmd_bitmap * bitmap = mtmd_bitmap_init(nx, ny, rgb.data());
++    std::vector<unsigned char>().swap(rgb);   // spec 5.1: the pixels are freed at once
++    image_input im;
++    im.chunks.reset(mtmd_input_chunks_init());
++    // spec 2: the marker alone, add_special = false (no BOS/EOS around the image), parse_special = true (the model's own markers)
++    const char *          marker    = mtmd_get_marker(cfg.mctx);
++    const mtmd_input_text text      = {marker, std::strlen(marker), false, true};
++    const mtmd_bitmap *   bitmaps[] = {bitmap};
++    const int32_t         rc        = mtmd_tokenize(cfg.mctx, im.chunks.get(), &text, bitmaps, 1);
++    mtmd_bitmap_free(bitmap);
++    if (rc != 0) {
++        throw error("engine", 500, where + ": part " + std::to_string(part) + ": image tokenisation failed (mtmd_tokenize rc=" + std::to_string(rc) + ")");
++    }
++    im.n_tokens = (int64_t) mtmd_helper_get_n_tokens(im.chunks.get());
++    im.n_pos    = mtmd_helper_get_n_pos(im.chunks.get());
++    return im;
++}
++
++std::vector<engine::state_input> engine::prepare_inputs(const std::vector<state_parts> & states, std::vector<image_input> & images) const {
++    std::vector<state_input> out(states.size());
++    for (size_t i = 0; i < states.size(); ++i) {
++        const state_parts & parts = states[i];
++        state_input &       in    = out[i];
++        size_t              last  = parts.size();   // the last image part; parts.size() when there is none
++        for (size_t k = 0; k < parts.size(); ++k) {
++            if (parts[k].image) {
++                last = k;
++            }
++        }
++        for (size_t k = 0; k < parts.size(); ++k) {
++            const state_part & p = parts[k];
++            if (!p.image) {
++                // spec 3.1: untrusted text, no special tokens (a media marker in it stays text)
++                std::vector<llama_token> toks = tokenize_plain(vocab, p.text);
++                in.text_tokens += (int64_t) toks.size();
++                if (last < parts.size() && k < last) {
++                    in.head.push_back({std::move(toks), -1});
++                } else {
++                    in.rest = std::move(toks);   // after the last image (at most one text part: no two are adjacent), or no image at all
++                }
++                continue;
++            }
++            images.push_back(tokenize_image(p, i, k));
++            in.head.push_back({{}, (int) images.size() - 1});
++            in.image_cells     += images.back().n_tokens;
++            in.image_positions += images.back().n_pos;
++            in.images++;
++        }
++    }
++    return out;
++}
++
++int engine::decode_tokens(const std::vector<llama_token> & toks, llama_seq_id seq, llama_pos & pos, stats & st) {
++    std::vector<entry> entries;
++    entries.reserve(toks.size());
++    for (llama_token t : toks) {
++        entries.push_back({t, pos++, seq, -1});
++    }
++    return decode_chunked(entries, nullptr, st);
++}
++
++int engine::decode_image(const image_input & im, llama_seq_id seq, llama_pos & pos, stats & st) {
++    const mtmd_input_chunks * chunks = im.chunks.get();
++    for (size_t j = 0; j < mtmd_input_chunks_size(chunks); ++j) {
++        const mtmd_input_chunk * ch = mtmd_input_chunks_get(chunks, j);
++        if (mtmd_input_chunk_get_type(ch) == MTMD_INPUT_CHUNK_TYPE_TEXT) {
++            size_t              n    = 0;
++            const llama_token * toks = mtmd_input_chunk_get_tokens_text(ch, &n);
++            const int           rc   = decode_tokens(std::vector<llama_token>(toks, toks + n), seq, pos, st);
++            if (rc != 0) {
++                return rc;
++            }
++            continue;
++        }
++        // spec 5.2: encode (the embeddings live in the context's buffer until the next encode), then the helper's decode; an image
++        // is encoded again for every variant and retry
++        int64_t t = ggml_time_us();
++        if (mtmd_encode_chunk(cfg.mctx, ch) != 0) {
++            throw error("engine", 500, "image encode failed (projector)");
++        }
++        float * embd = mtmd_get_output_embd(cfg.mctx);
++        st.image_encode_us += ggml_time_us() - t;
++        t = ggml_time_us();
++        llama_pos     next = pos;
++        const int32_t rc   = mtmd_helper_decode_image_chunk(cfg.mctx, ctx, ch, embd, pos, seq, n_batch, &next, nullptr, nullptr);
++        llama_synchronize(ctx);
++        st.image_decode_us += ggml_time_us() - t;
++        if (rc == 1) {
++            return 1;   // no KV slot: the round's retry path
++        }
++        if (rc != 0) {
++            throw error("engine", 500, "image decode failed: rc=" + std::to_string(rc));
++        }
++        const int64_t n = (int64_t) mtmd_input_chunk_get_n_tokens(ch);
++        st.prompt_tokens += n;   // spec 3.3: every decoded cell, once per decode
++        st.decodes += (int) ((n + n_batch - 1) / n_batch);
++        pos = next;   // M-RoPE: far fewer positions than cells
++    }
++    return 0;
++}
++
++int engine::run_round(const compiled_schema & cs, const trie_set & ts, int K, const std::vector<state_input> & inputs, size_t first, size_t count,
+                       request_state & rs, stats & st, int fail_phase) {
+     const int n_branch = ts.branches_per_state;
+ 
+-    // trunk phase: per state and variant v, a copy of slot v's prefix + state + tail, no logits
++    // trunk phase: per state and variant v, a copy of slot v's prefix. spec 5.2 step 1: the parts up to and including the last
++    // image, decoded in order into the trunk, state by state; step 2: the rest of the state and the tail, batched over the round,
++    // no logits. A state without images has only step 2, as before
+     int64_t t0 = ggml_time_us();
+     std::vector<entry>     entries;
+     std::vector<llama_pos> trunk_len(count * K);   // per state and variant
+     for (size_t c = 0; c < count; ++c) {
++        const state_input & in = inputs[first + c];
+         for (int v = 0; v < K; ++v) {
+             const prefix_state & p = slots[v];
+             const llama_seq_id   T = trunk_seq(cfg.seq_base, K, n_branch, c, v);
+             llama_memory_seq_cp(mem, cfg.seq_base + v, T, -1, -1);
+             llama_pos pos = (llama_pos) p.tokens.size();
+-            for (llama_token tok : state_tokens[first + c]) {
++            for (const head_part & hp : in.head) {
++                const int step = hp.image < 0 ? decode_tokens(hp.tokens, T, pos, st) : decode_image(rs.images[hp.image], T, pos, st);
++                if (step != 0) {
++                    st.prefill_us += ggml_time_us() - t0;
++                    return step;   // spec 5.2: 1 takes the round's retry path
++                }
++            }
++            for (llama_token tok : in.rest) {
+                 entries.push_back({tok, pos++, T, -1});
+             }
+             for (llama_token tok : p.tail_tokens) {
+                 entries.push_back({tok, pos++, T, -1});
+             }
+-            trunk_len[c * K + v] = pos;
++            trunk_len[c * K + v] = pos;   // a position: branch phases, `after` and full-path work on the trunk unchanged
+         }
+     }
+     int rc = decode_chunked(entries, nullptr, st);
+@@ -656,6 +780,24 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+     if (ts.fields.size() != cs.fields.size()) {
+         throw error("engine", 500, "trie set does not match the schema");
+     }
++    // spec 3.2 pass 3, 5.1: every part tokenised and every image decoded before any budget check and any model decode
++    request_state                  rs;
++    const std::vector<state_input> inputs   = prepare_inputs(states, rs.images);
++    const int64_t                  n_ubatch = (int64_t) llama_n_ubatch(ctx);
++    for (size_t i = 0; i < inputs.size(); ++i) {
++        for (const head_part & hp : inputs[i].head) {
++            if (hp.image < 0) {
++                continue;
++            }
++            const mtmd_input_chunks * chunks = rs.images[hp.image].chunks.get();
++            for (size_t j = 0; j < mtmd_input_chunks_size(chunks); ++j) {
++                const mtmd_input_chunk * ch = mtmd_input_chunks_get(chunks, j);
++                if (mtmd_input_chunk_get_type(ch) == MTMD_INPUT_CHUNK_TYPE_IMAGE) {
++                    check_image_ubatch(i, mtmd_decode_use_non_causal(cfg.mctx, ch), (int64_t) mtmd_input_chunk_get_n_tokens(ch), n_ubatch);
++                }
++            }
++        }
++    }
+     const int        K              = effective_variants(cs);   // spec 7.1: catalogue variants = prefix slots of this request
+     const int        B              = ts.branches_per_state;
+     const seq_budget budget         = sequence_budget(cfg.decide_seqs, K, B);
+@@ -665,17 +807,10 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+         throw error("budget", 400, sequence_budget_message(cfg.decide_seqs, K, B, mode_name(ts.mode)));
+     }
+ 
+-    std::vector<std::vector<llama_token>> state_tokens;
+-    state_tokens.reserve(states.size());
+-    for (const state_parts & s : states) {
+-        // spec 4.2: without vision states_of rejects every image part, so each state here is one text part
+-        state_tokens.push_back(tokenize_plain(vocab, s.front().text));
+-    }
+     // spec 4.5: logit rows per state of the scoring mode
+     const branch_counts counts = count_branches(ts);
+ 
+     // spec 5: the phases; per field its branch sequence ids and its branch cells with the worst-case lines of spec 5.4
+-    request_state rs;
+     rs.temperature = resolve_temperature(cs.opts.temperature, cfg.temperature);
+     rs.phases      = phase_fields(cs);
+     rs.reserved    = reserved_branch_tokens(ts, worst_lines_tokens(cs, line_tokens_max(cs, vocab)));
+@@ -731,9 +866,10 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+     const int64_t tail  = (int64_t) ps[0].tail_tokens.size();
+     const int64_t held  = held_cells();
+     for (size_t i = 0; i < states.size(); ++i) {
+-        const int64_t n = (int64_t) state_tokens[i].size();
++        // spec 5.3: a state's cells are its text tokens plus its images' cells
++        const int64_t n = inputs[i].text_tokens + inputs[i].image_cells;
+         if (state_cells(held, prefix_total, K, n, tail, branch_total) > n_ctx - 16) {
+-            throw error("budget", 400, state_cells_message(i, held, prefix_total, K, n, tail, branch_total, n_ctx - 16));
++            throw error("budget", 400, state_cells_message(i, held, prefix_total, K, n, tail, branch_total, n_ctx - 16, inputs[i].image_cells));
+         }
+     }
+ 
+@@ -760,7 +896,7 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+         auto need_for = [&](size_t n) {
+             int64_t state_sum = 0;
+             for (size_t c = 0; c < n; ++c) {
+-                state_sum += (int64_t) state_tokens[next + c].size();
++                state_sum += inputs[next + c].text_tokens + inputs[next + c].image_cells;
+             }
+             return state_cells(held, prefix_total, K, state_sum, (int64_t) n * tail, (int64_t) n * branch_total);
+         };
+@@ -784,7 +920,7 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+             }
+             int rc = 0;
+             try {
+-                rc = run_round(cs, ts, K, state_tokens, next, count, rs, st, fail_phase);
++                rc = run_round(cs, ts, K, inputs, next, count, rs, st, fail_phase);
+             } catch (...) {
+                 cleanup(K, seqs_per_state, count);
+                 throw;
+@@ -813,16 +949,23 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+     st.prefill_us += dt;
+ 
+     int64_t state_total = 0;
+-    for (const auto & s : state_tokens) {
+-        state_total += (int64_t) s.size();
++    bool    any_image   = false;
++    for (const state_input & in : inputs) {
++        state_total += in.text_tokens;
++        any_image = any_image || in.images > 0;
+     }
+     const int64_t n_states = (int64_t) states.size();
+ 
+     common_json results = common_json::array();
+     for (size_t i = 0; i < states.size(); ++i) {
+         common_json u = common_json::object();
+-        u["state_tokens"]  = (int64_t) state_tokens[i].size();
++        u["state_tokens"]  = inputs[i].text_tokens;
+         u["scored_tokens"] = K * counts.rows;
++        if (inputs[i].images > 0) {   // spec 3.3
++            u["images"]          = (int64_t) inputs[i].images;
++            u["image_cells"]     = inputs[i].image_cells;
++            u["image_positions"] = (int64_t) inputs[i].image_positions;
++        }
+         common_json a = common_json::object();
+         for (size_t f = 0; f < cs.fields.size(); ++f) {
+             a[cs.fields[f].name] = answer_json(cs.fields[f], rs.answers[i][f]);
+@@ -848,6 +991,10 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+     timings["rounds"]     = st.rounds;
+     timings["decodes"]    = st.decodes;
+     timings["retries"]    = st.retries;
++    if (any_image) {   // spec 3.3: both are parts of prefill_ms
++        timings["image_encode_ms"] = st.image_encode_us / 1000.0;
++        timings["image_decode_ms"] = st.image_decode_us / 1000.0;
++    }
+ 
+     common_json quote_split = common_json::array();
+     for (size_t f = 0; f < cs.fields.size(); ++f) {
+@@ -897,7 +1044,7 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+         common_json per_state = common_json::array();
+         for (size_t i = 0; i < states.size(); ++i) {
+             common_json s = common_json::object();
+-            s["state"]    = token_array(state_tokens[i]);
++            s["state"]    = token_array(inputs[i].rest);
+             s["tail"]     = token_array(ps[0].tail_tokens);
+             s["branches"] = dump_branches(cs, ts, rs, K, i);
+             per_state.push_back(s);
+diff --git a/tools/decide/decide-engine.h b/tools/decide/decide-engine.h
+index 7175069ba..d462b5ff8 100644
+--- a/tools/decide/decide-engine.h
++++ b/tools/decide/decide-engine.h
+@@ -9,6 +9,7 @@
+ #include "mtmd.h"
+ #include <cstdint>
+ #include <functional>
++#include <memory>
+ #include <string>
+ #include <utility>
+ #include <vector>
+@@ -22,6 +23,9 @@ struct engine_config {
+     int                       prefix_cache = 8;     // spec 6.2: LRU entries of host prefix snapshots (0 = off)
+     double                    temperature  = 1.0;   // spec 8: default when a request has no options.temperature
+     mtmd_context *            mctx         = nullptr;   // spec 4.1: the projector (--mmproj), null without one; used only for image parts
++    // spec 5.3: the cells server slots hold (the server: the sum of slot.prompt.n_tokens(), media included); empty (the CLI):
++    // seq_pos_max + 1 of every slot_seqs sequence, as before
++    std::function<int64_t()>  held_cells;
+ };
+ 
+ // spec 4.1: the vision status of a projector context: no_projector without one, then mtmd_support_vision, then the gate
+@@ -122,6 +126,8 @@ private:
+         int64_t cached_tokens = 0;   // prefix tokens resident or restored
+         int     hits          = 0;   // prefixes restored from the cache
+         int     misses        = 0;   // prefixes built while the cache is on
++        int64_t image_encode_us = 0;   // spec 3.3: projector encodes (part of prefill_us)
++        int64_t image_decode_us = 0;   // spec 3.3: LLM decodes of image chunks (part of prefill_us)
+     };
+     // spec 6.2: one host snapshot of a prefix slot
+     struct cache_entry {
+@@ -141,6 +147,31 @@ private:
+         std::vector<std::vector<node_scores>> scores;           // tree mode, per variant
+         std::vector<std::vector<node_logp>>   rows;             // full-path mode, per variant
+     };
++    // spec 5.1: one image part, decoded, wrapped and tokenised; its chunks live until the request ends
++    struct chunks_free {
++        void operator()(mtmd_input_chunks * c) const { mtmd_input_chunks_free(c); }
++    };
++    struct image_input {
++        std::unique_ptr<mtmd_input_chunks, chunks_free> chunks;
++        int64_t     n_tokens = 0;   // KV cells
++        llama_pos   n_pos    = 0;   // positions (M-RoPE: far fewer than cells)
++        std::string sha256;         // of the image bytes (the dump)
++    };
++    // spec 5.2 step 1: a text part (image < 0) or an image (an index into request_state::images)
++    struct head_part {
++        std::vector<llama_token> tokens;
++        int                      image = -1;
++    };
++    // spec 5.1-5.2: one state, tokenised. head: the parts up to and including the last image, in order (step 1); rest: the text
++    // after the last image, or the whole text of a state without images (step 2, batched with the tail as before)
++    struct state_input {
++        std::vector<head_part>   head;
++        std::vector<llama_token> rest;
++        int64_t                  text_tokens     = 0;   // usage.state_tokens
++        int64_t                  image_cells     = 0;
++        llama_pos                image_positions = 0;
++        int                      images          = 0;
++    };
+     // spec 4.3, 5: the phases of one request and its per-state fields and answers
+     struct request_state {
+         std::vector<std::vector<size_t>>                           phases;      // spec 5.1: field indices per level
+@@ -153,6 +184,7 @@ private:
+         std::vector<std::vector<field_state>>                      fields;      // per state and field
+         std::vector<std::vector<field_answer>>                     answers;     // per state and field (variant mean, then temperature); the lines of dependent fields come from these
+         double                                                     temperature = 1.0;   // spec 8: the request's T
++        std::vector<image_input>                                   images;      // spec 5.1: every image of the request
+     };
+ 
+     rendered render(const compiled_schema * cs, int variant, int variants) const;
+@@ -173,9 +205,17 @@ private:
+     common_json  run_request(const compiled_schema & cs, const trie_set & ts, const std::vector<state_parts> & states, bool dump_tokens);
+     // returns 0, or 1 when a decode found no KV slot (caller cleans up and retries); throws on anything else.
+     // Fills rs.answers[first + c] for every state c of the round from the K catalogue variants. fail_phase: the first decode of that phase returns 1 without decoding (spec 9; -1: none).
+-    int      run_round(const compiled_schema & cs, const trie_set & ts, int K,
+-                       const std::vector<std::vector<llama_token>> & state_tokens, size_t first, size_t count,
++    int      run_round(const compiled_schema & cs, const trie_set & ts, int K, const std::vector<state_input> & inputs, size_t first, size_t count,
+                        request_state & rs, stats & st, int fail_phase);
++    // spec 3.2 pass 3, 5.1: every state's parts tokenised; every image decoded (stb_image), wrapped and tokenised (mtmd) into `images`
++    std::vector<state_input> prepare_inputs(const std::vector<state_parts> & states, std::vector<image_input> & images) const;
++    // spec 5.1: one image part; error{"invalid_states", 400} when stb_image cannot decode it, error{"engine", 500} when mtmd cannot tokenise it
++    image_input tokenize_image(const state_part & p, size_t state, size_t part) const;
++    // spec 5.2 step 1: tokens into `seq` from `pos` (advanced), no logits; returns decode_chunked's rc
++    int      decode_tokens(const std::vector<llama_token> & toks, llama_seq_id seq, llama_pos & pos, stats & st);
++    // spec 5.2 step 1: one image's chunks into `seq` from `pos` (advanced by the helper's position); 0, or 1 when a decode found no
++    // KV slot; error{"engine", 500} when the projector fails or a decode returns another code
++    int      decode_image(const image_input & im, llama_seq_id seq, llama_pos & pos, stats & st);
+     // spec 5.2-5.4: before phase `level`: per state of the round, the lines of the level's fields from the answers, their context tries
+     // (cached per request) and the exact cell check
+     void     set_contexts(const compiled_schema & cs, const trie_set & ts, size_t level, size_t first, size_t count, request_state & rs) const;
+diff --git a/tools/decide/decide-pixels.cpp b/tools/decide/decide-pixels.cpp
+new file mode 100644
+index 000000000..8ea7051fb
+--- /dev/null
++++ b/tools/decide/decide-pixels.cpp
+@@ -0,0 +1,29 @@
++#include "decide-pixels.h"
++
++// libmtmd compiles stb_image with external linkage (tools/mtmd/mtmd-helper.cpp); this copy is static, JPEG and PNG only
++#define STB_IMAGE_STATIC
++#define STB_IMAGE_IMPLEMENTATION
++#define STBI_ONLY_JPEG
++#define STBI_ONLY_PNG
++#define STBI_NO_STDIO
++#include "stb/stb_image.h"
++
++namespace decide {
++
++bool decode_rgb(const std::string & bytes, std::vector<unsigned char> & rgb, uint32_t & nx, uint32_t & ny, std::string & why) {
++    int             x = 0, y = 0, comp = 0;
++    unsigned char * data = stbi_load_from_memory((const stbi_uc *) bytes.data(), (int) bytes.size(), &x, &y, &comp, 3);
++    if (data == nullptr) {
++        // stb_image's unknown-chunk reason starts with the chunk type, an empty string for type 0 (a PNG that ends after IHDR)
++        const char * reason = stbi_failure_reason();
++        why = reason && *reason ? reason : "unknown stb_image error";
++        return false;
++    }
++    nx = (uint32_t) x;
++    ny = (uint32_t) y;
++    rgb.assign(data, data + (size_t) x * (size_t) y * 3);
++    stbi_image_free(data);
++    return true;
++}
++
++} // namespace decide
+diff --git a/tools/decide/decide-pixels.h b/tools/decide/decide-pixels.h
+new file mode 100644
+index 000000000..89ead9b72
+--- /dev/null
++++ b/tools/decide/decide-pixels.h
+@@ -0,0 +1,13 @@
++#pragma once
++#include <cstdint>
++#include <string>
++#include <vector>
++
++namespace decide {
++
++// spec 3.1: JPEG or PNG bytes -> RGB pixels (row-major, 3 bytes per pixel) with the decide library's own static copy of the
++// vendored stb_image (JPEG and PNG only); false and `why` when stb_image cannot decode them. libmtmd's loader (audio, webp
++// and video paths, ffmpeg) is never used.
++bool decode_rgb(const std::string & bytes, std::vector<unsigned char> & rgb, uint32_t & nx, uint32_t & ny, std::string & why);
++
++} // namespace decide
+diff --git a/tools/server/server-context.cpp b/tools/server/server-context.cpp
+index 968be527f..66a3bd329 100644
+--- a/tools/server/server-context.cpp
++++ b/tools/server/server-context.cpp
+@@ -1430,6 +1430,15 @@ private:
+         cfg.seq_base     = (llama_seq_id) params_base.n_parallel;
+         cfg.prefix_cache = params_base.decide_prefix_cache;
+         cfg.temperature  = params_base.decide_temperature;
++        cfg.mctx         = mctx;   // spec 4.1: null without --mmproj
++        // spec 5.3: the slots' true cells, media included (seq_pos_max + 1 counts an image's positions, not its cells)
++        cfg.held_cells   = [this]() {
++            int64_t n = 0;
++            for (const server_slot & slot : slots) {
++                n += (int64_t) slot.prompt.n_tokens();
++            }
++            return n;
++        };
+         for (int i = 0; i < params_base.n_parallel; i++) {
+             cfg.slot_seqs.push_back((llama_seq_id) i);
+         }
+-- 
+2.55.0
+

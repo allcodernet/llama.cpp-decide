@@ -1,0 +1,77 @@
+{
+  "note": "Spread between the default run (expert matmuls of >= 32-token batches offloaded to the GPU, ggml-cuda op offload) and the GGML_OP_OFFLOAD_MIN_BATCH=1000000 run (all expert matmuls on the CPU), over the same 20 tickets x 3 fields. 'engine' compares the two llama-decide dumps, 'reference' the two /completion replays. Per field: median abs diff, max abs diff, argmax agreement. Inputs: results-engine/reference-<preset>.json and results-engine/integrity/reference-diag-cpuexperts-<preset>.json (detail records).",
+  "models": {
+    "gemma-4-26b-a4b": {
+      "engine": {
+        "queue": {
+          "median_abs_diff": 7.126173543154783e-05,
+          "max_abs_diff": 0.036978047886006005,
+          "argmax_agreement": 1
+        },
+        "urgency": {
+          "median_abs_diff": 0.001077638124281795,
+          "max_abs_diff": 0.08810861091966618,
+          "argmax_agreement": 1
+        },
+        "angry": {
+          "median_abs_diff": 0.003483038628614321,
+          "max_abs_diff": 0.1762217958435168,
+          "argmax_agreement": 1
+        }
+      },
+      "reference": {
+        "queue": {
+          "median_abs_diff": 8.96136103645024e-05,
+          "max_abs_diff": 0.043099406570817345,
+          "argmax_agreement": 1
+        },
+        "urgency": {
+          "median_abs_diff": 0.0010742867700957257,
+          "max_abs_diff": 0.05360050959550963,
+          "argmax_agreement": 1
+        },
+        "angry": {
+          "median_abs_diff": 0.0032381988954575495,
+          "max_abs_diff": 0.051127148462618455,
+          "argmax_agreement": 1
+        }
+      }
+    },
+    "qwen3.5-35b-a3b": {
+      "engine": {
+        "queue": {
+          "median_abs_diff": 0.00024870270151922114,
+          "max_abs_diff": 0.09526493984321505,
+          "argmax_agreement": 1
+        },
+        "urgency": {
+          "median_abs_diff": 0.00752620974026106,
+          "max_abs_diff": 0.20287307529696746,
+          "argmax_agreement": 0.85
+        },
+        "angry": {
+          "median_abs_diff": 0.0022561482437238115,
+          "max_abs_diff": 0.08712128020024573,
+          "argmax_agreement": 1
+        }
+      },
+      "reference": {
+        "queue": {
+          "median_abs_diff": 0.0002426537997177275,
+          "max_abs_diff": 0.1697742897165503,
+          "argmax_agreement": 1
+        },
+        "urgency": {
+          "median_abs_diff": 0.006323189571262282,
+          "max_abs_diff": 0.16732523653592568,
+          "argmax_agreement": 0.95
+        },
+        "angry": {
+          "median_abs_diff": 0.0030040304152390666,
+          "max_abs_diff": 0.06005777528004008,
+          "argmax_agreement": 1
+        }
+      }
+    }
+  }
+}

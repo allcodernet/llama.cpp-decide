@@ -1,0 +1,27 @@
+{
+  "req": "results-engine/sp3/checks/task-6/requests-qs-fp-b5-qwen2.5-0.5b.jsonl",
+  "resp": "results-engine/sp3/checks/task-6/qs-fp-b5-qwen2.5-0.5b.jsonl",
+  "entries_checked": 160,
+  "lines_tokens_kept_as_prefix": {
+    "urgency: '  \"queue\": \"sales\",\\n'": [
+      true
+    ],
+    "tag: '  \"queue\": \"sales\",\\n'": [
+      true
+    ],
+    "angry: '  \"queue\": \"sales\",\\n  \"tag\": \"<b\",\\n'": [
+      true
+    ],
+    "urgency: '  \"queue\": \"technical\",\\n'": [
+      true
+    ],
+    "tag: '  \"queue\": \"technical\",\\n'": [
+      true
+    ],
+    "angry: '  \"queue\": \"technical\",\\n  \"tag\": \"<b\",\\n'": [
+      true
+    ]
+  },
+  "problems": [],
+  "pass": true
+}

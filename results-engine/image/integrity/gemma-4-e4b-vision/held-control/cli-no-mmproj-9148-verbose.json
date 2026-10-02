@@ -1,0 +1,60 @@
+{
+ "command": [
+  "/home/marduk/llama.cpp-decision/engine/build/bin/llama-decide",
+  "-m",
+  "./models/gemma-4-E4B-it-Q4_0.gguf",
+  "--decide-seqs",
+  "16",
+  "-c",
+  "16384",
+  "-ngl",
+  "99",
+  "-fa",
+  "on",
+  "-ctk",
+  "q8_0",
+  "-ctv",
+  "q8_0"
+ ],
+ "words": 9148,
+ "returncode": 0,
+ "usage": {
+  "prompt_tokens": 9212,
+  "cached_tokens": 0,
+  "state_tokens": 9148,
+  "scored_tokens": 1
+ },
+ "state_usage": [
+  {
+   "state_tokens": 9148,
+   "scored_tokens": 1
+  }
+ ],
+ "error": null,
+ "kv_lines": [
+  "0.00.677.561 I print_info: n_swa                 = 512",
+  "0.00.685.061 I llama_context: n_seq_max             = 17",
+  "0.00.685.061 I llama_context: n_ctx                 = 16384",
+  "0.00.685.062 I llama_context: n_ubatch              = 512",
+  "0.00.685.063 I llama_context: kv_unified            = true",
+  "0.00.696.667 I llama_kv_cache_iswa: creating non-SWA KV cache, size = 16384 cells",
+  "0.00.696.804 I llama_kv_cache: size =  136.00 MiB ( 16384 cells,   4 layers, 17/1 seqs), K (q8_0):   68.00 MiB, V (q8_0):   68.00 MiB",
+  "0.00.696.915 I llama_kv_cache_iswa: creating     SWA KV cache, size = 9216 cells",
+  "0.00.697.003 I llama_kv_cache: size =  191.25 MiB (  9216 cells,  20 layers, 17/1 seqs), K (q8_0):   95.62 MiB, V (q8_0):   95.62 MiB",
+  "0.01.301.195 I print_info: n_swa                 = 512",
+  "0.01.821.075 I llama_context: n_seq_max             = 17",
+  "0.01.821.076 I llama_context: n_ctx                 = 16384",
+  "0.01.821.076 I llama_context: n_ubatch              = 512",
+  "0.01.821.077 I llama_context: kv_unified            = true",
+  "0.01.832.701 I llama_kv_cache_iswa: creating non-SWA KV cache, size = 16384 cells",
+  "0.01.833.109 I llama_kv_cache: size =  136.00 MiB ( 16384 cells,   4 layers, 17/1 seqs), K (q8_0):   68.00 MiB, V (q8_0):   68.00 MiB",
+  "0.01.833.213 I llama_kv_cache_iswa: creating     SWA KV cache, size = 9216 cells",
+  "0.01.833.655 I llama_kv_cache: size =  191.25 MiB (  9216 cells,  20 layers, 17/1 seqs), K (q8_0):   95.62 MiB, V (q8_0):   95.62 MiB"
+ ],
+ "summary": {
+  "no_mmproj": true,
+  "words": 9148,
+  "returncode": 0,
+  "error": null
+ }
+}

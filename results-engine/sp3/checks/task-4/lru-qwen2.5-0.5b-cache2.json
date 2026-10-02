@@ -1,0 +1,73 @@
+{
+  "lines": [
+    {
+      "prefix_cache": {
+        "capacity": 2,
+        "entries": 0,
+        "hits": 0,
+        "misses": 1
+      },
+      "cached_tokens": 0,
+      "prompt_tokens": 711,
+      "prefix_ms": 23.735
+    },
+    {
+      "prefix_cache": {
+        "capacity": 2,
+        "entries": 1,
+        "hits": 0,
+        "misses": 1
+      },
+      "cached_tokens": 0,
+      "prompt_tokens": 524,
+      "prefix_ms": 15.438
+    },
+    {
+      "prefix_cache": {
+        "capacity": 2,
+        "entries": 2,
+        "hits": 0,
+        "misses": 1
+      },
+      "cached_tokens": 0,
+      "prompt_tokens": 537,
+      "prefix_ms": 15.311
+    },
+    {
+      "prefix_cache": {
+        "capacity": 2,
+        "entries": 2,
+        "hits": 1,
+        "misses": 0
+      },
+      "cached_tokens": 248,
+      "prompt_tokens": 276,
+      "prefix_ms": 2.269
+    },
+    {
+      "prefix_cache": {
+        "capacity": 2,
+        "entries": 2,
+        "hits": 0,
+        "misses": 1
+      },
+      "cached_tokens": 0,
+      "prompt_tokens": 711,
+      "prefix_ms": 18.553
+    }
+  ],
+  "repeats": [
+    {
+      "line": 3,
+      "first": 1,
+      "max_abs_diff": 0.0,
+      "argmax_disagreements": 0
+    },
+    {
+      "line": 4,
+      "first": 0,
+      "max_abs_diff": 0.0,
+      "argmax_disagreements": 0
+    }
+  ]
+}

@@ -1,0 +1,90 @@
+{
+ "model": "gemma-3-4b-vision",
+ "build": "old",
+ "chat": {
+  "status": 200,
+  "usage": {
+   "completion_tokens": 1,
+   "prompt_tokens": 274,
+   "total_tokens": 275,
+   "prompt_tokens_details": {
+    "cached_tokens": 0
+   }
+  }
+ },
+ "probe": {
+  "status": 400,
+  "response": {
+   "error": {
+    "message": "state 0 needs 20334 cells (held 274, prefix 49, state 20000, tail 7, branches 4), n_ctx - 16 is 16368",
+    "code": "budget"
+   }
+  }
+ },
+ "budget": {
+  "needs": 20334,
+  "held": 274,
+  "prefix": 49,
+  "state": 20000,
+  "tail": 7,
+  "branches": 4,
+  "limit": 16368
+ },
+ "size": 16034,
+ "sized": {
+  "status": 200,
+  "response": {
+   "object": "decide",
+   "results": [
+    {
+     "answers": {
+      "cat": {
+       "value": true,
+       "p_true": 0.9999957142487674,
+       "confidence": 0.9999957142487674
+      }
+     },
+     "usage": {
+      "state_tokens": 16034,
+      "scored_tokens": 1
+     }
+    }
+   ],
+   "usage": {
+    "prompt_tokens": 16094,
+    "cached_tokens": 0,
+    "state_tokens": 16034,
+    "scored_tokens": 1
+   },
+   "timings": {
+    "prefill_ms": 2474.725,
+    "prefix_ms": 14.375,
+    "scoring_ms": 17.666,
+    "total_ms": 2515.19,
+    "rounds": 1,
+    "decodes": 10,
+    "retries": 0
+   },
+   "engine": {
+    "scoring": "tree",
+    "order_debias": 1,
+    "temperature": 1.0,
+    "phases": 1,
+    "seqs_per_state": 2,
+    "states_per_round": 7,
+    "quote_split_fields": [],
+    "prefix_cache": {
+     "capacity": 8,
+     "entries": 0,
+     "hits": 0,
+     "misses": 1
+    }
+   }
+  }
+ },
+ "checks": {
+  "chat request: 200": true,
+  "probe: 400 budget with the cell counts": true
+ },
+ "pass": true
+}

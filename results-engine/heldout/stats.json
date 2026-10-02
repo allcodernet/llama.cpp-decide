@@ -1,0 +1,192 @@
+{
+  "test_set": "/home/marduk/Projects/temp/jev/experiment/data/triage_train.jsonl",
+  "n_tickets": 320,
+  "batch": 5,
+  "models": {
+    "qwen3.5-9b": {
+      "files": {
+        "default": "decide-qwen3.5-9b-b5.jsonl",
+        "merged": "decide-qwen3.5-9b-b5-merged.jsonl",
+        "framing": "decide-qwen3.5-9b-b5-framing.jsonl",
+        "keywords": "decide-qwen3.5-9b-b5-keywords.jsonl"
+      },
+      "right": {
+        "default": {
+          "queue": 287,
+          "urgency": 257,
+          "angry": 315
+        },
+        "merged": {
+          "queue": 301,
+          "urgency": 243,
+          "angry": 313
+        },
+        "framing": {
+          "queue": 292,
+          "urgency": 254,
+          "angry": 314
+        },
+        "keywords": {
+          "queue": 303,
+          "urgency": 251,
+          "angry": 315
+        }
+      },
+      "accuracy": {
+        "default": {
+          "queue": 0.896875,
+          "urgency": 0.803125,
+          "angry": 0.984375
+        },
+        "merged": {
+          "queue": 0.940625,
+          "urgency": 0.759375,
+          "angry": 0.978125
+        },
+        "framing": {
+          "queue": 0.9125,
+          "urgency": 0.79375,
+          "angry": 0.98125
+        },
+        "keywords": {
+          "queue": 0.946875,
+          "urgency": 0.784375,
+          "angry": 0.984375
+        }
+      },
+      "tie_break": {
+        "default": 0.89375,
+        "merged": 0.86875,
+        "framing": 0.8875,
+        "keywords": 0.884375
+      },
+      "winner": "keywords",
+      "tied": [
+        "keywords"
+      ],
+      "winner_vs_default_queue": {
+        "variant_only_right": 16,
+        "default_only_right": 0,
+        "discordant": 16,
+        "p": 3.0517578125e-05
+      },
+      "sign_tests": {
+        "keywords": {
+          "queue": {
+            "variant_only_right": 16,
+            "default_only_right": 0,
+            "discordant": 16,
+            "p": 3.0517578125e-05
+          },
+          "urgency": {
+            "variant_only_right": 12,
+            "default_only_right": 18,
+            "discordant": 30,
+            "p": 0.361594608053565
+          },
+          "angry": {
+            "variant_only_right": 1,
+            "default_only_right": 1,
+            "discordant": 2,
+            "p": 1.0
+          }
+        }
+      }
+    },
+    "gemma-4-e4b": {
+      "files": {
+        "default": "decide-gemma-4-e4b-b5.jsonl",
+        "merged": "decide-gemma-4-e4b-b5-merged.jsonl",
+        "framing": "decide-gemma-4-e4b-b5-framing.jsonl",
+        "keywords": "decide-gemma-4-e4b-b5-keywords.jsonl"
+      },
+      "right": {
+        "default": {
+          "queue": 286,
+          "urgency": 270,
+          "angry": 312
+        },
+        "merged": {
+          "queue": 290,
+          "urgency": 274,
+          "angry": 312
+        },
+        "framing": {
+          "queue": 294,
+          "urgency": 257,
+          "angry": 309
+        },
+        "keywords": {
+          "queue": 302,
+          "urgency": 270,
+          "angry": 312
+        }
+      },
+      "accuracy": {
+        "default": {
+          "queue": 0.89375,
+          "urgency": 0.84375,
+          "angry": 0.975
+        },
+        "merged": {
+          "queue": 0.90625,
+          "urgency": 0.85625,
+          "angry": 0.975
+        },
+        "framing": {
+          "queue": 0.91875,
+          "urgency": 0.803125,
+          "angry": 0.965625
+        },
+        "keywords": {
+          "queue": 0.94375,
+          "urgency": 0.84375,
+          "angry": 0.975
+        }
+      },
+      "tie_break": {
+        "default": 0.909375,
+        "merged": 0.915625,
+        "framing": 0.884375,
+        "keywords": 0.909375
+      },
+      "winner": "keywords",
+      "tied": [
+        "keywords"
+      ],
+      "winner_vs_default_queue": {
+        "variant_only_right": 17,
+        "default_only_right": 1,
+        "discordant": 18,
+        "p": 0.00014495849609375
+      },
+      "sign_tests": {
+        "keywords": {
+          "queue": {
+            "variant_only_right": 17,
+            "default_only_right": 1,
+            "discordant": 18,
+            "p": 0.00014495849609375
+          },
+          "urgency": {
+            "variant_only_right": 16,
+            "default_only_right": 16,
+            "discordant": 32,
+            "p": 1.0
+          },
+          "angry": {
+            "variant_only_right": 2,
+            "default_only_right": 2,
+            "discordant": 4,
+            "p": 1.0
+          }
+        }
+      }
+    }
+  },
+  "decision": {
+    "change_default": true,
+    "default": "keywords",
+    "reason": "`keywords` wins on both models, sign-test p {'qwen3.5-9b': 3.0517578125e-05, 'gemma-4-e4b': 0.00014495849609375}"
+  }
+}

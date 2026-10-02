@@ -1,0 +1,1 @@
+{"instructions": "Answer each question about this support ticket from its text.", "fields": {"angry": {"type": "bool", "description": "The text itself shows anger (hostile wording, shouting, threats, sarcasm aimed at the company)."}}}

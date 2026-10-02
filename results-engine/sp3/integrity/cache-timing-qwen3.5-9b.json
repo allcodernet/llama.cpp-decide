@@ -1,0 +1,711 @@
+{
+  "preset": "qwen3.5-9b",
+  "model": "models/Qwen3.5-9B-Q4_K_M.gguf",
+  "decide_seqs": 21,
+  "alternations": 20,
+  "states": 5,
+  "schemas": {
+    "A": "keywords",
+    "B": "default"
+  },
+  "runs": {
+    "0": {
+      "requests": 40,
+      "hits": 0,
+      "misses": 0,
+      "per_schema": {
+        "A": {
+          "requests": 20,
+          "hits": 0,
+          "misses": 0,
+          "medians": {
+            "prefill_ms": 995.9490000000001,
+            "prefix_ms": 564.7845,
+            "total_ms": 1251.482
+          }
+        },
+        "B": {
+          "requests": 20,
+          "hits": 0,
+          "misses": 0,
+          "medians": {
+            "prefill_ms": 746.1025,
+            "prefix_ms": 315.89300000000003,
+            "total_ms": 1000.6089999999999
+          }
+        }
+      },
+      "per_request": [
+        {
+          "schema": "A",
+          "prefill_ms": 657.813,
+          "prefix_ms": 325.617,
+          "total_ms": 912.645,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 728.989,
+          "prefix_ms": 307.927,
+          "total_ms": 981.127,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 929.053,
+          "prefix_ms": 510.366,
+          "total_ms": 1180.894,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 745.658,
+          "prefix_ms": 315.303,
+          "total_ms": 1000.114,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 995.725,
+          "prefix_ms": 563.885,
+          "total_ms": 1252.2,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 746.912,
+          "prefix_ms": 316.232,
+          "total_ms": 1002.258,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 996.594,
+          "prefix_ms": 564.935,
+          "total_ms": 1252.653,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 746.895,
+          "prefix_ms": 316.257,
+          "total_ms": 1002.29,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 996.754,
+          "prefix_ms": 565.136,
+          "total_ms": 1253.445,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 746.505,
+          "prefix_ms": 315.748,
+          "total_ms": 1002.179,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 997.063,
+          "prefix_ms": 565.776,
+          "total_ms": 1252.992,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 745.802,
+          "prefix_ms": 315.851,
+          "total_ms": 999.69,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 995.798,
+          "prefix_ms": 564.656,
+          "total_ms": 1250.654,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 745.963,
+          "prefix_ms": 315.837,
+          "total_ms": 1000.015,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 995.823,
+          "prefix_ms": 564.656,
+          "total_ms": 1250.814,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 746.032,
+          "prefix_ms": 315.824,
+          "total_ms": 1000.113,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 996.546,
+          "prefix_ms": 564.796,
+          "total_ms": 1252.324,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 746.157,
+          "prefix_ms": 316.026,
+          "total_ms": 1000.745,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 996.287,
+          "prefix_ms": 564.811,
+          "total_ms": 1251.715,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 746.289,
+          "prefix_ms": 315.935,
+          "total_ms": 1000.894,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 996.205,
+          "prefix_ms": 564.927,
+          "total_ms": 1251.75,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 746.019,
+          "prefix_ms": 315.974,
+          "total_ms": 1000.473,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 996.216,
+          "prefix_ms": 564.865,
+          "total_ms": 1251.586,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 746.719,
+          "prefix_ms": 316.497,
+          "total_ms": 1001.035,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 995.909,
+          "prefix_ms": 564.73,
+          "total_ms": 1251.378,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 746.242,
+          "prefix_ms": 315.983,
+          "total_ms": 1000.869,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 996.3,
+          "prefix_ms": 564.834,
+          "total_ms": 1251.96,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 746.732,
+          "prefix_ms": 316.231,
+          "total_ms": 1001.421,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 995.989,
+          "prefix_ms": 564.809,
+          "total_ms": 1251.288,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 746.103,
+          "prefix_ms": 315.752,
+          "total_ms": 999.805,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 995.857,
+          "prefix_ms": 564.77,
+          "total_ms": 1250.956,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 746.102,
+          "prefix_ms": 316.19,
+          "total_ms": 1001.234,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 995.636,
+          "prefix_ms": 564.643,
+          "total_ms": 1250.564,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 745.702,
+          "prefix_ms": 315.813,
+          "total_ms": 999.525,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 995.899,
+          "prefix_ms": 564.704,
+          "total_ms": 1250.779,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 745.94,
+          "prefix_ms": 315.843,
+          "total_ms": 1000.378,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 995.812,
+          "prefix_ms": 564.773,
+          "total_ms": 1250.787,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 746.049,
+          "prefix_ms": 315.879,
+          "total_ms": 1000.324,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 996.242,
+          "prefix_ms": 564.862,
+          "total_ms": 1251.773,
+          "hits": 0,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 746.316,
+          "prefix_ms": 315.907,
+          "total_ms": 1000.801,
+          "hits": 0,
+          "misses": 0
+        }
+      ]
+    },
+    "8": {
+      "requests": 40,
+      "hits": 38,
+      "misses": 2,
+      "per_schema": {
+        "A": {
+          "requests": 20,
+          "hits": 19,
+          "misses": 1,
+          "medians": {
+            "prefill_ms": 438.972,
+            "prefix_ms": 7.7645,
+            "total_ms": 692.315
+          }
+        },
+        "B": {
+          "requests": 20,
+          "hits": 19,
+          "misses": 1,
+          "medians": {
+            "prefill_ms": 437.4375,
+            "prefix_ms": 7.2565,
+            "total_ms": 690.4200000000001
+          }
+        }
+      },
+      "per_request": [
+        {
+          "schema": "A",
+          "prefill_ms": 1003.638,
+          "prefix_ms": 569.972,
+          "total_ms": 1260.268,
+          "hits": 0,
+          "misses": 1
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 766.493,
+          "prefix_ms": 336.323,
+          "total_ms": 1020.39,
+          "hits": 0,
+          "misses": 1
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 457.366,
+          "prefix_ms": 31.784,
+          "total_ms": 710.269,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 436.937,
+          "prefix_ms": 7.203,
+          "total_ms": 689.594,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 438.854,
+          "prefix_ms": 7.705,
+          "total_ms": 691.798,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 437.299,
+          "prefix_ms": 7.368,
+          "total_ms": 689.828,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 438.495,
+          "prefix_ms": 7.683,
+          "total_ms": 691.503,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 437.373,
+          "prefix_ms": 7.234,
+          "total_ms": 690.231,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 438.974,
+          "prefix_ms": 7.741,
+          "total_ms": 692.307,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 437.589,
+          "prefix_ms": 7.284,
+          "total_ms": 690.645,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 439.48,
+          "prefix_ms": 7.732,
+          "total_ms": 692.704,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 437.41,
+          "prefix_ms": 7.277,
+          "total_ms": 690.447,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 438.97,
+          "prefix_ms": 7.727,
+          "total_ms": 692.245,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 437.433,
+          "prefix_ms": 7.257,
+          "total_ms": 690.516,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 438.907,
+          "prefix_ms": 7.771,
+          "total_ms": 692.185,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 437.442,
+          "prefix_ms": 7.252,
+          "total_ms": 690.483,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 439.084,
+          "prefix_ms": 7.78,
+          "total_ms": 692.489,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 437.499,
+          "prefix_ms": 7.272,
+          "total_ms": 690.393,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 438.945,
+          "prefix_ms": 7.729,
+          "total_ms": 692.563,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 437.443,
+          "prefix_ms": 7.256,
+          "total_ms": 690.599,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 439.019,
+          "prefix_ms": 7.789,
+          "total_ms": 692.696,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 437.474,
+          "prefix_ms": 7.277,
+          "total_ms": 690.512,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 439.095,
+          "prefix_ms": 7.76,
+          "total_ms": 692.377,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 437.515,
+          "prefix_ms": 7.286,
+          "total_ms": 690.554,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 439.06,
+          "prefix_ms": 7.781,
+          "total_ms": 692.394,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 437.489,
+          "prefix_ms": 7.276,
+          "total_ms": 690.477,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 438.869,
+          "prefix_ms": 7.765,
+          "total_ms": 692.323,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 437.558,
+          "prefix_ms": 7.297,
+          "total_ms": 690.653,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 438.98,
+          "prefix_ms": 7.729,
+          "total_ms": 692.031,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 436.884,
+          "prefix_ms": 7.144,
+          "total_ms": 689.442,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 438.731,
+          "prefix_ms": 7.777,
+          "total_ms": 691.451,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 437.658,
+          "prefix_ms": 7.216,
+          "total_ms": 690.224,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 438.506,
+          "prefix_ms": 7.764,
+          "total_ms": 691.348,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 437.347,
+          "prefix_ms": 7.24,
+          "total_ms": 690.122,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 439.331,
+          "prefix_ms": 7.946,
+          "total_ms": 692.641,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 436.923,
+          "prefix_ms": 7.207,
+          "total_ms": 689.569,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 438.619,
+          "prefix_ms": 7.854,
+          "total_ms": 691.212,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 437.113,
+          "prefix_ms": 7.236,
+          "total_ms": 689.51,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "A",
+          "prefill_ms": 438.511,
+          "prefix_ms": 7.683,
+          "total_ms": 691.18,
+          "hits": 1,
+          "misses": 0
+        },
+        {
+          "schema": "B",
+          "prefill_ms": 436.847,
+          "prefix_ms": 7.191,
+          "total_ms": 689.379,
+          "hits": 1,
+          "misses": 0
+        }
+      ]
+    }
+  }
+}

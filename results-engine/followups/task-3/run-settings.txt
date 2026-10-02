@@ -1,0 +1,12 @@
+file model_file decide_seqs n_tickets requests engine.temperature preset_settings_has_decide_temperature fork_commit
+baseline/test/runs/decide-gemma-4-e4b-b5-keywords.json ./models/gemma-4-E4B-it-Q4_0.gguf 21 10 2 1.0 False 23957f14c
+baseline/train/runs/decide-gemma-4-e4b-b5-keywords.json ./models/gemma-4-E4B-it-Q4_0.gguf 21 10 2 1.0 False 23957f14c
+eval/test/runs/decide-gemma-4-e4b-b5-keywords-after-urgency=queue-angry=queue.json ./models/gemma-4-E4B-it-Q4_0.gguf 21 10 2 1.0 False 23957f14c
+eval/test/runs/decide-gemma-4-e4b-b5-keywords-after-urgency=queue.json ./models/gemma-4-E4B-it-Q4_0.gguf 21 10 2 1.0 False 23957f14c
+eval/test/runs/decide-gemma-4-e4b-b5-keywords-debias4.json ./models/gemma-4-E4B-it-Q4_0.gguf 21 10 2 1.0 False 23957f14c
+eval/test/runs/decide-gemma-4-e4b-b5-keywords-full_path.json ./models/gemma-4-E4B-it-Q4_0.gguf 21 10 2 1.0 False 23957f14c
+eval/train/runs/decide-gemma-4-e4b-b5-keywords-after-urgency=queue-angry=queue.json ./models/gemma-4-E4B-it-Q4_0.gguf 21 10 2 1.0 False 23957f14c
+eval/train/runs/decide-gemma-4-e4b-b5-keywords-after-urgency=queue.json ./models/gemma-4-E4B-it-Q4_0.gguf 21 10 2 1.0 False 23957f14c
+eval/train/runs/decide-gemma-4-e4b-b5-keywords-debias4.json ./models/gemma-4-E4B-it-Q4_0.gguf 21 10 2 1.0 False 23957f14c
+eval/train/runs/decide-gemma-4-e4b-b5-keywords-full_path.json ./models/gemma-4-E4B-it-Q4_0.gguf 21 10 2 1.0 False 23957f14c
+serving presets from models-engine-3090.ini on :8097

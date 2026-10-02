@@ -1,0 +1,25 @@
+{
+  "preds_dir": "results-engine/sp3/eval/preset/preds",
+  "test_set": "/home/marduk/Projects/temp/jev/experiment/data/triage_test.jsonl",
+  "n_tickets": 80,
+  "runs": {
+    "decide-gemma-4-e4b-b5-keywords-t1.6947": {
+      "queue": 0.9375,
+      "urgency": 0.825,
+      "urgency_near": 0.9875,
+      "angry": 0.95,
+      "nll_queue": 0.18311801156366925,
+      "nll_urgency": 0.46424476140306875,
+      "nll_angry": 0.1322389181607172,
+      "nll_sum": 0.7796016911274553,
+      "ece_queue": 0.026726642836072508,
+      "ece_urgency": 0.03755979031322514,
+      "ece_angry": 0.04138790395813799,
+      "brier_angry": 0.035370689018786344,
+      "p50_ms": 30.77767000067979,
+      "rounds": [
+        1
+      ]
+    }
+  }
+}

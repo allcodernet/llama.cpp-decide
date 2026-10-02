@@ -1,0 +1,38 @@
+{
+ "instructions": "Answer each question about this image.",
+ "fields": {
+  "cat": {
+   "type": "bool",
+   "description": "Is there a cat in this picture?"
+  },
+  "dog": {
+   "type": "bool",
+   "description": "Is there a dog in this picture?"
+  },
+  "animal": {
+   "type": "choice",
+   "description": "Which kind of animal is the main subject of the picture?",
+   "options": {
+    "cat": "a cat of any kind, domestic or wild",
+    "dog": "a dog",
+    "fox": "a fox",
+    "other": "another animal, or a toy or picture of an animal",
+    "none": "no animal at all"
+   }
+  },
+  "indoors": {
+   "type": "bool",
+   "description": "Was the picture taken indoors?"
+  }
+ },
+ "states": [
+  {
+   "image": "/home/marduk/llama.cpp-decision/local/spike-image/cat03.jpg"
+  },
+  {
+   "image": "/home/marduk/llama.cpp-decision/local/spike-image/fox.jpg",
+   "text": "Photo from our archive."
+  },
+  "A photo of a sleeping dog on a sofa."
+ ]
+}

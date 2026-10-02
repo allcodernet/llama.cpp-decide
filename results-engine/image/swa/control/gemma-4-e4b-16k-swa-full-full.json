@@ -1,0 +1,391 @@
+{
+ "model": "gemma-4-e4b-16k-swa-full",
+ "sizes": [
+  4654,
+  4454
+ ],
+ "text_sha256": [
+  "d936aad3b52bf8e943e294d1b4a2bd9c3e350b26d8416729b5566323ad13b175",
+  "58759c281c9d3d82d4f24f119ca3041123dcc6ef9c84169055ebb2cef7d28dc6"
+ ],
+ "info": {
+  "n_ctx": 16384,
+  "decide_seqs": 16,
+  "memory": {
+   "recurrent": false,
+   "swa": true,
+   "swa_cells": 16384
+  }
+ },
+ "repeats": [
+  {
+   "pair": {
+    "status": 200,
+    "timings": {
+     "prefill_ms": 1501.284,
+     "prefix_ms": 72.608,
+     "scoring_ms": 23.157,
+     "total_ms": 1547.729,
+     "rounds": 1,
+     "decodes": 7,
+     "retries": 0
+    },
+    "results": [
+     {
+      "answers": {
+       "animal": {
+        "value": "dog",
+        "probabilities": {
+         "cat": 0.10077815582812011,
+         "dog": 0.6777566139534802,
+         "bird": 0.22146523021839973
+        },
+        "confidence": 0.6777566139534802
+       }
+      },
+      "usage": {
+       "state_tokens": 4654,
+       "scored_tokens": 1
+      }
+     },
+     {
+      "answers": {
+       "animal": {
+        "value": "bird",
+        "probabilities": {
+         "cat": 0.4223981119457234,
+         "dog": 0.002326365503084158,
+         "bird": 0.5752755225511925
+        },
+        "confidence": 0.5752755225511925
+       }
+      },
+      "usage": {
+       "state_tokens": 4454,
+       "scored_tokens": 1
+      }
+     }
+    ]
+   },
+   "alone": [
+    {
+     "status": 200,
+     "results": [
+      {
+       "answers": {
+        "animal": {
+         "value": "dog",
+         "probabilities": {
+          "cat": 0.12573285472300283,
+          "dog": 0.6481441133782341,
+          "bird": 0.22612303189876307
+         },
+         "confidence": 0.6481441133782341
+        }
+       },
+       "usage": {
+        "state_tokens": 4654,
+        "scored_tokens": 1
+       }
+      }
+     ]
+    },
+    {
+     "status": 200,
+     "results": [
+      {
+       "answers": {
+        "animal": {
+         "value": "cat",
+         "probabilities": {
+          "cat": 0.526159929197503,
+          "dog": 0.0006299762967430906,
+          "bird": 0.47321009450575396
+         },
+         "confidence": 0.526159929197503
+        }
+       },
+       "usage": {
+        "state_tokens": 4454,
+        "scored_tokens": 1
+       }
+      }
+     ]
+    }
+   ],
+   "pair_probs": [
+    {
+     "cat": 0.10077815582812011,
+     "dog": 0.6777566139534802,
+     "bird": 0.22146523021839973
+    },
+    {
+     "cat": 0.4223981119457234,
+     "dog": 0.002326365503084158,
+     "bird": 0.5752755225511925
+    }
+   ],
+   "alone_probs": [
+    {
+     "cat": 0.12573285472300283,
+     "dog": 0.6481441133782341,
+     "bird": 0.22612303189876307
+    },
+    {
+     "cat": 0.526159929197503,
+     "dog": 0.0006299762967430906,
+     "bird": 0.47321009450575396
+    }
+   ],
+   "pair_vs_alone": {
+    "n_tickets": 2,
+    "max_abs_diff": 0.10376181725177958,
+    "fields": {
+     "animal": {
+      "median_abs_diff": 0.027283599735064418,
+      "max_abs_diff": 0.10376181725177958,
+      "argmax_agreement": 0.5,
+      "argmax_disagreements": 1,
+      "disagreements_over_margin": 0,
+      "pass": false
+     }
+    },
+    "pass": false
+   },
+   "per_state": [
+    {
+     "n_tickets": 1,
+     "max_abs_diff": 0.029612500575246115,
+     "fields": {
+      "animal": {
+       "median_abs_diff": 0.02495469889488272,
+       "max_abs_diff": 0.029612500575246115,
+       "argmax_agreement": 1,
+       "argmax_disagreements": 0,
+       "disagreements_over_margin": 0,
+       "pass": false
+      }
+     },
+     "pass": false
+    },
+    {
+     "n_tickets": 1,
+     "max_abs_diff": 0.10376181725177958,
+     "fields": {
+      "animal": {
+       "median_abs_diff": 0.10206542804543856,
+       "max_abs_diff": 0.10376181725177958,
+       "argmax_agreement": 0,
+       "argmax_disagreements": 1,
+       "disagreements_over_margin": 0,
+       "pass": false
+      }
+     },
+     "pass": false
+    }
+   ]
+  },
+  {
+   "pair": {
+    "status": 200,
+    "timings": {
+     "prefill_ms": 1434.692,
+     "prefix_ms": 0.698,
+     "scoring_ms": 18.679,
+     "total_ms": 1474.842,
+     "rounds": 1,
+     "decodes": 6,
+     "retries": 0
+    },
+    "results": [
+     {
+      "answers": {
+       "animal": {
+        "value": "dog",
+        "probabilities": {
+         "cat": 0.10077815582812011,
+         "dog": 0.6777566139534802,
+         "bird": 0.22146523021839973
+        },
+        "confidence": 0.6777566139534802
+       }
+      },
+      "usage": {
+       "state_tokens": 4654,
+       "scored_tokens": 1
+      }
+     },
+     {
+      "answers": {
+       "animal": {
+        "value": "bird",
+        "probabilities": {
+         "cat": 0.4223981119457234,
+         "dog": 0.002326365503084158,
+         "bird": 0.5752755225511925
+        },
+        "confidence": 0.5752755225511925
+       }
+      },
+      "usage": {
+       "state_tokens": 4454,
+       "scored_tokens": 1
+      }
+     }
+    ]
+   },
+   "alone": [
+    {
+     "status": 200,
+     "results": [
+      {
+       "answers": {
+        "animal": {
+         "value": "dog",
+         "probabilities": {
+          "cat": 0.12573285472300283,
+          "dog": 0.6481441133782341,
+          "bird": 0.22612303189876307
+         },
+         "confidence": 0.6481441133782341
+        }
+       },
+       "usage": {
+        "state_tokens": 4654,
+        "scored_tokens": 1
+       }
+      }
+     ]
+    },
+    {
+     "status": 200,
+     "results": [
+      {
+       "answers": {
+        "animal": {
+         "value": "cat",
+         "probabilities": {
+          "cat": 0.526159929197503,
+          "dog": 0.0006299762967430906,
+          "bird": 0.47321009450575396
+         },
+         "confidence": 0.526159929197503
+        }
+       },
+       "usage": {
+        "state_tokens": 4454,
+        "scored_tokens": 1
+       }
+      }
+     ]
+    }
+   ],
+   "pair_probs": [
+    {
+     "cat": 0.10077815582812011,
+     "dog": 0.6777566139534802,
+     "bird": 0.22146523021839973
+    },
+    {
+     "cat": 0.4223981119457234,
+     "dog": 0.002326365503084158,
+     "bird": 0.5752755225511925
+    }
+   ],
+   "alone_probs": [
+    {
+     "cat": 0.12573285472300283,
+     "dog": 0.6481441133782341,
+     "bird": 0.22612303189876307
+    },
+    {
+     "cat": 0.526159929197503,
+     "dog": 0.0006299762967430906,
+     "bird": 0.47321009450575396
+    }
+   ],
+   "pair_vs_alone": {
+    "n_tickets": 2,
+    "max_abs_diff": 0.10376181725177958,
+    "fields": {
+     "animal": {
+      "median_abs_diff": 0.027283599735064418,
+      "max_abs_diff": 0.10376181725177958,
+      "argmax_agreement": 0.5,
+      "argmax_disagreements": 1,
+      "disagreements_over_margin": 0,
+      "pass": false
+     }
+    },
+    "pass": false
+   },
+   "per_state": [
+    {
+     "n_tickets": 1,
+     "max_abs_diff": 0.029612500575246115,
+     "fields": {
+      "animal": {
+       "median_abs_diff": 0.02495469889488272,
+       "max_abs_diff": 0.029612500575246115,
+       "argmax_agreement": 1,
+       "argmax_disagreements": 0,
+       "disagreements_over_margin": 0,
+       "pass": false
+      }
+     },
+     "pass": false
+    },
+    {
+     "n_tickets": 1,
+     "max_abs_diff": 0.10376181725177958,
+     "fields": {
+      "animal": {
+       "median_abs_diff": 0.10206542804543856,
+       "max_abs_diff": 0.10376181725177958,
+       "argmax_agreement": 0,
+       "argmax_disagreements": 1,
+       "disagreements_over_margin": 0,
+       "pass": false
+      }
+     },
+     "pass": false
+    }
+   ]
+  }
+ ],
+ "repeat_vs_0": [
+  {
+   "pair": {
+    "n_tickets": 2,
+    "max_abs_diff": 0.0,
+    "fields": {
+     "animal": {
+      "median_abs_diff": 0.0,
+      "max_abs_diff": 0.0,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+     }
+    },
+    "pass": true
+   },
+   "alone": {
+    "n_tickets": 2,
+    "max_abs_diff": 0.0,
+    "fields": {
+     "animal": {
+      "median_abs_diff": 0.0,
+      "max_abs_diff": 0.0,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+     }
+    },
+    "pass": true
+   }
+  }
+ ],
+ "all_200": true
+}

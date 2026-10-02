@@ -1,0 +1,722 @@
+From 1551dccc87a4b5eccc8c12ec9080a5cbb6012114 Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 21:41:41 +0200
+Subject: [PATCH 22/45] decide-trie: full-path plan, vocabulary indexes,
+ context tries
+
+decide-vocab: ends_value is the value-end predicate of spec 4.1;
+build_vocab_index builds END and MERGED over the pieces of every
+non-control token (MERGED[b] holds the tokens whose piece is b + r
+with ends(r)).
+
+build_tries takes a scoring_mode. Full-path mode keeps the joint
+tokenisation and the distinct-path check but skips the sibling check
+and the quote-split fallback (spec 4.2), so "sale"/"sales" builds; it
+lists in field_trie.resplit the options whose tokens before the last
+one change when ",\n" follows (spec 4.8). trie_set records the mode,
+and branches_per_state is B of spec 4.3 (the option count in
+full-path mode). field_trie gains option_nodes (root to leaf).
+
+full_path_plan gives one sequence per option (stem + path) and the
+token indices whose rows are read; each node is read once, in the
+first option whose path holds it. context_trie tokenises lines +
+stem_text + encoded jointly per option, takes the common prefix as the
+stem and requires the lines-free paths (500 engine naming the field
+otherwise); a quote-split trie keeps its rule (stem = lines +
+stem_text + "\""). resplit is the spec 4.8 comparison.
+
+decide-api passes the mode from options.scoring; the full-path guard
+still stops full-path requests before the engine, which stays on tree.
+
+test-decide-trie: ends_value table and resplit cases (no model), END
+and MERGED["\""] (printed), full-path sale/sales, plan coverage,
+context tries for score, bool, choice and quote-split fields over
+three lines texts (one with a token across the lines/key boundary),
+and a printed re-split survey of candidate keys (none re-split on
+Qwen2.5 or Gemma 4).
+---
+ tests/test-decide-trie.cpp    | 258 +++++++++++++++++++++++++++++++++-
+ tools/decide/CMakeLists.txt   |   1 +
+ tools/decide/decide-api.cpp   |   8 +-
+ tools/decide/decide-score.h   |   2 +
+ tools/decide/decide-trie.cpp  | 103 ++++++++++++--
+ tools/decide/decide-trie.h    |  33 ++++-
+ tools/decide/decide-vocab.cpp |  47 +++++++
+ tools/decide/decide-vocab.h   |  20 +++
+ 8 files changed, 448 insertions(+), 24 deletions(-)
+ create mode 100644 tools/decide/decide-vocab.cpp
+ create mode 100644 tools/decide/decide-vocab.h
+
+diff --git a/tests/test-decide-trie.cpp b/tests/test-decide-trie.cpp
+index 5a919f3d0..dcba3e433 100644
+--- a/tests/test-decide-trie.cpp
++++ b/tests/test-decide-trie.cpp
+@@ -1,10 +1,13 @@
+ #include "decide-trie.h"
++#include "decide-vocab.h"
+ #include "common.h"
+ #include "llama.h"
+ 
++#include <algorithm>
+ #include <cstdio>
+ #include <cstdlib>
+ #include <string>
++#include <vector>
+ 
+ static int failures = 0;
+ #define CHECK(cond) do { if (!(cond)) { std::fprintf(stderr, "FAIL %s:%d: %s\n", __FILE__, __LINE__, #cond); failures++; } } while (0)
+@@ -18,9 +21,64 @@ static decide::compiled_schema triage() {
+       }, "states": ["x"]})"));
+ }
+ 
++static bool contains(const std::vector<llama_token> & v, llama_token t) { return std::find(v.begin(), v.end(), t) != v.end(); }
++
++static std::vector<llama_token> concat(std::vector<llama_token> a, const std::vector<llama_token> & b) {
++    a.insert(a.end(), b.begin(), b.end());
++    return a;
++}
++
++// longest common token prefix
++static std::vector<llama_token> common_prefix(const std::vector<std::vector<llama_token>> & v) {
++    std::vector<llama_token> out = v[0];
++    for (const auto & x : v) {
++        size_t k = 0;
++        while (k < out.size() && k < x.size() && out[k] == x[k]) ++k;
++        out.resize(k);
++    }
++    return out;
++}
++
++static std::string text_of(const llama_vocab * vocab, const std::vector<llama_token> & toks) {
++    std::string out;
++    for (llama_token t : toks) out += common_token_to_piece(vocab, t, false);
++    return out;
++}
++
++// "id:[piece]" list with escaped whitespace, for the informational printouts
++static std::string show(const llama_vocab * vocab, const std::vector<llama_token> & toks) {
++    std::string out;
++    for (llama_token t : toks) {
++        std::string e;
++        for (char ch : common_token_to_piece(vocab, t, false)) {
++            if (ch == '\n') e += "\\n"; else if (ch == '\r') e += "\\r"; else if (ch == '\t') e += "\\t"; else e += ch;
++        }
++        out += (out.empty() ? "" : " ") + std::to_string(t) + ":[" + e + "]";
++    }
++    return out;
++}
++
+ int main() {
++    // spec 4.1 ends(): a non-empty string of whitespace only, or its first non-whitespace character is ',' or '}' (no model needed)
++    CHECK(decide::ends_value(","));
++    CHECK(decide::ends_value("}"));
++    CHECK(decide::ends_value(" ,"));
++    CHECK(decide::ends_value("\n"));
++    CHECK(decide::ends_value("\r\n"));
++    CHECK(decide::ends_value("  "));
++    CHECK(!decide::ends_value("x"));
++    CHECK(!decide::ends_value(" x"));
++    CHECK(!decide::ends_value(""));
++    // spec 4.8 re-split helper on synthetic vectors: in_context = tokens after the stem of stem + encoded + ",\n" tokenised jointly
++    CHECK(!decide::resplit({10, 20, 30}, {10, 20, 31}));      // only t_k merged with the terminator (MERGED covers it)
++    CHECK(!decide::resplit({10, 20, 30}, {10, 20, 30, 40}));  // terminator on its own
++    CHECK(!decide::resplit({10}, {11}));                      // one-token path: nothing before t_k
++    CHECK(decide::resplit({10, 20, 30}, {10, 25, 31}));       // t_2 re-split: the merge reaches back past t_k
++    CHECK(decide::resplit({10, 20, 30}, {11, 20, 30, 40}));   // t_1 differs
++    CHECK(decide::resplit({10, 20, 30}, {10}));               // shorter than t_1..t_{k-1}
++
+     const char * path = std::getenv("DECIDE_TEST_MODEL");
+-    if (!path || !std::fopen(path, "rb")) { std::printf("test-decide-trie: SKIP (DECIDE_TEST_MODEL unset or missing)\n"); return 0; }
++    if (!path || !std::fopen(path, "rb")) { std::printf("test-decide-trie: SKIP (DECIDE_TEST_MODEL unset or missing)\n"); return failures ? 1 : 0; }
+     llama_backend_init();
+     auto mparams = llama_model_default_params(); mparams.vocab_only = true;
+     llama_model * model = llama_model_load_from_file(path, mparams);
+@@ -29,7 +87,8 @@ int main() {
+ 
+     // triage: one branch per field, paths differ, options_through consistent
+     auto cs = triage();
+-    auto ts = decide::build_tries(cs, vocab);
++    auto ts = decide::build_tries(cs, vocab, decide::scoring_mode::TREE);
++    CHECK(ts.mode == decide::scoring_mode::TREE);
+     CHECK(ts.fields.size() == 3);
+     for (size_t i = 0; i < 3; ++i) {
+         const auto & t = ts.fields[i];
+@@ -82,6 +141,7 @@ int main() {
+             decide::check_join(vocab, prefix, "Hi", decide::tokenize_plain(vocab, "Hi"), "test", "prefix/state");
+             decide::check_join(vocab, "Hi", tail, decide::tokenize_template(vocab, tail), "test", "state/tail");
+             decide::check_trie_joins(cs, ts, vocab, tail, "test");
++            decide::check_trie_joins(cs, decide::build_tries(cs, vocab, decide::scoring_mode::FULL_PATH), vocab, tail, "test");
+         } catch (const decide::error & e) {
+             std::fprintf(stderr, "join check: %s\n", e.what());
+             ok = false;
+@@ -127,10 +187,23 @@ int main() {
+         // (e.g. "cat"/"cats", "tech"/"technical") and record the pieces in the report.
+         auto bad = decide::compile_request(common_json::parse(R"({"fields": {"q": {"type": "choice", "description": "d", "options": ["sale", "sales"]}}, "states": ["x"]})"));
+         bool threw = false; std::string msg; std::string field;
+-        try { decide::build_tries(bad, vocab); } catch (const decide::error & e) { threw = e.code == "invalid_schema"; msg = e.what(); field = e.field; }
++        try { decide::build_tries(bad, vocab, decide::scoring_mode::TREE); } catch (const decide::error & e) { threw = e.code == "invalid_schema"; msg = e.what(); field = e.field; }
+         CHECK(threw);
+         CHECK(msg.find("\"sale\"") != std::string::npos && msg.find("\"sales\"") != std::string::npos);
+         CHECK(field == "q");
++        // spec 4.2: full-path mode has no sibling check, so the same field builds (joint tokenisation, no fallback)
++        threw = false;
++        decide::trie_set fp;
++        try { fp = decide::build_tries(bad, vocab, decide::scoring_mode::FULL_PATH); } catch (const decide::error & e) { threw = true; std::fprintf(stderr, "full-path sale/sales: %s\n", e.what()); }
++        CHECK(!threw && fp.fields.size() == 1 && fp.fields[0].paths.size() == 2 && !fp.fields[0].quote_split);
++        CHECK(fp.branches_per_state == 2);
++        if (!threw) std::printf("full-path sale/sales paths: %s | %s\n", show(vocab, fp.fields[0].paths[0]).c_str(), show(vocab, fp.fields[0].paths[1]).c_str());
++        // the distinct-path check stays in full-path mode (encodings "1" and "12": one path is a token prefix of the other)
++        decide::compiled_schema pre = bad;
++        pre.fields[0].options = {{"x", "", "1"}, {"y", "", "12"}};
++        threw = false;
++        try { decide::build_tries(pre, vocab, decide::scoring_mode::FULL_PATH); } catch (const decide::error & e) { threw = e.code == "invalid_schema" && std::string(e.what()).find("prefix") != std::string::npos; }
++        CHECK(threw);
+     }
+     // 255-option choice builds
+     {
+@@ -138,9 +211,186 @@ int main() {
+         for (int i = 0; i < 255; ++i) { opts += (i ? ",\"opt" : "\"opt") + std::to_string(i) + "\""; }
+         opts += "]";
+         auto big = decide::compile_request(common_json::parse(R"({"fields": {"c": {"type": "choice", "description": "d", "options": )" + opts + R"(}}, "states": ["x"]})"));
+-        auto tb = decide::build_tries(big, vocab);
++        auto tb = decide::build_tries(big, vocab, decide::scoring_mode::TREE);
+         CHECK(tb.fields[0].paths.size() == 255 && !tb.fields[0].branch_nodes.empty());
++        auto tf = decide::build_tries(big, vocab, decide::scoring_mode::FULL_PATH);
++        CHECK(tf.branches_per_state == 255 && decide::full_path_plan(tf.fields[0]).size() == 255);
+     }
++
++    // spec 4.1 vocabulary indexes: END holds the tokens of ",", "}" and "\n"; MERGED["\""] holds "\"," when the vocabulary has it
++    const decide::vocab_index vi = decide::build_vocab_index(vocab);
++    {
++        for (const char * s : {",", "}", "\n"}) {
++            const auto toks = decide::tokenize_plain(vocab, s);
++            CHECK(toks.size() == 1 && contains(vi.end_tokens, toks[0]));
++        }
++        const auto it = vi.merged.find("\"");
++        const std::vector<llama_token> quote = it == vi.merged.end() ? std::vector<llama_token>() : it->second;
++        int bad = 0;   // control tokens, or pieces that do not match the definition
++        for (llama_token u : vi.end_tokens) {
++            bad += llama_vocab_is_control(vocab, u) || !decide::ends_value(common_token_to_piece(vocab, u, false));
++        }
++        for (llama_token u : quote) {
++            const std::string s = common_token_to_piece(vocab, u, false);
++            bad += llama_vocab_is_control(vocab, u) || s.size() < 2 || s[0] != '"' || !decide::ends_value(s.substr(1));
++        }
++        CHECK(bad == 0);
++        const auto qc = decide::tokenize_plain(vocab, "\",");
++        if (qc.size() == 1) {
++            CHECK(!quote.empty() && contains(quote, qc[0]));
++        }
++        std::printf("END: %zu tokens, MERGED: %zu bases; the \",\" token: %s\n", vi.end_tokens.size(), vi.merged.size(), qc.size() == 1 ? show(vocab, qc).c_str() : "none");
++        std::printf("MERGED[\"\\\"\"] (%zu): %s\n", quote.size(), show(vocab, quote).c_str());
++    }
++
++    // spec 4.2/4.3 full-path tries: no quote-split fallback; one branch sequence per option; every node read exactly once
++    {
++        auto fcs = decide::compile_request(common_json::parse(R"json({
++          "fields": {
++            "queue":   {"type": "choice", "description": "Which team?", "options": {"billing": "b", "technical": "t", "sales": "s", "feedback": "f"}},
++            "urgency": {"type": "score", "description": "How urgent?", "levels": ["a", "b", "c", "d"]},
++            "angry":   {"type": "bool", "description": "Angry?"},
++            "region":  {"type": "choice", "description": "Where?", "options": ["billing", "billing (EU)", "billing (US)", "tech"]},
++            "q":       {"type": "choice", "description": "d", "options": ["a", "<b"]}
++          }, "states": ["x"]})json"));
++        const auto fts = decide::build_tries(fcs, vocab, decide::scoring_mode::FULL_PATH);
++        CHECK(fts.mode == decide::scoring_mode::FULL_PATH && fts.fields.size() == 5);
++        size_t n_options = 0;
++        for (size_t fi = 0; fi < fts.fields.size(); ++fi) {
++            const auto & f = fcs.fields[fi];
++            const auto & t = fts.fields[fi];
++            n_options += f.options.size();
++            CHECK(!t.quote_split);
++            CHECK(t.option_nodes.size() == f.options.size() && t.paths.size() == f.options.size());
++            for (size_t o = 0; o < f.options.size() && o < t.option_nodes.size(); ++o) {
++                // stem + path is the joint tokenisation; option_nodes runs from the root to the option's own leaf
++                const auto joint = concat(t.stem, t.paths[o]);
++                CHECK(joint == decide::tokenize_plain(vocab, decide::branch_text(f, f.options[o])));
++                const auto & on = t.option_nodes[o];
++                bool ok = on.size() == t.paths[o].size() + 1 && on[0] == 0;
++                for (size_t d = 1; ok && d < on.size(); ++d) ok = t.nodes[on[d]].tok == t.paths[o][d - 1] && contains(t.nodes[on[d - 1]].children, on[d]);
++                CHECK(ok && t.nodes[on.back()].children.empty() && t.nodes[on.back()].options_through == std::vector<int>{(int) o});
++                CHECK(decide::branch_tokens(t, on.back()) == joint);
++            }
++            const auto plan = decide::full_path_plan(t);
++            CHECK(plan.size() == f.options.size());
++            std::vector<int> reads(t.nodes.size(), 0);
++            bool rows_ok = true;
++            for (size_t o = 0; o < plan.size() && rows_ok; ++o) {
++                const auto & s = plan[o];
++                rows_ok = s.option == (int) o && s.tokens == concat(t.stem, t.paths[o]) && !s.row_index.empty() && s.row_index.size() == s.row_node.size();
++                for (size_t r = 0; rows_ok && r < s.row_index.size(); ++r) {
++                    // the row of the node at depth d is read at token stem.size() - 1 + d (the root's row r_0 at the stem's last token)
++                    const int depth = s.row_index[r] - ((int) t.stem.size() - 1);
++                    rows_ok = depth >= 0 && depth < (int) t.option_nodes[o].size() && t.option_nodes[o][depth] == s.row_node[r] &&
++                              (r == 0 || s.row_index[r] > s.row_index[r - 1]);
++                    if (rows_ok) reads[s.row_node[r]]++;
++                }
++            }
++            CHECK(rows_ok);
++            CHECK(std::all_of(reads.begin(), reads.end(), [](int n) { return n == 1; }));
++            CHECK(!plan.empty() && !plan[0].row_node.empty() && plan[0].row_node[0] == 0 && plan[0].row_index[0] == (int) t.stem.size() - 1);
++        }
++        CHECK(fts.branches_per_state == (int) n_options);
++        // without a fallback, the triage fields get the tree-mode tries
++        for (size_t fi = 0; fi < 3; ++fi) CHECK(fts.fields[fi].stem == ts.fields[fi].stem && fts.fields[fi].paths == ts.fields[fi].paths);
++        // region: options 1 and 2 share nodes with option 0, so their sequences skip the rows already read
++        {
++            const auto plan = decide::full_path_plan(fts.fields[3]);
++            CHECK(plan.size() == 4 && plan[1].row_index.size() < fts.fields[3].paths[1].size() + 1 && plan[2].row_index.size() < fts.fields[3].paths[2].size() + 1);
++            for (const auto & s : plan) {
++                std::printf("full-path plan region[%d]: tokens after stem %s, rows at", s.option, show(vocab, fts.fields[3].paths[s.option]).c_str());
++                for (size_t r = 0; r < s.row_index.size(); ++r) std::printf(" %d(node %d)", s.row_index[r], s.row_node[r]);
++                std::printf("\n");
++            }
++        }
++    }
++
++    // spec 5.3 context tries: the lines join the stem, the paths stay the lines-free ones
++    {
++        auto qs = decide::compile_request(common_json::parse(R"({"fields": {"q": {"type": "choice", "description": "d", "options": ["a", "<b"]}}, "states": ["x"]})"));
++        const auto qts = decide::build_tries(qs, vocab, decide::scoring_mode::TREE);
++        CHECK(qts.fields[0].quote_split);   // first children after the stem " \"" and " \"<" conflict; the fallback resolves it
++        struct item { const decide::field * f; const decide::field_trie * t; };
++        const std::vector<item> items = {{&cs.fields[1], &ts.fields[1]}, {&cs.fields[2], &ts.fields[2]}, {&cs.fields[0], &ts.fields[0]}, {&qs.fields[0], &qts.fields[0]}};
++        // the last lines variant ends in a space, so a token spans the lines and the key's indentation
++        int variant = 0;
++        for (const std::string & lines : {std::string("  \"queue\": \"billing\",\n"), std::string("  \"tier\": 3,\n  \"vip\": true,\n"), std::string("  \"queue\": \"billing\",\n ")}) {
++            ++variant;
++            for (const item & it : items) {
++                const decide::field &      f    = *it.f;
++                const decide::field_trie & base = *it.t;
++                decide::field_trie ct;
++                bool threw = false;
++                try { ct = decide::context_trie(base, f, lines, vocab); } catch (const decide::error & e) { threw = true; std::fprintf(stderr, "context trie %s: %s\n", f.name.c_str(), e.what()); }
++                CHECK(!threw);
++                CHECK(ct.paths == base.paths && ct.quote_split == base.quote_split);
++                CHECK(ct.nodes.size() == base.nodes.size() && ct.branch_nodes == base.branch_nodes && ct.option_nodes == base.option_nodes);
++                if (!base.quote_split) {
++                    // stem = common token prefix of lines + stem_text + encoded, and stem + path is each option's joint tokenisation
++                    std::vector<std::vector<llama_token>> joint;
++                    for (const auto & o : f.options) joint.push_back(decide::tokenize_plain(vocab, lines + decide::stem_text(f) + o.encoded));
++                    CHECK(ct.stem == common_prefix(joint));
++                    for (size_t o = 0; o < joint.size() && o < ct.paths.size(); ++o) CHECK(concat(ct.stem, ct.paths[o]) == joint[o]);
++                } else {
++                    CHECK(ct.stem == decide::tokenize_plain(vocab, lines + decide::stem_text(f) + "\""));
++                }
++                // the stem text is the lines + stem text, plus shared value text (" \"") or minus the space a value absorbed (" true")
++                const std::string stem_str = text_of(vocab, ct.stem);
++                const std::string full     = lines + decide::stem_text(f);
++                CHECK(stem_str.compare(0, lines.size(), lines) == 0);
++                CHECK(stem_str.compare(0, full.size(), full) == 0 || full.compare(0, stem_str.size(), stem_str) == 0);
++                const bool split_at_lines = ct.stem == concat(decide::tokenize_plain(vocab, lines), base.stem);
++                std::printf("context trie, lines %d, %-7s (%s): stem = lines tokens + lines-free stem: %s; stem ends %s\n", variant, f.name.c_str(), base.quote_split ? "quote-split" : "joint",
++                            split_at_lines ? "yes" : "no", show(vocab, std::vector<llama_token>(ct.stem.end() - std::min<size_t>(ct.stem.size(), 4), ct.stem.end())).c_str());
++            }
++        }
++        // no lines: the lines-free trie
++        for (const item & it : items) {
++            const auto ct = decide::context_trie(*it.t, *it.f, "", vocab);
++            CHECK(ct.stem == it.t->stem && ct.paths == it.t->paths);
++        }
++        // a path difference is a 500 naming the field
++        {
++            decide::field_trie changed = ts.fields[1];
++            changed.paths[0].push_back(changed.paths[0].back());
++            bool threw = false;
++            try { decide::context_trie(changed, cs.fields[1], "  \"queue\": \"billing\",\n", vocab); } catch (const decide::error & e) {
++                threw = e.code == "engine" && e.http == 500 && std::string(e.what()).find("field \"urgency\"") != std::string::npos;
++            }
++            CHECK(threw);
++        }
++    }
++
++    // spec 4.8 survey (informational): candidate keys whose tokens before the last one change when ",\n" follows
++    {
++        common_json body = common_json::parse(R"({"fields": {"c": {"type": "choice", "description": "d"}}, "states": ["x"]})");
++        body["fields"]["c"]["options"] = common_json::array({"Billing (EU)", "a)", "Other.", "Inc.", "Urgent!", "Now!", "100%", "50%", "Tier 2", "v1.2", "Level 10", "N/A"});
++        const auto kcs = decide::compile_request(body);
++        const auto kts = decide::build_tries(kcs, vocab, decide::scoring_mode::FULL_PATH);
++        const auto & f = kcs.fields[0];
++        const auto & t = kts.fields[0];
++        std::vector<std::string> expect;
++        for (size_t o = 0; o < f.options.size(); ++o) {
++            const auto ctx       = decide::tokenize_plain(vocab, decide::stem_text(f) + f.options[o].encoded + ",\n");
++            const bool stem_kept = ctx.size() >= t.stem.size() && std::equal(t.stem.begin(), t.stem.end(), ctx.begin());
++            const std::vector<llama_token> after(ctx.begin() + (stem_kept ? t.stem.size() : 0), ctx.end());
++            const bool rs = !stem_kept || decide::resplit(t.paths[o], after);
++            if (rs) expect.push_back(f.options[o].key);
++            // how the context covers t_k: the same token, a MERGED[piece(t_k)] token, or another split
++            const size_t k    = t.paths[o].size();
++            std::string  last = "-";
++            if (!rs && after.size() >= k) {
++                const llama_token tk = t.paths[o][k - 1];
++                const auto        m  = vi.merged.find(common_token_to_piece(vocab, tk, false));
++                last = after[k - 1] == tk ? "kept" : (m != vi.merged.end() && contains(m->second, after[k - 1])) ? "merged" : "other";
++            }
++            std::printf("resplit survey: %-14s path %s | with \",\\n\" %s -> resplit %s, last token %s\n", ("\"" + f.options[o].key + "\"").c_str(),
++                        show(vocab, t.paths[o]).c_str(), show(vocab, after).c_str(), rs ? "YES" : "no", last.c_str());
++        }
++        CHECK(t.resplit == expect);
++    }
++
+     llama_model_free(model);
+     llama_backend_free();
+     if (failures) { std::fprintf(stderr, "%d failure(s)\n", failures); return 1; }
+diff --git a/tools/decide/CMakeLists.txt b/tools/decide/CMakeLists.txt
+index 3afd62152..79927ea63 100644
+--- a/tools/decide/CMakeLists.txt
++++ b/tools/decide/CMakeLists.txt
+@@ -2,6 +2,7 @@ add_library(llama-decide STATIC
+     decide-schema.cpp decide-schema.h
+     decide-score.cpp decide-score.h
+     decide-trie.cpp decide-trie.h
++    decide-vocab.cpp decide-vocab.h
+     decide-engine.cpp decide-engine.h
+     decide-api.cpp decide-api.h
+     decide-compat.cpp decide-compat.h)
+diff --git a/tools/decide/decide-api.cpp b/tools/decide/decide-api.cpp
+index 3777175d8..3287622e5 100644
+--- a/tools/decide/decide-api.cpp
++++ b/tools/decide/decide-api.cpp
+@@ -23,12 +23,16 @@ static void require_implemented(const compiled_schema & cs) {
+     if (cs.opts.temperature != 0)        throw missing("temperature");
+ }
+ 
++static scoring_mode mode_of(const compiled_schema & cs) {
++    return cs.opts.scoring == "full_path" ? scoring_mode::FULL_PATH : scoring_mode::TREE;
++}
++
+ api_result handle_decide(engine & eng, const llama_vocab * vocab, const common_json & body, bool dump_tokens) {
+     try {
+         const compiled_schema          cs     = compile_request(body);
+         const std::vector<std::string> states = states_of(body);
+         require_implemented(cs);
+-        const trie_set                 ts     = build_tries(cs, vocab);
++        const trie_set                 ts     = build_tries(cs, vocab, mode_of(cs));
+         return {200, eng.decide(cs, ts, states, dump_tokens)};
+     } catch (const error & e) {
+         return error_result(e.http, e.code, e.what(), e.field);
+@@ -44,7 +48,7 @@ api_result handle_info(engine & eng, const llama_vocab * vocab, const common_jso
+         }
+         const compiled_schema cs = compile_request(*schema_body);
+         require_implemented(cs);
+-        const trie_set        ts = build_tries(cs, vocab);
++        const trie_set        ts = build_tries(cs, vocab, mode_of(cs));
+         return {200, eng.info(&cs, &ts)};
+     } catch (const error & e) {
+         return error_result(e.http, e.code, e.what(), e.field);
+diff --git a/tools/decide/decide-score.h b/tools/decide/decide-score.h
+index a5145dd4c..9541dd4e4 100644
+--- a/tools/decide/decide-score.h
++++ b/tools/decide/decide-score.h
+@@ -19,6 +19,8 @@ struct field_trie {
+     std::vector<trie_node>                nodes;
+     std::vector<int>                      branch_nodes; // node indices with >= 2 children, pre-order
+     bool                                  quote_split = false; // true when the quote-anchored fallback was used (choice fields only)
++    std::vector<std::vector<int>>         option_nodes; // per option: node ids from the root to its leaf (paths[o].size() + 1 ids)
++    std::vector<std::string>              resplit;      // full-path: keys of options whose tokens before the last one change when ",\n" follows (spec 4.8)
+ };
+ 
+ struct node_scores {
+diff --git a/tools/decide/decide-trie.cpp b/tools/decide/decide-trie.cpp
+index 43a84bfeb..7179fad83 100644
+--- a/tools/decide/decide-trie.cpp
++++ b/tools/decide/decide-trie.cpp
+@@ -85,8 +85,10 @@ void check_trie_joins(const compiled_schema & cs, const trie_set & ts, const lla
+ // Inserts `path` into the trie (nodes[0] is the root), recording `opt` in options_through
+ // along the way. Reuses an existing child edge with the same token when present, so that
+ // paths sharing a prefix share nodes (first-insertion order is preserved in `children`).
+-static void insert_path(std::vector<trie_node> & nodes, const std::vector<llama_token> & path, int opt) {
++// Returns the node ids from the root to the path's last node.
++static std::vector<int> insert_path(std::vector<trie_node> & nodes, const std::vector<llama_token> & path, int opt) {
+     int cur = 0;
++    std::vector<int> visited = {cur};
+     nodes[cur].options_through.push_back(opt);
+     for (llama_token tok : path) {
+         int next = -1;
+@@ -102,7 +104,9 @@ static void insert_path(std::vector<trie_node> & nodes, const std::vector<llama_
+         }
+         nodes[next].options_through.push_back(opt);
+         cur = next;
++        visited.push_back(cur);
+     }
++    return visited;
+ }
+ 
+ static void collect_branch_nodes_preorder(const std::vector<trie_node> & nodes, int node, std::vector<int> & out) {
+@@ -134,8 +138,9 @@ static void build_from_paths(field_trie & t, const std::vector<std::vector<llama
+     t.nodes.clear();
+     t.nodes.emplace_back(); // root
+     t.nodes[0].tok = -1;
++    t.option_nodes.clear();
+     for (size_t i = 0; i < paths.size(); ++i) {
+-        insert_path(t.nodes, paths[i], (int) i);
++        t.option_nodes.push_back(insert_path(t.nodes, paths[i], (int) i));
+     }
+     t.branch_nodes.clear();
+     collect_branch_nodes_preorder(t.nodes, 0, t.branch_nodes);
+@@ -169,14 +174,8 @@ static std::string sibling_conflict(const field & f, const field_trie & t, const
+     return "";
+ }
+ 
+-field_trie build_trie(const field & f, const llama_vocab * vocab) {
+-    // Rule 1: tokenise stem_text(f) + option.encoded for every option.
+-    std::vector<std::vector<llama_token>> toks(f.options.size());
+-    for (size_t i = 0; i < f.options.size(); ++i) {
+-        toks[i] = tokenize_plain(vocab, stem_text(f) + f.options[i].encoded);
+-    }
+-
+-    // Rule 2: stem = longest common token prefix of all toks[i].
++// Rule 2: length of the longest common token prefix of all toks[i].
++static size_t common_prefix_len(const std::vector<std::vector<llama_token>> & toks) {
+     size_t common = toks[0].size();
+     for (size_t i = 1; i < toks.size(); ++i) {
+         size_t lim = std::min(common, toks[i].size());
+@@ -184,6 +183,18 @@ field_trie build_trie(const field & f, const llama_vocab * vocab) {
+         while (k < lim && toks[0][k] == toks[i][k]) ++k;
+         common = k;
+     }
++    return common;
++}
++
++field_trie build_trie(const field & f, const llama_vocab * vocab, scoring_mode mode) {
++    // Rule 1: tokenise stem_text(f) + option.encoded for every option.
++    std::vector<std::vector<llama_token>> toks(f.options.size());
++    for (size_t i = 0; i < f.options.size(); ++i) {
++        toks[i] = tokenize_plain(vocab, stem_text(f) + f.options[i].encoded);
++    }
++
++    // Rule 2: stem = longest common token prefix of all toks[i].
++    const size_t common = common_prefix_len(toks);
+ 
+     field_trie t;
+     t.stem.assign(toks[0].begin(), toks[0].begin() + common);
+@@ -196,6 +207,19 @@ field_trie build_trie(const field & f, const llama_vocab * vocab) {
+     // Rules 3-4: build the trie, enumerate branch nodes (pre-order).
+     build_from_paths(t, paths);
+ 
++    // spec 4.2: the value-end factor tells "sale" from "sales", so full-path mode has no sibling check and no fallback
++    if (mode == scoring_mode::FULL_PATH) {
++        // spec 4.8: a stem that changes when ",\n" follows also counts as a re-split
++        for (size_t i = 0; i < f.options.size(); ++i) {
++            const std::vector<llama_token> ctx = tokenize_plain(vocab, stem_text(f) + f.options[i].encoded + ",\n");
++            const bool stem_kept = ctx.size() >= t.stem.size() && std::equal(t.stem.begin(), t.stem.end(), ctx.begin());
++            if (!stem_kept || resplit(paths[i], std::vector<llama_token>(ctx.begin() + t.stem.size(), ctx.end()))) {
++                t.resplit.push_back(f.options[i].key);
++            }
++        }
++        return t;
++    }
++
+     // Rule 5: sibling-prefix check at every branch node.
+     std::string conflict_msg = sibling_conflict(f, t, vocab);
+     if (conflict_msg.empty()) {
+@@ -225,12 +249,13 @@ field_trie build_trie(const field & f, const llama_vocab * vocab) {
+     return qt;
+ }
+ 
+-trie_set build_tries(const compiled_schema & cs, const llama_vocab * vocab) {
++trie_set build_tries(const compiled_schema & cs, const llama_vocab * vocab, scoring_mode mode) {
+     trie_set ts;
++    ts.mode = mode;
+     ts.fields.reserve(cs.fields.size());
+     for (const auto & f : cs.fields) {
+-        field_trie t = build_trie(f, vocab);
+-        ts.branches_per_state += (int) t.branch_nodes.size();
++        field_trie t = build_trie(f, vocab, mode);
++        ts.branches_per_state += mode == scoring_mode::FULL_PATH ? (int) f.options.size() : (int) t.branch_nodes.size();
+         ts.fields.push_back(std::move(t));
+     }
+     return ts;
+@@ -257,4 +282,56 @@ std::vector<llama_token> branch_tokens(const field_trie & t, int node) {
+     return out;
+ }
+ 
++std::vector<full_path_seq> full_path_plan(const field_trie & t) {
++    if (t.stem.empty()) {
++        throw error("engine", 500, "full-path plan: empty trie stem, no token for the root row");
++    }
++    std::vector<char>          read(t.nodes.size(), 0);
++    std::vector<full_path_seq> plan;
++    plan.reserve(t.option_nodes.size());
++    for (size_t o = 0; o < t.option_nodes.size(); ++o) {
++        full_path_seq s;
++        s.option = (int) o;
++        s.tokens = t.stem;
++        s.tokens.insert(s.tokens.end(), t.paths[o].begin(), t.paths[o].end());
++        const std::vector<int> & on = t.option_nodes[o];
++        for (size_t d = 0; d < on.size(); ++d) {
++            if (read[on[d]]) {
++                continue;
++            }
++            read[on[d]] = 1;
++            s.row_index.push_back((int) (t.stem.size() - 1 + d));
++            s.row_node.push_back(on[d]);
++        }
++        plan.push_back(std::move(s));
++    }
++    return plan;
++}
++
++field_trie context_trie(const field_trie & base, const field & f, const std::string & lines, const llama_vocab * vocab) {
++    field_trie t = base;
++    if (base.quote_split) {
++        // the key parts are tokenised alone, so the paths stay the same
++        t.stem = tokenize_plain(vocab, lines + stem_text(f) + "\"");
++        return t;
++    }
++    std::vector<std::vector<llama_token>> toks(f.options.size());
++    for (size_t i = 0; i < f.options.size(); ++i) {
++        toks[i] = tokenize_plain(vocab, lines + stem_text(f) + f.options[i].encoded);
++    }
++    const size_t common = common_prefix_len(toks);
++    t.stem.assign(toks[0].begin(), toks[0].begin() + common);
++    for (size_t i = 0; i < toks.size(); ++i) {
++        if (!std::equal(toks[i].begin() + common, toks[i].end(), base.paths[i].begin(), base.paths[i].end())) {
++            throw error("engine", 500, "answer lines change the tokenisation of field \"" + f.name + "\"; remove its \"after\"", f.name);
++        }
++    }
++    return t;
++}
++
++bool resplit(const std::vector<llama_token> & path, const std::vector<llama_token> & in_context) {
++    const size_t n = path.empty() ? 0 : path.size() - 1;
++    return in_context.size() < n || !std::equal(path.begin(), path.begin() + n, in_context.begin());
++}
++
+ } // namespace decide
+diff --git a/tools/decide/decide-trie.h b/tools/decide/decide-trie.h
+index 29e135358..bb022bc5c 100644
+--- a/tools/decide/decide-trie.h
++++ b/tools/decide/decide-trie.h
+@@ -6,20 +6,43 @@
+ 
+ namespace decide {
+ 
++enum class scoring_mode { TREE, FULL_PATH };
++
+ struct trie_set {
+     std::vector<field_trie> fields;            // same order as compiled_schema::fields
+-    int                     branches_per_state = 0;   // sum over fields of branch_nodes.size()
++    scoring_mode            mode = scoring_mode::TREE;
++    int                     branches_per_state = 0;   // B of spec 4.3: tree = sum over fields of branch_nodes.size(), full-path = sum of option counts
+ };
+ 
+ // Tokenises stem_text(f) + o.encoded per option (add_special=false, parse_special=false),
+-// takes the longest common token prefix as the stem, builds the trie, enumerates branch nodes,
+-// and applies the sibling-prefix check. Throws error{"invalid_schema", 400, ...}.
+-field_trie build_trie(const field & f, const llama_vocab * vocab);
+-trie_set   build_tries(const compiled_schema & cs, const llama_vocab * vocab);
++// takes the longest common token prefix as the stem, builds the trie and enumerates branch nodes.
++// Tree mode applies the sibling-prefix check (quote-split fallback for choice fields); full-path mode
++// skips both (spec 4.2) and fills `resplit` (spec 4.8). Throws error{"invalid_schema", 400, ...}.
++field_trie build_trie(const field & f, const llama_vocab * vocab, scoring_mode mode);
++trie_set   build_tries(const compiled_schema & cs, const llama_vocab * vocab, scoring_mode mode);
+ 
+ // stem + path to `node` (edge tokens from the root), used to fill a branch sequence.
+ std::vector<llama_token> branch_tokens(const field_trie & t, int node);
+ 
++// Spec 4.3: one branch sequence per option. tokens = stem + path; the row of node row_node[i] is read at tokens[row_index[i]]
++// (the root at the last stem token, the node at depth d at stem.size() - 1 + d). A node is read in the first option whose path holds it.
++struct full_path_seq {
++    int                      option;
++    std::vector<llama_token> tokens;
++    std::vector<int>         row_index;
++    std::vector<int>         row_node;
++};
++std::vector<full_path_seq> full_path_plan(const field_trie & t);
++
++// Spec 5.3: the trie of f after the answer lines. Stem = longest common token prefix of lines + stem_text(f) + o.encoded
++// (a quote-split trie: lines + stem_text(f) + "\""); the paths must stay those of `base` (f without lines), and the nodes are reused.
++// Throws error{"engine", 500, ...} naming the field when the lines change the paths.
++field_trie context_trie(const field_trie & base, const field & f, const std::string & lines, const llama_vocab * vocab);
++
++// Spec 4.8: path = t_1..t_k, in_context = the tokens after the stem of stem_text + encoded + ",\n" tokenised jointly.
++// True when in_context does not start with t_1..t_{k-1} (a merge of t_k with the terminator is covered by MERGED).
++bool resplit(const std::vector<llama_token> & path, const std::vector<llama_token> & in_context);
++
+ // Plain-text tokenisation helpers shared with the engine.
+ std::vector<llama_token> tokenize_plain(const llama_vocab * vocab, const std::string & text);   // add_special=false, parse_special=false
+ std::vector<llama_token> tokenize_template(const llama_vocab * vocab, const std::string & text); // add_special=false, parse_special=true
+diff --git a/tools/decide/decide-vocab.cpp b/tools/decide/decide-vocab.cpp
+new file mode 100644
+index 000000000..3fc00c9f1
+--- /dev/null
++++ b/tools/decide/decide-vocab.cpp
+@@ -0,0 +1,47 @@
++#include "decide-vocab.h"
++#include "common.h"
++
++namespace decide {
++
++static bool is_json_space(char c) {
++    return c == ' ' || c == '\t' || c == '\n' || c == '\r';
++}
++
++bool ends_value(const std::string & w) {
++    for (char c : w) {
++        if (!is_json_space(c)) {
++            return c == ',' || c == '}';
++        }
++    }
++    return !w.empty();
++}
++
++vocab_index build_vocab_index(const llama_vocab * vocab) {
++    vocab_index       vi;
++    std::vector<char> tail_ends;   // tail_ends[i]: s[i..] is only whitespace or its first non-whitespace character is ',' or '}'
++    const llama_token n = llama_vocab_n_tokens(vocab);
++    for (llama_token u = 0; u < n; ++u) {
++        if (llama_vocab_is_control(vocab, u)) {
++            continue;
++        }
++        const std::string s = common_token_to_piece(vocab, u, false);
++        if (s.empty()) {
++            continue;
++        }
++        tail_ends.assign(s.size() + 1, 1);
++        for (size_t i = s.size(); i-- > 0;) {
++            tail_ends[i] = is_json_space(s[i]) ? tail_ends[i + 1] : (s[i] == ',' || s[i] == '}');
++        }
++        if (tail_ends[0]) {
++            vi.end_tokens.push_back(u);
++        }
++        for (size_t i = 1; i < s.size(); ++i) {
++            if (tail_ends[i]) {
++                vi.merged[s.substr(0, i)].push_back(u);
++            }
++        }
++    }
++    return vi;
++}
++
++} // namespace decide
+diff --git a/tools/decide/decide-vocab.h b/tools/decide/decide-vocab.h
+new file mode 100644
+index 000000000..21978029e
+--- /dev/null
++++ b/tools/decide/decide-vocab.h
+@@ -0,0 +1,20 @@
++#pragma once
++#include "llama.h"
++
++#include <string>
++#include <unordered_map>
++#include <vector>
++
++namespace decide {
++
++// Spec 4.1 ends(w) for text right after a JSON value inside an object: w is not empty and is only whitespace (space, \t, \n, \r) or its first non-whitespace character is ',' or '}'.
++bool ends_value(const std::string & w);
++
++// Spec 4.1 indexes over every non-control token u with piece s = common_token_to_piece(vocab, u, false). Token ids are in ascending order.
++struct vocab_index {
++    std::vector<llama_token>                                  end_tokens;   // END = {u : ends(s)}
++    std::unordered_map<std::string, std::vector<llama_token>> merged;       // MERGED[b] = {u : s = b + r, b not empty, ends(r)} for every split of s
++};
++vocab_index build_vocab_index(const llama_vocab * vocab);
++
++} // namespace decide
+-- 
+2.55.0
+

@@ -1,0 +1,61 @@
+From ad161554f6cbe6a7b0cc3b1db25489b6b1fdaeb1 Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 16:02:03 +0200
+Subject: [PATCH 14/45] decide: cut join error text at UTF-8 boundaries
+
+The join self-check quotes up to 24 bytes of the text around the join.
+A cut inside a multi-byte character made the message invalid UTF-8,
+which the JSON error body cannot serialise.
+---
+ tests/test-decide-trie.cpp   | 13 +++++++++++++
+ tools/decide/decide-trie.cpp | 10 +++++++++-
+ 2 files changed, 22 insertions(+), 1 deletion(-)
+
+diff --git a/tests/test-decide-trie.cpp b/tests/test-decide-trie.cpp
+index 7cba37137..de52c8d12 100644
+--- a/tests/test-decide-trie.cpp
++++ b/tests/test-decide-trie.cpp
+@@ -97,6 +97,19 @@ int main() {
+             msg   = e.what();
+         }
+         CHECK(threw && msg.find("add_space_prefix") != std::string::npos && msg.find("prefix/state") != std::string::npos);
++        // the message quotes cut text; it must stay valid UTF-8 for the JSON error body
++        std::string wide = "x";
++        for (int i = 0; i < 24; ++i) wide += "\xc3\xa4";
++        threw = false;
++        try {
++            decide::check_join(vocab, wide, wide, decide::tokenize_plain(vocab, " " + wide), "test", "utf8");
++        } catch (const decide::error & e) {
++            threw = true;
++            bool dumped = true;
++            try { (void) common_json(std::string(e.what())).dump(); } catch (...) { dumped = false; }
++            CHECK(dumped);
++        }
++        CHECK(threw);
+     }
+     // control text in a state tokenises as plain text
+     {
+diff --git a/tools/decide/decide-trie.cpp b/tools/decide/decide-trie.cpp
+index 5477334eb..26ec5f378 100644
+--- a/tools/decide/decide-trie.cpp
++++ b/tools/decide/decide-trie.cpp
+@@ -16,7 +16,15 @@ std::vector<llama_token> tokenize_template(const llama_vocab * vocab, const std:
+ // short printable view of the text at a join, for error messages
+ static std::string show(const std::string & text, bool keep_end) {
+     const size_t max = 24;
+-    const std::string cut = text.size() <= max ? text : (keep_end ? "..." + text.substr(text.size() - max) : text.substr(0, max) + "...");
++    std::string  cut = text;
++    if (text.size() > max) {
++        // cut at a UTF-8 character boundary, the message ends up in a JSON body
++        size_t pos = keep_end ? text.size() - max : max;
++        while (pos > 0 && pos < text.size() && (static_cast<unsigned char>(text[pos]) & 0xC0) == 0x80) {
++            pos = keep_end ? pos + 1 : pos - 1;
++        }
++        cut = keep_end ? "..." + text.substr(pos) : text.substr(0, pos) + "...";
++    }
+     std::string out;
+     for (char ch : cut) {
+         if (ch == '\n') {
+-- 
+2.55.0
+

@@ -1,0 +1,104 @@
+{
+  "resp": "results-engine/sp3/checks/task-7/k2fp-qwen3.5-4b.jsonl",
+  "k2_engine": {
+    "scoring": "full_path",
+    "order_debias": 2,
+    "temperature": 1.0,
+    "phases": 1,
+    "seqs_per_state": 22,
+    "states_per_round": 1,
+    "quote_split_fields": [],
+    "prefix_cache": {
+      "capacity": 8,
+      "entries": 1,
+      "hits": 1,
+      "misses": 0
+    }
+  },
+  "variant0_vs_plain_k0": {
+    "n_tickets": 5,
+    "max_abs_diff": 0.06936363474909618,
+    "fields": {
+      "queue": {
+        "median_abs_diff": 0.0039425096743859606,
+        "max_abs_diff": 0.06936363474909618,
+        "argmax_disagreements": 0,
+        "disagreements_over_margin": 0,
+        "pass": true
+      },
+      "urgency": {
+        "median_abs_diff": 0.003231979409839464,
+        "max_abs_diff": 0.060538244793528706,
+        "argmax_disagreements": 0,
+        "disagreements_over_margin": 0,
+        "pass": true
+      },
+      "angry": {
+        "median_abs_diff": 5.2233773541461625e-05,
+        "max_abs_diff": 0.0010386139835381059,
+        "argmax_disagreements": 0,
+        "disagreements_over_margin": 0,
+        "pass": true
+      }
+    },
+    "pass": true
+  },
+  "variant1_vs_rotated_k0": {
+    "n_tickets": 5,
+    "max_abs_diff": 0.07734645256603517,
+    "fields": {
+      "queue": {
+        "median_abs_diff": 0.004835840201852027,
+        "max_abs_diff": 0.07734645256603517,
+        "argmax_disagreements": 0,
+        "disagreements_over_margin": 0,
+        "pass": true
+      },
+      "urgency": {
+        "median_abs_diff": 0.002304682528208337,
+        "max_abs_diff": 0.03289036202593296,
+        "argmax_disagreements": 0,
+        "disagreements_over_margin": 0,
+        "pass": true
+      },
+      "angry": {
+        "median_abs_diff": 0.00015439834502860945,
+        "max_abs_diff": 0.0020544064872946473,
+        "argmax_disagreements": 0,
+        "disagreements_over_margin": 0,
+        "pass": true
+      }
+    },
+    "pass": true
+  },
+  "k2_vs_mean_of_k0": {
+    "n_tickets": 5,
+    "max_abs_diff": 0.04036337276830676,
+    "fields": {
+      "queue": {
+        "median_abs_diff": 0.0047646041612473405,
+        "max_abs_diff": 0.03669768742131829,
+        "argmax_disagreements": 0,
+        "disagreements_over_margin": 0,
+        "pass": true
+      },
+      "urgency": {
+        "median_abs_diff": 0.0032478427586001835,
+        "max_abs_diff": 0.04036337276830676,
+        "argmax_disagreements": 0,
+        "disagreements_over_margin": 0,
+        "pass": true
+      },
+      "angry": {
+        "median_abs_diff": 0.00014346619592922258,
+        "max_abs_diff": 0.0005078962518783037,
+        "argmax_disagreements": 0,
+        "disagreements_over_margin": 0,
+        "pass": true
+      }
+    },
+    "pass": true
+  },
+  "order_spread_vs_dump_max_abs_diff": 0.0,
+  "pass": true
+}

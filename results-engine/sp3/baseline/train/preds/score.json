@@ -1,0 +1,43 @@
+{
+  "preds_dir": "results-engine/sp3/baseline/train/preds",
+  "test_set": "/home/marduk/Projects/temp/jev/experiment/data/triage_train.jsonl",
+  "n_tickets": 320,
+  "runs": {
+    "decide-gemma-4-e4b-b5-keywords": {
+      "queue": 0.94375,
+      "urgency": 0.84375,
+      "urgency_near": 0.984375,
+      "angry": 0.975,
+      "nll_queue": 0.24807781126077602,
+      "nll_urgency": 0.5225565839661279,
+      "nll_angry": 0.055886345556958504,
+      "nll_sum": 0.8265207407838624,
+      "ece_queue": 0.04065389100648961,
+      "ece_urgency": 0.0869516757624611,
+      "ece_angry": 0.010865360090740524,
+      "brier_angry": 0.017054626048483196,
+      "p50_ms": 29.712473099789346,
+      "rounds": [
+        1
+      ]
+    },
+    "decide-qwen3.5-9b-b5-keywords": {
+      "queue": 0.946875,
+      "urgency": 0.784375,
+      "urgency_near": 0.978125,
+      "angry": 0.984375,
+      "nll_queue": 0.17613101067536954,
+      "nll_urgency": 0.55165808306931,
+      "nll_angry": 0.09203146196126337,
+      "nll_sum": 0.8198205557059429,
+      "ece_queue": 0.028220161972549812,
+      "ece_urgency": 0.08456685683585449,
+      "ece_angry": 0.05422490274515714,
+      "brier_angry": 0.02216345428604454,
+      "p50_ms": 94.76403059961741,
+      "rounds": [
+        1
+      ]
+    }
+  }
+}

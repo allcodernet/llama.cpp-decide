@@ -1,0 +1,34 @@
+{
+  "ref": "results-engine/sp3/checks/task-6/plain-fp-b5-qwen2.5-0.5b.jsonl",
+  "run": "results-engine/sp3/checks/task-6/after-fp-b5-qwen2.5-0.5b.jsonl",
+  "n_tickets": 20,
+  "max_abs_diff": 0.45506159905035987,
+  "fields": {
+    "queue": {
+      "median_abs_diff": 0.004091125275810018,
+      "max_abs_diff": 0.03568348214141151,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    },
+    "urgency": {
+      "median_abs_diff": 0.10663674195085322,
+      "max_abs_diff": 0.45506159905035987,
+      "argmax_agreement": 0.55,
+      "argmax_disagreements": 9,
+      "disagreements_over_margin": 8,
+      "pass": false
+    },
+    "angry": {
+      "median_abs_diff": 0.1635685589095654,
+      "max_abs_diff": 0.38561354647919455,
+      "argmax_agreement": 0.7,
+      "argmax_disagreements": 6,
+      "disagreements_over_margin": 5,
+      "pass": false
+    }
+  },
+  "pass": false,
+  "pass_all": false
+}

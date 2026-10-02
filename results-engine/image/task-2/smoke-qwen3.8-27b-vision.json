@@ -1,0 +1,399 @@
+{
+ "checks": [
+  {
+   "check": "info: vision available",
+   "pass": true,
+   "detail": "{\"available\": true, \"mrope\": true, \"non_causal\": false, \"max_images_per_state\": 4, \"max_images_per_request\": 32, \"max_image_bytes\": 10485760, \"max_image_pixels\": 32000000}"
+  },
+  {
+   "check": "one image: 200",
+   "pass": true,
+   "detail": "200"
+  },
+  {
+   "check": "one image: two cats -> p_true > 0.5",
+   "pass": true,
+   "detail": "{\"cat\": {\"value\": true, \"p_true\": 0.9995973773785723, \"confidence\": 0.9995973773785723}}"
+  },
+  {
+   "check": "one image: usage images, cells, positions",
+   "pass": true,
+   "detail": "{\"state_tokens\": 0, \"scored_tokens\": 1, \"images\": 1, \"image_cells\": 1038, \"image_positions\": 39}"
+  },
+  {
+   "check": "one image: prompt_tokens counts the image cells",
+   "pass": true,
+   "detail": "{\"prompt_tokens\": 1105, \"cached_tokens\": 0, \"state_tokens\": 0, \"scored_tokens\": 1}"
+  },
+  {
+   "check": "one image: image timings inside prefill",
+   "pass": true,
+   "detail": "{\"prefill_ms\": 1315.568, \"prefix_ms\": 142.212, \"scoring_ms\": 36.607, \"total_ms\": 1375.302, \"rounds\": 1, \"decodes\": 6, \"retries\": 0, \"image_encode_ms\": 300.369, \"image_decode_ms\": 783.552}"
+  },
+  {
+   "check": "two images in one state",
+   "pass": true,
+   "detail": "200"
+  },
+  {
+   "check": "a PNG image",
+   "pass": true,
+   "detail": "200"
+  },
+  {
+   "check": "media marker in a text part stays text",
+   "pass": true,
+   "detail": "{\"object\": \"decide\", \"results\": [{\"answers\": {\"cat\": {\"value\": false, \"p_true\": 0.0016476858160085147, \"confidence\": 0.9983523141839916}}, \"usage\": {\"state_tokens\": 10, \"scored_tokens\": 1}}], \"usage\": {\"prompt_tokens\": 25, \"cached_tokens\": 52, \"state_tokens\": 10, \"scored_tokens\": 1}, \"timings\": {\"pr"
+  },
+  {
+   "check": "a string and its one-part form give the same response",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "a text response has today's keys",
+   "pass": true,
+   "detail": "{\"usage\": {\"state_tokens\": 7, \"scored_tokens\": 1}, \"timings\": [\"decodes\", \"prefill_ms\", \"prefix_ms\", \"retries\", \"rounds\", \"scoring_ms\", \"total_ms\"]}"
+  }
+ ],
+ "info": {
+  "decide_seqs": 16,
+  "n_ctx": 16384,
+  "n_batch": 2048,
+  "kv_unified": true,
+  "n_parallel": 1,
+  "memory": {
+   "recurrent": true,
+   "swa": false
+  },
+  "prefix": {
+   "hash": "",
+   "tokens": 0,
+   "assistant_prefix": "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+   "valid": false
+  },
+  "prefixes": [],
+  "prefix_cache": {
+   "capacity": 8,
+   "entries": 0,
+   "bytes": 0
+  },
+  "temperature": 1.0,
+  "scoring_modes": [
+   "tree",
+   "full_path"
+  ],
+  "vision": {
+   "available": true,
+   "mrope": true,
+   "non_causal": false,
+   "max_images_per_state": 4,
+   "max_images_per_request": 32,
+   "max_image_bytes": 10485760,
+   "max_image_pixels": 32000000
+  }
+ },
+ "cat": {
+  "object": "decide",
+  "results": [
+   {
+    "answers": {
+     "cat": {
+      "value": true,
+      "p_true": 0.9995973773785723,
+      "confidence": 0.9995973773785723
+     }
+    },
+    "usage": {
+     "state_tokens": 0,
+     "scored_tokens": 1,
+     "images": 1,
+     "image_cells": 1038,
+     "image_positions": 39
+    }
+   }
+  ],
+  "usage": {
+   "prompt_tokens": 1105,
+   "cached_tokens": 0,
+   "state_tokens": 0,
+   "scored_tokens": 1
+  },
+  "timings": {
+   "prefill_ms": 1315.568,
+   "prefix_ms": 142.212,
+   "scoring_ms": 36.607,
+   "total_ms": 1375.302,
+   "rounds": 1,
+   "decodes": 6,
+   "retries": 0,
+   "image_encode_ms": 300.369,
+   "image_decode_ms": 783.552
+  },
+  "engine": {
+   "scoring": "tree",
+   "order_debias": 1,
+   "temperature": 1.0,
+   "phases": 1,
+   "seqs_per_state": 2,
+   "states_per_round": 7,
+   "quote_split_fields": [],
+   "prefix_cache": {
+    "capacity": 8,
+    "entries": 0,
+    "hits": 0,
+    "misses": 1
+   }
+  }
+ },
+ "two": {
+  "object": "decide",
+  "results": [
+   {
+    "answers": {
+     "cat": {
+      "value": false,
+      "p_true": 0.028769207364480343,
+      "confidence": 0.9712307926355197
+     }
+    },
+    "usage": {
+     "state_tokens": 2,
+     "scored_tokens": 1,
+     "images": 2,
+     "image_cells": 2164,
+     "image_positions": 84
+    }
+   }
+  ],
+  "usage": {
+   "prompt_tokens": 2181,
+   "cached_tokens": 52,
+   "state_tokens": 2,
+   "scored_tokens": 1
+  },
+  "timings": {
+   "prefill_ms": 2411.271,
+   "prefix_ms": 0.377,
+   "scoring_ms": 36.068,
+   "total_ms": 2487.057,
+   "rounds": 1,
+   "decodes": 9,
+   "retries": 0,
+   "image_encode_ms": 648.095,
+   "image_decode_ms": 1622.385
+  },
+  "engine": {
+   "scoring": "tree",
+   "order_debias": 1,
+   "temperature": 1.0,
+   "phases": 1,
+   "seqs_per_state": 2,
+   "states_per_round": 7,
+   "quote_split_fields": [],
+   "prefix_cache": {
+    "capacity": 8,
+    "entries": 0,
+    "hits": 0,
+    "misses": 0
+   }
+  }
+ },
+ "png": {
+  "object": "decide",
+  "results": [
+   {
+    "answers": {
+     "cat": {
+      "value": true,
+      "p_true": 0.9995948493405906,
+      "confidence": 0.9995948493405906
+     }
+    },
+    "usage": {
+     "state_tokens": 0,
+     "scored_tokens": 1,
+     "images": 1,
+     "image_cells": 1038,
+     "image_positions": 39
+    }
+   }
+  ],
+  "usage": {
+   "prompt_tokens": 1053,
+   "cached_tokens": 52,
+   "state_tokens": 0,
+   "scored_tokens": 1
+  },
+  "timings": {
+   "prefill_ms": 1165.746,
+   "prefix_ms": 0.38,
+   "scoring_ms": 36.028,
+   "total_ms": 1222.859,
+   "rounds": 1,
+   "decodes": 5,
+   "retries": 0,
+   "image_encode_ms": 298.441,
+   "image_decode_ms": 788.94
+  },
+  "engine": {
+   "scoring": "tree",
+   "order_debias": 1,
+   "temperature": 1.0,
+   "phases": 1,
+   "seqs_per_state": 2,
+   "states_per_round": 7,
+   "quote_split_fields": [],
+   "prefix_cache": {
+    "capacity": 8,
+    "entries": 0,
+    "hits": 0,
+    "misses": 0
+   }
+  }
+ },
+ "marker": {
+  "object": "decide",
+  "results": [
+   {
+    "answers": {
+     "cat": {
+      "value": false,
+      "p_true": 0.0016476858160085147,
+      "confidence": 0.9983523141839916
+     }
+    },
+    "usage": {
+     "state_tokens": 10,
+     "scored_tokens": 1
+    }
+   }
+  ],
+  "usage": {
+   "prompt_tokens": 25,
+   "cached_tokens": 52,
+   "state_tokens": 10,
+   "scored_tokens": 1
+  },
+  "timings": {
+   "prefill_ms": 49.772,
+   "prefix_ms": 0.374,
+   "scoring_ms": 35.443,
+   "total_ms": 86.368,
+   "rounds": 1,
+   "decodes": 2,
+   "retries": 0
+  },
+  "engine": {
+   "scoring": "tree",
+   "order_debias": 1,
+   "temperature": 1.0,
+   "phases": 1,
+   "seqs_per_state": 2,
+   "states_per_round": 7,
+   "quote_split_fields": [],
+   "prefix_cache": {
+    "capacity": 8,
+    "entries": 0,
+    "hits": 0,
+    "misses": 0
+   }
+  }
+ },
+ "string": {
+  "object": "decide",
+  "results": [
+   {
+    "answers": {
+     "cat": {
+      "value": true,
+      "p_true": 0.861885051708727,
+      "confidence": 0.861885051708727
+     }
+    },
+    "usage": {
+     "state_tokens": 7,
+     "scored_tokens": 1
+    }
+   }
+  ],
+  "usage": {
+   "prompt_tokens": 22,
+   "cached_tokens": 52,
+   "state_tokens": 7,
+   "scored_tokens": 1
+  },
+  "timings": {
+   "prefill_ms": 48.326,
+   "prefix_ms": 0.372,
+   "scoring_ms": 41.142,
+   "total_ms": 90.6,
+   "rounds": 1,
+   "decodes": 2,
+   "retries": 0
+  },
+  "engine": {
+   "scoring": "tree",
+   "order_debias": 1,
+   "temperature": 1.0,
+   "phases": 1,
+   "seqs_per_state": 2,
+   "states_per_round": 7,
+   "quote_split_fields": [],
+   "prefix_cache": {
+    "capacity": 8,
+    "entries": 0,
+    "hits": 0,
+    "misses": 0
+   }
+  }
+ },
+ "one_part": {
+  "object": "decide",
+  "results": [
+   {
+    "answers": {
+     "cat": {
+      "value": true,
+      "p_true": 0.861885051708727,
+      "confidence": 0.861885051708727
+     }
+    },
+    "usage": {
+     "state_tokens": 7,
+     "scored_tokens": 1
+    }
+   }
+  ],
+  "usage": {
+   "prompt_tokens": 22,
+   "cached_tokens": 52,
+   "state_tokens": 7,
+   "scored_tokens": 1
+  },
+  "timings": {
+   "prefill_ms": 55.918,
+   "prefix_ms": 0.375,
+   "scoring_ms": 35.062,
+   "total_ms": 92.126,
+   "rounds": 1,
+   "decodes": 2,
+   "retries": 0
+  },
+  "engine": {
+   "scoring": "tree",
+   "order_debias": 1,
+   "temperature": 1.0,
+   "phases": 1,
+   "seqs_per_state": 2,
+   "states_per_round": 7,
+   "quote_split_fields": [],
+   "prefix_cache": {
+    "capacity": 8,
+    "entries": 0,
+    "hits": 0,
+    "misses": 0
+   }
+  }
+ }
+}

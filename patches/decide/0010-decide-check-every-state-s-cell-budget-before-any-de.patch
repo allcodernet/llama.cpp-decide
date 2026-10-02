@@ -1,0 +1,69 @@
+From e699cfdd392039f3b54519af52d9f85ffaf5c8d3 Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 15:52:56 +0200
+Subject: [PATCH 10/45] decide: check every state's cell budget before any
+ decode
+
+A 400 budget error could follow a prefix decode and earlier rounds.
+Slot cells cannot change during the synchronous call, so check each
+state alone before ensure_prefix and before the first round.
+---
+ tools/decide/decide-engine.cpp | 25 +++++++++++++++----------
+ 1 file changed, 15 insertions(+), 10 deletions(-)
+
+diff --git a/tools/decide/decide-engine.cpp b/tools/decide/decide-engine.cpp
+index a7b40d103..83a7ba376 100644
+--- a/tools/decide/decide-engine.cpp
++++ b/tools/decide/decide-engine.cpp
+@@ -327,19 +327,31 @@ common_json engine::decide(const compiled_schema & cs, const trie_set & ts, cons
+     const prefix_state ps = prepare_prefix(cs);
+     check_trie_joins(cs, ts, vocab, ps.tail_text, who);
+ 
++    // every state must fit alone before anything is decoded; slots cannot change `held` during this call
++    const int64_t n_ctx = llama_n_ctx(ctx);
++    const int64_t tail  = (int64_t) ps.tail_tokens.size();
++    const int64_t held  = held_cells();
++    for (size_t i = 0; i < states.size(); ++i) {
++        const int64_t need = held + (int64_t) ps.tokens.size() + (int64_t) state_tokens[i].size() + tail + branch_total;
++        if (need > n_ctx - 16) {
++            throw error("budget", 400, "state " + std::to_string(i) + " needs " + std::to_string(need) +
++                                           " cells (held " + std::to_string(held) + ", prefix " + std::to_string(ps.tokens.size()) +
++                                           ", state " + std::to_string(state_tokens[i].size()) + ", tail " + std::to_string(tail) +
++                                           ", branches " + std::to_string(branch_total) + "), n_ctx - 16 is " +
++                                           std::to_string(n_ctx - 16));
++        }
++    }
++
+     const int64_t t0 = ggml_time_us();
+     const bool reused = ensure_prefix(ps, st);
+     llama_synchronize(ctx);
+     st.prefill_us += ggml_time_us() - t0;
+ 
+-    const int64_t n_ctx = llama_n_ctx(ctx);
+-    const int64_t tail  = (int64_t) p.tail_tokens.size();
+     std::vector<common_json> answers(states.size());
+     size_t next = 0;
+     while (next < states.size()) {
+         size_t count = std::min<size_t>((size_t) spr, states.size() - next);
+ 
+-        const int64_t held = held_cells();
+         auto need_for = [&](size_t n) {
+             int64_t need = held + (int64_t) p.tokens.size();
+             for (size_t c = 0; c < n; ++c) {
+@@ -350,13 +362,6 @@ common_json engine::decide(const compiled_schema & cs, const trie_set & ts, cons
+         while (count > 1 && need_for(count) > n_ctx - 16) {
+             count--;
+         }
+-        if (need_for(1) > n_ctx - 16) {
+-            throw error("budget", 400, "state " + std::to_string(next) + " needs " + std::to_string(need_for(1)) +
+-                                           " cells (held " + std::to_string(held) + ", prefix " + std::to_string(p.tokens.size()) +
+-                                           ", state " + std::to_string(state_tokens[next].size()) + ", tail " + std::to_string(tail) +
+-                                           ", branches " + std::to_string(branch_total) + "), n_ctx - 16 is " +
+-                                           std::to_string(n_ctx - 16));
+-        }
+ 
+         bool retried = false;
+         for (;;) {
+-- 
+2.55.0
+

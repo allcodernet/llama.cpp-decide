@@ -1,0 +1,564 @@
+{
+ "mode": "batch",
+ "schema": {
+  "instructions": "Answer each question about this image.",
+  "fields": {
+   "cat": {
+    "type": "bool",
+    "description": "Is there a cat in this picture?"
+   },
+   "dog": {
+    "type": "bool",
+    "description": "Is there a dog in this picture?"
+   },
+   "animal": {
+    "type": "choice",
+    "description": "Which kind of animal is the main subject of the picture?",
+    "options": {
+     "cat": "a cat of any kind, domestic or wild",
+     "dog": "a dog",
+     "fox": "a fox",
+     "other": "another animal, or a toy or picture of an animal",
+     "none": "no animal at all"
+    }
+   },
+   "indoors": {
+    "type": "bool",
+    "description": "Was the picture taken indoors?"
+   }
+  }
+ },
+ "states": [
+  {
+   "image": "/home/marduk/llama.cpp-decision/local/spike-image/cat03.jpg"
+  },
+  {
+   "image": "/home/marduk/llama.cpp-decision/local/spike-image/fox.jpg"
+  },
+  {
+   "image": "/home/marduk/llama.cpp-decision/local/spike-image/coco_39769.jpg"
+  }
+ ],
+ "batch_response": {
+  "object": "decide",
+  "results": [
+   {
+    "answers": {
+     "cat": {
+      "value": true,
+      "p_true": 0.9999843348201785,
+      "confidence": 0.9999843348201785
+     },
+     "dog": {
+      "value": false,
+      "p_true": 0.0012662007724623548,
+      "confidence": 0.9987337992275377
+     },
+     "animal": {
+      "value": "cat",
+      "probabilities": {
+       "cat": 0.9981200191977,
+       "dog": 7.447209281174115e-05,
+       "fox": 1.4931139129386563e-05,
+       "other": 0.0016253338408729382,
+       "none": 0.00016524372948590625
+      },
+      "confidence": 0.9981200191977
+     },
+     "indoors": {
+      "value": false,
+      "p_true": 0.10009367668774467,
+      "confidence": 0.8999063233122552
+     }
+    },
+    "usage": {
+     "state_tokens": 0,
+     "scored_tokens": 4,
+     "image_cells": 1602,
+     "image_positions": 42
+    }
+   },
+   {
+    "answers": {
+     "cat": {
+      "value": false,
+      "p_true": 4.57761702110444e-05,
+      "confidence": 0.9999542238297889
+     },
+     "dog": {
+      "value": false,
+      "p_true": 0.020293599335625426,
+      "confidence": 0.9797064006643746
+     },
+     "animal": {
+      "value": "fox",
+      "probabilities": {
+       "cat": 1.2499469826560835e-05,
+       "dog": 9.124549166948956e-05,
+       "fox": 0.9995644230767489,
+       "other": 0.00031787118949793346,
+       "none": 1.3960772257097592e-05
+      },
+      "confidence": 0.9995644230767489
+     },
+     "indoors": {
+      "value": false,
+      "p_true": 0.0025126535682570036,
+      "confidence": 0.997487346431743
+     }
+    },
+    "usage": {
+     "state_tokens": 0,
+     "scored_tokens": 4,
+     "image_cells": 1202,
+     "image_positions": 42
+    }
+   },
+   {
+    "answers": {
+     "cat": {
+      "value": true,
+      "p_true": 0.9999738491159499,
+      "confidence": 0.9999738491159499
+     },
+     "dog": {
+      "value": false,
+      "p_true": 0.0008821342465959055,
+      "confidence": 0.999117865753404
+     },
+     "animal": {
+      "value": "cat",
+      "probabilities": {
+       "cat": 0.9976049091226374,
+       "dog": 2.1701750239295257e-05,
+       "fox": 1.6666457851158517e-06,
+       "other": 0.0022295328945905434,
+       "none": 0.00014218958674759667
+      },
+      "confidence": 0.9976049091226374
+     },
+     "indoors": {
+      "value": true,
+      "p_true": 0.9920328736262302,
+      "confidence": 0.9920328736262302
+     }
+    },
+    "usage": {
+     "state_tokens": 0,
+     "scored_tokens": 4,
+     "image_cells": 1038,
+     "image_positions": 39
+    }
+   }
+  ],
+  "usage": {
+   "prompt_tokens": 3929,
+   "cached_tokens": 160,
+   "state_tokens": 0,
+   "scored_tokens": 12
+  },
+  "timings": {
+   "prefill_ms": 4509.707,
+   "prefix_ms": 0.388,
+   "scoring_ms": 146.036,
+   "total_ms": 4708.027,
+   "rounds": 1,
+   "decodes": 11,
+   "retries": 0,
+   "image_encode_ms": 1321.18,
+   "image_decode_ms": 3114.293
+  },
+  "engine": {
+   "scoring": "tree",
+   "order_debias": 1,
+   "temperature": 1.0,
+   "phases": 1,
+   "seqs_per_state": 5,
+   "states_per_round": 3,
+   "quote_split_fields": [],
+   "prefix_cache": {
+    "capacity": 8,
+    "entries": 1,
+    "hits": 0,
+    "misses": 0
+   },
+   "spike": {
+    "prefix_text": "<|im_start|>system\nAnswer each question about this image.\n\nAnswer with one JSON object. Read the input, then fill every field below.\n\nFields:\n- \"cat\": Is there a cat in this picture? true or false.\n- \"dog\": Is there a dog in this picture? true or false.\n- \"animal\": Which kind of animal is the main subject of the picture?\n  Allowed values:\n    \"cat\": a cat of any kind, domestic or wild\n    \"dog\": a dog\n    \"fox\": a fox\n    \"other\": another animal, or a toy or picture of an animal\n    \"none\": no animal at all\n- \"indoors\": Was the picture taken indoors? true or false.<|im_end|>\n<|im_start|>user\n",
+    "tail_text": "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n{\n",
+    "branches": [
+     {
+      "field": "cat",
+      "node": 0,
+      "text": "  \"cat\":",
+      "children": [
+       " true",
+       " false"
+      ]
+     },
+     {
+      "field": "dog",
+      "node": 0,
+      "text": "  \"dog\":",
+      "children": [
+       " true",
+       " false"
+      ]
+     },
+     {
+      "field": "animal",
+      "node": 0,
+      "text": "  \"animal\": \"",
+      "children": [
+       "cat",
+       "dog",
+       "fox",
+       "other",
+       "none"
+      ]
+     },
+     {
+      "field": "indoors",
+      "node": 0,
+      "text": "  \"indoors\":",
+      "children": [
+       " true",
+       " false"
+      ]
+     }
+    ]
+   }
+  },
+  "wall_s": 4.709220886230469
+ },
+ "singles": [
+  {
+   "image": "cat03",
+   "answers": {
+    "cat": {
+     "value": true,
+     "p_true": 0.9999802633881738,
+     "confidence": 0.9999802633881738
+    },
+    "dog": {
+     "value": false,
+     "p_true": 0.0013835231866695275,
+     "confidence": 0.9986164768133305
+    },
+    "animal": {
+     "value": "cat",
+     "probabilities": {
+      "cat": 0.9981507483007315,
+      "dog": 6.510221412300809e-05,
+      "fox": 1.2633814116920077e-05,
+      "other": 0.0016030195048307844,
+      "none": 0.00016849616619777833
+     },
+     "confidence": 0.9981507483007315
+    },
+    "indoors": {
+     "value": false,
+     "p_true": 0.10742906328850628,
+     "confidence": 0.8925709367114938
+    }
+   },
+   "usage": {
+    "state_tokens": 0,
+    "scored_tokens": 4,
+    "image_cells": 1602,
+    "image_positions": 42
+   },
+   "timings": {
+    "prefill_ms": 1938.823,
+    "prefix_ms": 0.421,
+    "scoring_ms": 83.619,
+    "total_ms": 2044.814,
+    "rounds": 1,
+    "decodes": 5,
+    "retries": 0,
+    "image_encode_ms": 624.657,
+    "image_decode_ms": 1259.186
+   },
+   "total_usage": {
+    "prompt_tokens": 1631,
+    "cached_tokens": 160,
+    "state_tokens": 0,
+    "scored_tokens": 4
+   },
+   "wall_s": 2.0458993911743164,
+   "reference": {
+    "cat/0": {
+     "children": [
+      " true",
+      " false"
+     ],
+     "probs": [
+      0.9999828481682972,
+      1.715183170276388e-05
+     ],
+     "covered": 0.9999968861988756
+    },
+    "dog/0": {
+     "children": [
+      " true",
+      " false"
+     ],
+     "probs": [
+      0.0014183969978343273,
+      0.9985816030021657
+     ],
+     "covered": 0.9992282025227981
+    },
+    "animal/0": {
+     "children": [
+      "cat",
+      "dog",
+      "fox",
+      "other",
+      "none"
+     ],
+     "probs": [
+      0.9979670625043522,
+      6.672752732400091e-05,
+      1.3680863741454612e-05,
+      0.001784094817323105,
+      0.00016843428725925246
+     ],
+     "covered": 0.9999542517576742
+    },
+    "indoors/0": {
+     "children": [
+      " true",
+      " false"
+     ],
+     "probs": [
+      0.1071951787200301,
+      0.8928048212799699
+     ],
+     "covered": 0.9987388617934367
+    }
+   },
+   "max_abs_diff": 0.00023388456847618644
+  },
+  {
+   "image": "fox",
+   "answers": {
+    "cat": {
+     "value": false,
+     "p_true": 8.04236722875249e-05,
+     "confidence": 0.9999195763277124
+    },
+    "dog": {
+     "value": false,
+     "p_true": 0.020419156899986562,
+     "confidence": 0.9795808431000136
+    },
+    "animal": {
+     "value": "fox",
+     "probabilities": {
+      "cat": 1.5053374506151596e-05,
+      "dog": 0.00010674018811007546,
+      "fox": 0.9995120044519199,
+      "other": 0.0003487568101650156,
+      "none": 1.7445175298716806e-05
+     },
+     "confidence": 0.9995120044519199
+    },
+    "indoors": {
+     "value": false,
+     "p_true": 0.002730512343474454,
+     "confidence": 0.9972694876565255
+    }
+   },
+   "usage": {
+    "state_tokens": 0,
+    "scored_tokens": 4,
+    "image_cells": 1202,
+    "image_positions": 42
+   },
+   "timings": {
+    "prefill_ms": 1415.966,
+    "prefix_ms": 0.42,
+    "scoring_ms": 83.753,
+    "total_ms": 1513.483,
+    "rounds": 1,
+    "decodes": 5,
+    "retries": 0,
+    "image_encode_ms": 391.21,
+    "image_decode_ms": 969.359
+   },
+   "total_usage": {
+    "prompt_tokens": 1231,
+    "cached_tokens": 160,
+    "state_tokens": 0,
+    "scored_tokens": 4
+   },
+   "wall_s": 1.5145418643951416,
+   "reference": {
+    "cat/0": {
+     "children": [
+      " true",
+      " false"
+     ],
+     "probs": [
+      6.540204514361834e-05,
+      0.9999345979548563
+     ],
+     "covered": 0.9999682443950902
+    },
+    "dog/0": {
+     "children": [
+      " true",
+      " false"
+     ],
+     "probs": [
+      0.024421133926543534,
+      0.9755788660734565
+     ],
+     "covered": 0.9991326487154444
+    },
+    "animal/0": {
+     "children": [
+      "cat",
+      "dog",
+      "fox",
+      "other",
+      "none"
+     ],
+     "probs": [
+      1.5800121378608863e-05,
+      0.00011795396445738852,
+      0.9994691307958314,
+      0.000377138197776567,
+      1.9976920555916736e-05
+     ],
+     "covered": 0.9998489118460361
+    },
+    "indoors/0": {
+     "children": [
+      " true",
+      " false"
+     ],
+     "probs": [
+      0.0028122007030956927,
+      0.9971877992969044
+     ],
+     "covered": 0.9976187078417849
+    }
+   },
+   "max_abs_diff": 0.004001977026557024
+  },
+  {
+   "image": "coco_39769",
+   "answers": {
+    "cat": {
+     "value": true,
+     "p_true": 0.999963817754153,
+     "confidence": 0.999963817754153
+    },
+    "dog": {
+     "value": false,
+     "p_true": 0.0009915030345302319,
+     "confidence": 0.9990084969654697
+    },
+    "animal": {
+     "value": "cat",
+     "probabilities": {
+      "cat": 0.9977456512397372,
+      "dog": 2.014989112760782e-05,
+      "fox": 1.4723898931592815e-06,
+      "other": 0.002121259945729472,
+      "none": 0.00011146653351252125
+     },
+     "confidence": 0.9977456512397372
+    },
+    "indoors": {
+     "value": true,
+     "p_true": 0.9930219879630403,
+     "confidence": 0.9930219879630403
+    }
+   },
+   "usage": {
+    "state_tokens": 0,
+    "scored_tokens": 4,
+    "image_cells": 1038,
+    "image_positions": 39
+   },
+   "timings": {
+    "prefill_ms": 1207.889,
+    "prefix_ms": 0.403,
+    "scoring_ms": 83.641,
+    "total_ms": 1311.927,
+    "rounds": 1,
+    "decodes": 5,
+    "retries": 0,
+    "image_encode_ms": 305.333,
+    "image_decode_ms": 848.003
+   },
+   "total_usage": {
+    "prompt_tokens": 1067,
+    "cached_tokens": 160,
+    "state_tokens": 0,
+    "scored_tokens": 4
+   },
+   "wall_s": 1.3135862350463867,
+   "reference": {
+    "cat/0": {
+     "children": [
+      " true",
+      " false"
+     ],
+     "probs": [
+      0.9999635517233713,
+      3.644827662873533e-05
+     ],
+     "covered": 0.9999594375939195
+    },
+    "dog/0": {
+     "children": [
+      " true",
+      " false"
+     ],
+     "probs": [
+      0.0009678153927940173,
+      0.9990321846072059
+     ],
+     "covered": 0.9992001211368765
+    },
+    "animal/0": {
+     "children": [
+      "cat",
+      "dog",
+      "fox",
+      "other",
+      "none"
+     ],
+     "probs": [
+      0.9971728050552429,
+      2.8493387617095362e-05,
+      2.091719163351458e-06,
+      0.0025791896454637167,
+      0.00021742019251290025
+     ],
+     "covered": 0.9999552570403138
+    },
+    "indoors/0": {
+     "children": [
+      " true",
+      " false"
+     ],
+     "probs": [
+      0.9912247079542112,
+      0.008775292045788757
+     ],
+     "covered": 0.9991022224324774
+    }
+   },
+   "max_abs_diff": 0.001797280008829066
+  }
+ ],
+ "batch_vs_single": [
+  0.007335386600761606,
+  0.00021785877521745016,
+  0.0009891143368101485
+ ]
+}

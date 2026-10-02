@@ -1,0 +1,142 @@
+From 018eef0cb117f359666a0cf023159f973d82cb8b Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 13:44:06 +0200
+Subject: [PATCH 04/45] decide-score: hard-validate node_scores coverage
+ against branch_nodes
+
+score_field is the normalization boundary between per-node logits and
+the option distribution, so a missing, duplicate, or mis-shaped
+node_scores entry must not silently give the affected options an
+un-normalized advantage. Validate before aggregation, as a runtime
+check (not debug-only): every scores[i].node must be a branch node
+with a matching child_logits size, and every branch node must appear
+exactly once. Violations throw error("engine", 500, ...).
+
+Also drop the double->float->double round-trip at the final softmax
+by templating log_softmax over float/double instead of converting the
+already-double logp back to float.
+---
+ tests/test-decide-score.cpp   | 24 ++++++++++++++++++
+ tools/decide/decide-score.cpp | 46 ++++++++++++++++++++++++++++-------
+ 2 files changed, 61 insertions(+), 9 deletions(-)
+
+diff --git a/tests/test-decide-score.cpp b/tests/test-decide-score.cpp
+index 4ca3a9c3e..d1199d9d6 100644
+--- a/tests/test-decide-score.cpp
++++ b/tests/test-decide-score.cpp
+@@ -91,6 +91,30 @@ int main() {
+         auto j = decide::answer_json(f, a);
+         CHECK(j.at("value").get<bool>() == false && near(j.at("p_true").get<double>(), 0.3, 1e-5) && near(j.at("confidence").get<double>(), 0.7, 1e-5));
+     }
++    // 8. missing branch node score -> engine error
++    {
++        bool threw = false;
++        try { decide::score_field(choice4(), flat4(), {}); }
++        catch (const decide::error & e) { threw = (e.code == "engine" && e.http == 500); }
++        CHECK(threw);
++    }
++    // 9. child_logits size mismatch -> engine error
++    {
++        bool threw = false;
++        try { decide::score_field(choice4(), flat4(), {{0, {1.0f, 2.0f, 3.0f}}}); }
++        catch (const decide::error & e) { threw = (e.code == "engine" && e.http == 500); }
++        CHECK(threw);
++    }
++    // 10. duplicate node entry -> engine error
++    {
++        bool threw = false;
++        try {
++            decide::score_field(choice4(), flat4(),
++                {{0, {1.0f, 2.0f, 3.0f, 4.0f}}, {0, {1.0f, 2.0f, 3.0f, 4.0f}}});
++        }
++        catch (const decide::error & e) { threw = (e.code == "engine" && e.http == 500); }
++        CHECK(threw);
++    }
+     if (failures) { std::fprintf(stderr, "%d failure(s)\n", failures); return 1; }
+     std::printf("test-decide-score: OK\n");
+     return 0;
+diff --git a/tools/decide/decide-score.cpp b/tools/decide/decide-score.cpp
+index c21d695e6..44a9815d9 100644
+--- a/tools/decide/decide-score.cpp
++++ b/tools/decide/decide-score.cpp
+@@ -9,11 +9,12 @@ namespace decide {
+ 
+ // log_softmax over x, -inf inputs stay -inf and are skipped in the normalising sum.
+ // If every input is -inf, every output is -inf.
+-static std::vector<double> log_softmax(const std::vector<float> & x) {
++template <typename T>
++static std::vector<double> log_softmax(const std::vector<T> & x) {
+     double max = -std::numeric_limits<double>::infinity();
+-    for (float v : x) {
+-        if (!std::isinf(v) && v > max) {
+-            max = v;
++    for (T v : x) {
++        if (!std::isinf((double) v) && (double) v > max) {
++            max = (double) v;
+         }
+     }
+     std::vector<double> lsm(x.size());
+@@ -25,19 +26,47 @@ static std::vector<double> log_softmax(const std::vector<float> & x) {
+         return lsm;
+     }
+     double sum = 0.0;
+-    for (float v : x) {
+-        if (!std::isinf(v)) {
++    for (T v : x) {
++        if (!std::isinf((double) v)) {
+             sum += std::exp((double) v - max);
+         }
+     }
+     double log_z = max + std::log(sum);
+     for (size_t i = 0; i < x.size(); ++i) {
+-        lsm[i] = std::isinf(x[i]) ? -std::numeric_limits<double>::infinity() : (double) x[i] - log_z;
++        lsm[i] = std::isinf((double) x[i]) ? -std::numeric_limits<double>::infinity() : (double) x[i] - log_z;
+     }
+     return lsm;
+ }
+ 
+ field_answer score_field(const field & f, const field_trie & t, const std::vector<node_scores> & scores) {
++    // Validate that `scores` exactly covers t.branch_nodes: this layer is the normalisation
++    // boundary, so a missing/duplicate/mis-shaped entry must be a hard error, not a silent
++    // un-normalized advantage for the affected options.
++    std::vector<int> seen_count(t.nodes.size(), 0);
++    for (const node_scores & s : scores) {
++        if (s.node < 0 || s.node >= (int) t.nodes.size() ||
++            std::find(t.branch_nodes.begin(), t.branch_nodes.end(), s.node) == t.branch_nodes.end()) {
++            throw error("engine", 500, "field \"" + f.name + "\": inconsistent node scores (node " +
++                                            std::to_string(s.node) + " is not a branch node)");
++        }
++        if (s.child_logits.size() != t.nodes[s.node].children.size()) {
++            throw error("engine", 500, "field \"" + f.name + "\": inconsistent node scores (child_logits size " +
++                                            std::to_string(s.child_logits.size()) + " != " +
++                                            std::to_string(t.nodes[s.node].children.size()) + " children at node " +
++                                            std::to_string(s.node) + ")");
++        }
++        if (++seen_count[s.node] > 1) {
++            throw error("engine", 500, "field \"" + f.name + "\": inconsistent node scores (duplicate entry for node " +
++                                            std::to_string(s.node) + ")");
++        }
++    }
++    for (int bn : t.branch_nodes) {
++        if (seen_count[bn] != 1) {
++            throw error("engine", 500, "field \"" + f.name + "\": inconsistent node scores (missing entry for branch node " +
++                                            std::to_string(bn) + ")");
++        }
++    }
++
+     std::vector<double> logp(f.options.size(), 0.0);
+ 
+     for (const node_scores & s : scores) {
+@@ -51,8 +80,7 @@ field_answer score_field(const field & f, const field_trie & t, const std::vecto
+         }
+     }
+ 
+-    std::vector<float> logp_f(logp.begin(), logp.end());
+-    auto lsm = log_softmax(logp_f);
++    auto lsm = log_softmax(logp);
+ 
+     bool all_inf = true;
+     for (double v : lsm) {
+-- 
+2.55.0
+

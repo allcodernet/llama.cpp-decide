@@ -1,0 +1,75 @@
+{
+  "preset": "qwen3.5-4b",
+  "tag": "tree",
+  "engine": {
+    "scoring": "tree",
+    "order_debias": 2,
+    "temperature": 1.0,
+    "phases": 2,
+    "seqs_per_state": 8,
+    "states_per_round": 3,
+    "quote_split_fields": [],
+    "prefix_cache": {
+      "capacity": 8,
+      "entries": 1,
+      "hits": 0,
+      "misses": 2
+    }
+  },
+  "batched": {
+    "states": [
+      5,
+      5,
+      5,
+      5
+    ],
+    "rounds": [
+      2,
+      2,
+      2,
+      2
+    ],
+    "states_per_round": 3,
+    "more_than_one_state_per_round": true
+  },
+  "batched_vs_b1": {
+    "n_tickets": 20,
+    "max_abs_diff": 0.04179377797266759,
+    "fields": {
+      "queue": {
+        "median_abs_diff": 0.0004168713514547545,
+        "max_abs_diff": 0.04179377797266759,
+        "argmax_agreement": 1,
+        "argmax_disagreements": 0,
+        "disagreements_over_margin": 0,
+        "pass": true
+      },
+      "urgency": {
+        "median_abs_diff": 0.002439150235327219,
+        "max_abs_diff": 0.03910853679401649,
+        "argmax_agreement": 1,
+        "argmax_disagreements": 0,
+        "disagreements_over_margin": 0,
+        "pass": true
+      },
+      "angry": {
+        "median_abs_diff": 0.0019005727808823255,
+        "max_abs_diff": 0.029949277876772595,
+        "argmax_agreement": 1,
+        "argmax_disagreements": 0,
+        "disagreements_over_margin": 0,
+        "pass": true
+      }
+    },
+    "pass": true
+  },
+  "binding": true,
+  "given_lines": {
+    "batched_entries": 80,
+    "b1_entries": 80,
+    "problems": [],
+    "pass": true
+  },
+  "recompute": null,
+  "pass": true
+}

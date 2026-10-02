@@ -1,0 +1,1 @@
+{"fields": {"cat": {"type": "bool", "description": "Is there a cat in this picture?"}}, "states": ["A cat sleeps on the sofa."]}

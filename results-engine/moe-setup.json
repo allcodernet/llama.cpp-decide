@@ -1,0 +1,166 @@
+{
+  "note": "Setup record of the MoE runs on the laptop (RTX 3070 Ti Laptop 8 GB, 31 GB RAM). Log lines are verbatim server-log excerpts (the logs themselves are not committed); vram_mib_after_load is nvidia-smi right after /v1/decide/info answered; rss_kib values are `ps -o rss` of the model process (mmap'd GGUF pages count towards RSS); ready_s is server start to the first /v1/decide/info answer (the request that triggers the load).",
+  "models": {
+    "gemma-4-26b-a4b": {
+      "gguf": "/home/marduk/.lmstudio/models/gemma-4-26b-a4b-multilingual-GGUF/gemma-4-26b-a4b-multilingual-Q4_K_M.gguf",
+      "flags": "[*] + cpu-moe = 1 (spawned with --cpu-moe, -ngl 99, ctx 4096, q8_0 KV, fa on, --decide-seqs 21)",
+      "info": {
+        "decide_seqs": 21,
+        "n_ctx": 4096,
+        "n_batch": 2048,
+        "kv_unified": true,
+        "n_parallel": 1,
+        "memory": {
+          "recurrent": false,
+          "swa": true
+        },
+        "prefix": {
+          "hash": "",
+          "tokens": 0,
+          "assistant_prefix": "<turn|>\n<|turn>model\n<|channel>thought\n<channel|>",
+          "valid": false
+        },
+        "scoring_modes": [
+          "tree"
+        ]
+      },
+      "ready_s": 16,
+      "vram_mib_after_load": 2626,
+      "rss_kib_after_load": 13632036,
+      "rss_kib_after_reference_compare": 17191252,
+      "system_ram_after_load": "free -m: used 9573 MiB, available 22252 MiB of 31825 MiB",
+      "log_first_start_verbosity_3": [
+        "[59557] 0.00.030.655 I srv    load_model: loading model '/home/marduk/.lmstudio/models/gemma-4-26b-a4b-multilingual-GGUF/gemma-4-26b-a4b-multilingual-Q4_K_M.gguf'",
+        "[59557] 0.01.031.319 W llama_model_loader: tensor overrides to CPU are used with mmap enabled - consider using --load-mode none for better performance",
+        "[59557] 0.10.682.370 I srv  init_decide_: decide: 21 sequences reserved above 1 slots; memory recurrent=0 swa=1",
+        "[59557] 0.10.682.449 I srv  llama_server: model loaded",
+        "[59557] 1.58.530.423 W ~llama_context:      CUDA0 compute buffer size of 443.5261 MiB, does not match expectation of 337.8386 MiB"
+      ],
+      "log_second_start_verbosity_4": [
+        "[47941] 0.00.124.903 I srv    load_model: loading model '/home/marduk/.lmstudio/models/gemma-4-26b-a4b-multilingual-GGUF/gemma-4-26b-a4b-multilingual-Q4_K_M.gguf'",
+        "[47941] 0.00.648.604 I common_memory_breakdown_print: |   - CUDA0 (RTX 3070 Ti Laptop GPU) |  7839 = 7625 + ( 2378 =  1573 +     467 +     337) +       -2165 |",
+        "[47941] 0.00.648.604 I common_memory_breakdown_print: |   - Host                           |                 15027 = 15006 +       0 +      20                |",
+        "[47941] 0.00.869.283 I print_info: file size   = 15.63 GiB (5.32 BPW)",
+        "[47941] 0.01.164.963 I print_info: arch                  = gemma4",
+        "[47941] 0.01.164.982 I print_info: n_expert              = 128",
+        "[47941] 0.01.164.983 I print_info: n_expert_used         = 8",
+        "[47941] 0.01.164.987 I print_info: model type            = 26B.A4B",
+        "[47941] 0.01.164.987 I print_info: model params          = 25.23 B",
+        "[47941] 0.01.165.237 W llama_model_loader: tensor overrides to CPU are used with mmap enabled - consider using --load-mode none for better performance",
+        "[47941] 0.04.957.893 I load_tensors: offloaded 31/31 layers to GPU",
+        "[47941] 0.04.957.896 I load_tensors:   CPU_Mapped model buffer size = 15999.57 MiB",
+        "[47941] 0.04.957.897 I load_tensors:        CUDA0 model buffer size =  1573.63 MiB",
+        "[47941] 0.05.124.622 I llama_kv_cache:      CUDA0 KV buffer size =    42.50 MiB",
+        "[47941] 0.05.125.109 I llama_kv_cache:      CUDA0 KV buffer size =   425.00 MiB",
+        "[47941] 0.05.138.648 I sched_reserve:      CUDA0 compute buffer size =   337.84 MiB",
+        "[47941] 0.05.138.651 I sched_reserve:  CUDA_Host compute buffer size =    20.90 MiB",
+        "[47941] 0.05.310.581 I srv  init_decide_: decide: 21 sequences reserved above 1 slots; memory recurrent=0 swa=1",
+        "[47941] 0.05.310.752 I srv  llama_server: model loaded",
+        "[47941] 1.51.846.729 I common_memory_breakdown_print: |   - CUDA0 (RTX 3070 Ti Laptop GPU) |  7839 = 5189 + ( 2378 =  1573 +     467 +     337) +         270 |",
+        "[47941] 1.51.846.729 I common_memory_breakdown_print: |   - Host                           |                 16020 = 15999 +       0 +      20                |"
+      ]
+    },
+    "qwen3.5-35b-a3b": {
+      "gguf": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen3.5-35B-A3B-GGUF/Qwen3.5-35B-A3B-Q4_K_M.gguf",
+      "flags": "[*] + cpu-moe = 1 (spawned with --cpu-moe, -ngl 99, ctx 4096, q8_0 KV, fa on, --decide-seqs 21); no --mmproj in the spawn args",
+      "info": {
+        "decide_seqs": 21,
+        "n_ctx": 4096,
+        "n_batch": 2048,
+        "kv_unified": true,
+        "n_parallel": 1,
+        "memory": {
+          "recurrent": true,
+          "swa": false
+        },
+        "prefix": {
+          "hash": "",
+          "tokens": 0,
+          "assistant_prefix": "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+          "valid": false
+        },
+        "scoring_modes": [
+          "tree"
+        ]
+      },
+      "ready_s": 17,
+      "vram_mib_after_load": 3270,
+      "rss_kib_after_load": 14321128,
+      "rss_kib_after_batch1_run": 19706864,
+      "system_ram_after_load": "free -m: used 9340 MiB, available 22485 MiB of 31825 MiB",
+      "log_first_start_verbosity_4": [
+        "[60073] 0.00.127.143 I srv    load_model: loading model '/home/marduk/.lmstudio/models/lmstudio-community/Qwen3.5-35B-A3B-GGUF/Qwen3.5-35B-A3B-Q4_K_M.gguf'",
+        "[60073] 0.00.489.101 I common_memory_breakdown_print: |   - CUDA0 (RTX 3070 Ti Laptop GPU) |  7839 = 6243 + ( 3017 =  1305 +    1424 +     288) +       -1422 |",
+        "[60073] 0.00.489.102 I common_memory_breakdown_print: |   - Host                           |                 18885 = 18872 +       0 +      12                |",
+        "[60073] 0.00.605.538 I print_info: file size   = 19.71 GiB (4.88 BPW)",
+        "[60073] 0.00.817.099 I print_info: arch                  = qwen35moe",
+        "[60073] 0.00.817.116 I print_info: n_expert              = 256",
+        "[60073] 0.00.817.116 I print_info: n_expert_used         = 8",
+        "[60073] 0.00.817.122 I print_info: model type            = 35B.A3B",
+        "[60073] 0.00.817.123 I print_info: model params          = 34.66 B",
+        "[60073] 0.00.817.380 W llama_model_loader: tensor overrides to CPU are used with mmap enabled - consider using --load-mode none for better performance",
+        "[60073] 0.09.796.533 I load_tensors: offloaded 41/41 layers to GPU",
+        "[60073] 0.09.796.679 I load_tensors:   CPU_Mapped model buffer size = 19779.53 MiB",
+        "[60073] 0.09.796.681 I load_tensors:        CUDA0 model buffer size =  1305.15 MiB",
+        "[60073] 0.10.245.365 I llama_kv_cache:      CUDA0 KV buffer size =    42.50 MiB",
+        "[60073] 0.10.250.100 I llama_memory_recurrent:      CUDA0 RS buffer size =  1381.88 MiB",
+        "[60073] 0.10.262.997 I sched_reserve:      CUDA0 compute buffer size =   288.39 MiB",
+        "[60073] 0.10.262.999 I sched_reserve:  CUDA_Host compute buffer size =    12.66 MiB",
+        "[60073] 0.10.825.449 I srv  init_decide_: decide: 21 sequences reserved above 1 slots; memory recurrent=1 swa=0",
+        "[60073] 0.10.825.471 I srv  llama_server: model loaded",
+        "[60073] 1.45.197.199 I common_memory_breakdown_print: |   - CUDA0 (RTX 3070 Ti Laptop GPU) |  7839 = 4487 + ( 3017 =  1305 +    1424 +     288) +         333 |",
+        "[60073] 1.45.197.200 I common_memory_breakdown_print: |   - Host                           |                 19792 = 19779 +       0 +      12                |"
+      ]
+    },
+    "qwen3-30b-a3b": {
+      "gguf": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen3-30B-A3B-Instruct-2507-GGUF/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf",
+      "flags": "[*] + cpu-moe = 1 (spawned with --cpu-moe, -ngl 99, ctx 4096, q8_0 KV, fa on, --decide-seqs 21)",
+      "info": {
+        "decide_seqs": 21,
+        "n_ctx": 4096,
+        "n_batch": 2048,
+        "kv_unified": true,
+        "n_parallel": 1,
+        "memory": {
+          "recurrent": false,
+          "swa": false
+        },
+        "prefix": {
+          "hash": "",
+          "tokens": 0,
+          "assistant_prefix": "<|im_end|>\n<|im_start|>assistant\n",
+          "valid": false
+        },
+        "scoring_modes": [
+          "tree"
+        ]
+      },
+      "ready_s": 19,
+      "vram_mib_after_load": 1450,
+      "rss_kib_after_load": 14860748,
+      "system_ram_after_load": "free -m: used 10354 MiB, available 21471 MiB of 31825 MiB",
+      "log_first_start_verbosity_4": [
+        "[32951] 0.00.154.990 I srv    load_model: loading model '/home/marduk/.lmstudio/models/lmstudio-community/Qwen3-30B-A3B-Instruct-2507-GGUF/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf'",
+        "[32951] 0.00.326.432 I common_memory_breakdown_print: |   - CUDA0 (RTX 3070 Ti Laptop GPU) |  7839 = 7635 + ( 1212 =   784 +     204 +     223) +       -1008 |",
+        "[32951] 0.00.326.432 I common_memory_breakdown_print: |   - Host                           |                 16919 = 16906 +       0 +      12                |",
+        "[32951] 0.00.393.039 I print_info: file size   = 17.28 GiB (4.86 BPW)",
+        "[32951] 0.00.506.045 I print_info: arch                  = qwen3moe",
+        "[32951] 0.00.506.061 I print_info: n_expert              = 128",
+        "[32951] 0.00.506.061 I print_info: n_expert_used         = 8",
+        "[32951] 0.00.506.065 I print_info: model type            = 30B.A3B",
+        "[32951] 0.00.506.065 I print_info: model params          = 30.53 B",
+        "[32951] 0.00.506.312 W llama_model_loader: tensor overrides to CPU are used with mmap enabled - consider using --load-mode none for better performance",
+        "[32951] 0.11.377.160 I load_tensors: offloaded 49/49 layers to GPU",
+        "[32951] 0.11.377.304 I load_tensors:   CPU_Mapped model buffer size = 17447.91 MiB",
+        "[32951] 0.11.377.306 I load_tensors:        CUDA0 model buffer size =   784.42 MiB",
+        "[32951] 0.11.623.945 I llama_kv_cache:      CUDA0 KV buffer size =   204.00 MiB",
+        "[32951] 0.11.634.409 I sched_reserve:      CUDA0 compute buffer size =   223.59 MiB",
+        "[32951] 0.11.634.411 I sched_reserve:  CUDA_Host compute buffer size =    12.47 MiB",
+        "[32951] 0.12.776.228 I srv  init_decide_: decide: 21 sequences reserved above 1 slots; memory recurrent=0 swa=0",
+        "[32951] 0.12.776.257 I srv  llama_server: model loaded",
+        "[32951] 1.59.909.694 I common_memory_breakdown_print: |   - CUDA0 (RTX 3070 Ti Laptop GPU) |  7839 = 6309 + ( 1212 =   784 +     204 +     223) +         317 |",
+        "[32951] 1.59.909.695 I common_memory_breakdown_print: |   - Host                           |                 17460 = 17447 +       0 +      12                |"
+      ]
+    }
+  }
+}

@@ -1,0 +1,152 @@
+From 6cee9d5944361848b62ba4bc0c9ca3dd9828a219 Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 2 Oct 2026 08:20:29 +0200
+Subject: [PATCH 35/45] decide: fault modes for the cell-estimate, lines-join
+ and tail-mismatch paths
+
+LLAMA_DECIDE_FAULT gains three one-shot modes, armed at construction and
+disarmed in their own path: cell-estimate makes the first exact
+post-phase cell check report "cell estimate exceeded"; lines-join fails
+the first context join check at its call site in set_contexts;
+tail-mismatch fails the first tail comparison of a variant v >= 1.
+CLI help lists them.
+---
+ tools/decide/decide-cli.cpp    | 11 ++++++++---
+ tools/decide/decide-engine.cpp | 28 +++++++++++++++++++++++++---
+ tools/decide/decide-engine.h   |  6 ++++--
+ 3 files changed, 37 insertions(+), 8 deletions(-)
+
+diff --git a/tools/decide/decide-cli.cpp b/tools/decide/decide-cli.cpp
+index 7654e4d10..a72775930 100644
+--- a/tools/decide/decide-cli.cpp
++++ b/tools/decide/decide-cli.cpp
+@@ -7,7 +7,7 @@
+ // --dump-tokens adds the "tokens" object (prefix, the prefixes of all catalogue variants, state, tail, branch ids with their variant and
+ // phase; full-path: the rows read and their log-probs; fields with "after": the lines and given of the state) to every response.
+ // Exits 1 on the first error, with the error JSON on stderr.
+-// LLAMA_DECIDE_FAULT (testing, see --help) makes chosen decodes report "no KV slot" or one prefix restore fail.
++// LLAMA_DECIDE_FAULT (testing, see --help) makes chosen decodes report "no KV slot", one prefix restore fail, or one check fail.
+ 
+ #include "decide-api.h"
+ 
+@@ -32,11 +32,16 @@ static void print_usage(int, char ** argv) {
+     printf("  --dump-tokens  add the \"tokens\" object (prefix, prefixes of all catalogue variants, state, tail, branch ids with\n");
+     printf("                 their variant and phase; full-path: the rows read and their log-probs, null = -inf; fields with\n");
+     printf("                 \"after\": the lines and given) to every response\n\n");
+-    printf("  LLAMA_DECIDE_FAULT (testing) makes a decode return 1 (\"no KV slot\") without decoding, or a prefix restore fail:\n");
++    printf("  LLAMA_DECIDE_FAULT (testing) makes a decode return 1 (\"no KV slot\") without decoding, a prefix restore fail, or one\n");
++    printf("  check report its 500:\n");
+     printf("    rc1         the first branch-phase decode of the first attempt of every round (the retry runs normally)\n");
+     printf("    rc1-twice   the first branch-phase decode of both attempts of the first round after start (a 500)\n");
+     printf("    rc1-phase1  as rc1, for the first phase-1 decode (fields with \"after\")\n");
+-    printf("    restore     the first prefix cache restore after start gets its snapshot one byte short (the slot is cleared and decoded)\n\n");
++    printf("    restore     the first prefix cache restore after start gets its snapshot one byte short (the slot is cleared and decoded)\n");
++    printf("    cell-estimate  the first exact cell check before a dependent phase reports \"cell estimate exceeded\" (fields with \"after\")\n");
++    printf("    lines-join     the first context join check of a dependent field reports \"answer lines change the tokenisation\"\n");
++    printf("    tail-mismatch  the first tail comparison of a catalogue variant v >= 1 fails (order_debias >= 2)\n");
++    printf("  rc1-twice, restore and the last three fire once after start; later requests run normally\n\n");
+ }
+ 
+ int main(int argc, char ** argv) {
+diff --git a/tools/decide/decide-engine.cpp b/tools/decide/decide-engine.cpp
+index a723587ee..11a2160f0 100644
+--- a/tools/decide/decide-engine.cpp
++++ b/tools/decide/decide-engine.cpp
+@@ -53,8 +53,18 @@ engine::engine(llama_context * ctx_, const llama_model * model_, const common_ch
+     } else if (fault_str == "restore") {
+         fault       = fault_mode::RESTORE;
+         fault_armed = true;
++    } else if (fault_str == "cell-estimate") {
++        fault       = fault_mode::CELL_ESTIMATE;
++        fault_armed = true;
++    } else if (fault_str == "lines-join") {
++        fault       = fault_mode::LINES_JOIN;
++        fault_armed = true;
++    } else if (fault_str == "tail-mismatch") {
++        fault       = fault_mode::TAIL_MISMATCH;
++        fault_armed = true;
+     } else if (!fault_str.empty()) {
+-        throw error("engine", 500, "LLAMA_DECIDE_FAULT must be rc1, rc1-twice, rc1-phase1 or restore, got \"" + fault_str + "\"");
++        throw error("engine", 500, "LLAMA_DECIDE_FAULT must be rc1, rc1-twice, rc1-phase1, restore, cell-estimate, lines-join or tail-mismatch, got \"" +
++                                       fault_str + "\"");
+     }
+     char desc[128];
+     llama_model_desc(model, desc, sizeof(desc));
+@@ -246,6 +256,14 @@ std::vector<int64_t> reserved_branch_tokens(const trie_set & ts, const std::vect
+     return out;
+ }
+ 
++bool engine::fault_fires(fault_mode m) const {
++    if (fault != m || !fault_armed) {
++        return false;
++    }
++    fault_armed = false;
++    return true;
++}
++
+ int64_t engine::held_cells() const {
+     int64_t held = 0;
+     for (llama_seq_id s : cfg.slot_seqs) {
+@@ -448,6 +466,10 @@ void engine::set_contexts(const compiled_schema & cs, const trie_set & ts, size_
+             const context_entry & e  = rs.contexts.get(f, al.text, [&] {
+                 context_entry n;
+                 n.trie = context_trie(ts.fields[f], F, al.text, vocab);
++                if (fault_fires(fault_mode::LINES_JOIN)) {
++                    throw error("engine", 500, "answer lines change the tokenisation of field \"" + F.name +
++                                                   "\"; remove its \"after\" (injected by LLAMA_DECIDE_FAULT=lines-join)", F.name);
++                }
+                 check_context_join(vocab, rs.tail_text, F, n.trie, al.text, who);
+                 if (ts.mode == scoring_mode::FULL_PATH) {
+                     n.plan = full_path_plan(n.trie);   // the longer stem moves the row indices
+@@ -456,7 +478,7 @@ void engine::set_contexts(const compiled_schema & cs, const trie_set & ts, size_
+                 return n;
+             });
+             // spec 5.4: the worst case reserved these cells before the round; more is an estimate defect
+-            if (e.tokens > rs.reserved[f]) {
++            if (e.tokens > rs.reserved[f] || fault_fires(fault_mode::CELL_ESTIMATE)) {
+                 throw error("engine", 500, "cell estimate exceeded: field \"" + F.name + "\" needs " + std::to_string(e.tokens) +
+                                                " branch cells per state with its answer lines, " + std::to_string(rs.reserved[f]) + " are reserved", F.name);
+             }
+@@ -674,7 +696,7 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+         ps.push_back(prepare_prefix(cs, v, K));
+         prefix_total += (int64_t) ps.back().tokens.size();
+         // the budget, the joins and the dump use one tail for every variant
+-        if (ps.back().tail_text != ps[0].tail_text) {
++        if (ps.back().tail_text != ps[0].tail_text || (v >= 1 && fault_fires(fault_mode::TAIL_MISMATCH))) {
+             throw error("engine", 500, "catalogue variant " + std::to_string(v) + " renders another chat template tail");
+         }
+     }
+diff --git a/tools/decide/decide-engine.h b/tools/decide/decide-engine.h
+index b4303b88f..a039508c5 100644
+--- a/tools/decide/decide-engine.h
++++ b/tools/decide/decide-engine.h
+@@ -122,7 +122,7 @@ private:
+         uint64_t             used = 0;   // tick of the last store or hit (LRU order)
+     };
+     // spec 9: LLAMA_DECIDE_FAULT
+-    enum class fault_mode { NONE, RC1, RC1_TWICE, RC1_PHASE1, RESTORE };
++    enum class fault_mode { NONE, RC1, RC1_TWICE, RC1_PHASE1, RESTORE, CELL_ESTIMATE, LINES_JOIN, TAIL_MISMATCH };
+     // spec 5: one field of one state: the trie its branches use (lines-free, or the context trie of its lines), for a dependent field
+     // its lines and given (the same for every catalogue variant), and per variant the rows read in its phase
+     struct field_state {
+@@ -181,6 +181,8 @@ private:
+     // removes the trunks and branches of `count` states (the ids after the K prefix slots)
+     void     cleanup(int K, int seqs_per_state, size_t count);
+     int64_t  held_cells() const;
++    // spec 9: true once, at the first call for the armed one-shot mode m (cell-estimate, lines-join, tail-mismatch); disarms it
++    bool     fault_fires(fault_mode m) const;
+ 
+     llama_context               * ctx;
+     const llama_model           * model;
+@@ -198,7 +200,7 @@ private:
+     std::vector<cache_entry>      cache;   // spec 6.2: at most cfg.prefix_cache entries and CACHE_MAX_BYTES bytes
+     uint64_t                      cache_tick  = 0;
+     fault_mode                    fault       = fault_mode::NONE;
+-    bool                          fault_armed = false;   // rc1-twice, restore: not yet fired
++    mutable bool                  fault_armed = false;   // the one-shot modes (rc1-twice, restore, cell-estimate, lines-join, tail-mismatch): not yet fired
+ };
+ 
+ } // namespace decide
+-- 
+2.55.0
+

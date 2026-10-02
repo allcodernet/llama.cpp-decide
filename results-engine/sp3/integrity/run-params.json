@@ -1,0 +1,1144 @@
+{
+  "engine": {
+    "commit": "5e9e030d3",
+    "subject": "decide: clamp free sequences in the budget message; cell message helper",
+    "build_info_commit": "8daa120b5"
+  },
+  "presets": {
+    "file": "models-engine.ini",
+    "blob": "ccfeeb1376dc1f30b09b4492c5b3861310301e57",
+    "committed_in": "b527dbd"
+  },
+  "notes": [
+    "Commands as run.sh runs them (paths from the project directory, $I expanded). CLI runs: llama-decide with the preset's -c/-ngl/-fa/cache types (reference_check.decide_command), the server stopped. Server runs: the serve-engine.sh router on port 8097 with the presets above; their decide_seqs is the preset's (the replays' /completion requests do not use it).",
+    "b: states per request line; mode: options.scoring; after: dependent fields (FIELD=PARENT).",
+    "The nosplit step and the model-free commands were run by hand; nosplit is a run.sh step since.",
+    "Checked against the outputs that record their parameters (checks.py _crosscheck): split, cache timing, regression runs, debias requests and responses, dump modes and `after` ancestors, replay presets. Recorded by no output, so from run.sh alone: the dumps' --decide-seqs and b; the debias runs' --decide-seqs only as consistent with the engine's states per round."
+  ],
+  "files": {
+    "cache-timing-gemma-4-e4b.json": {
+      "step": "cache",
+      "runner": "llama-decide (server stopped)",
+      "preset": "gemma-4-e4b",
+      "model": "models/gemma-4-E4B-it-Q4_0.gguf",
+      "decide_seqs": 21,
+      "b": 5,
+      "mode": "tree",
+      "prompt_variants": {
+        "A": "keywords",
+        "B": "default"
+      },
+      "prefix_cache": [
+        0,
+        8
+      ],
+      "summaries": "uv run cache_timing.py --resummarize results-engine/sp3/integrity/cache-timing-gemma-4-e4b.json (second pass: from the stored per-request timings)",
+      "command": "uv run cache_timing.py --model models/gemma-4-E4B-it-Q4_0.gguf --preset gemma-4-e4b --alternations 20 --out results-engine/sp3/integrity/cache-timing-gemma-4-e4b.json"
+    },
+    "cache-timing-qwen3.5-9b.json": {
+      "step": "cache",
+      "runner": "llama-decide (server stopped)",
+      "preset": "qwen3.5-9b",
+      "model": "models/Qwen3.5-9B-Q4_K_M.gguf",
+      "decide_seqs": 21,
+      "b": 5,
+      "mode": "tree",
+      "prompt_variants": {
+        "A": "keywords",
+        "B": "default"
+      },
+      "prefix_cache": [
+        0,
+        8
+      ],
+      "summaries": "uv run cache_timing.py --resummarize results-engine/sp3/integrity/cache-timing-qwen3.5-9b.json (second pass: from the stored per-request timings)",
+      "command": "uv run cache_timing.py --model models/Qwen3.5-9B-Q4_K_M.gguf --preset qwen3.5-9b --alternations 20 --out results-engine/sp3/integrity/cache-timing-qwen3.5-9b.json"
+    },
+    "chunk-answers-gemma-4-e4b.json": {
+      "step": "nosplit",
+      "runner": null,
+      "preset": null,
+      "model": null,
+      "decide_seqs": null,
+      "b": null,
+      "mode": null,
+      "inputs": [
+        "reference-fp-b5-gemma-4-e4b-dump.jsonl",
+        "reference-fp-b5-gemma-4-e4b.json",
+        "reference-fp-gemma-4-e4b.json",
+        "split-rowcap-gemma-4-e4b.json",
+        "split-s84-gemma-4-e4b.json",
+        "their full_path b5 and b1 lines"
+      ],
+      "command": "uv run results-engine/sp3/integrity/checks.py chunk-answers --preset gemma-4-e4b"
+    },
+    "chunk-answers-qwen2.5-0.5b.json": {
+      "step": "nosplit",
+      "runner": null,
+      "preset": null,
+      "model": null,
+      "decide_seqs": null,
+      "b": null,
+      "mode": null,
+      "inputs": [
+        "reference-fp-b5-qwen2.5-0.5b-dump.jsonl",
+        "reference-fp-b5-qwen2.5-0.5b.json",
+        "reference-fp-qwen2.5-0.5b.json",
+        "split-rowcap-qwen2.5-0.5b.json",
+        "split-s84-qwen2.5-0.5b.json",
+        "their full_path b5 and b1 lines"
+      ],
+      "command": "uv run results-engine/sp3/integrity/checks.py chunk-answers --preset qwen2.5-0.5b"
+    },
+    "debias-fp-qwen2.5-0.5b-b1.jsonl": {
+      "step": "debias",
+      "runner": "llama-decide (server stopped)",
+      "preset": "qwen2.5-0.5b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+      "decide_seqs": 64,
+      "b": 1,
+      "mode": "full_path",
+      "order_debias": 2,
+      "after": [
+        "urgency=queue",
+        "angry=queue"
+      ],
+      "command": "uv run results-engine/sp3/integrity/checks.py debias-run --model /home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf --preset qwen2.5-0.5b --decide-seqs 64 --scoring full_path --tag fp"
+    },
+    "debias-fp-qwen2.5-0.5b-b5.jsonl": {
+      "step": "debias",
+      "runner": "llama-decide (server stopped)",
+      "preset": "qwen2.5-0.5b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+      "decide_seqs": 64,
+      "b": 5,
+      "mode": "full_path",
+      "order_debias": 2,
+      "after": [
+        "urgency=queue",
+        "angry=queue"
+      ],
+      "command": "uv run results-engine/sp3/integrity/checks.py debias-run --model /home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf --preset qwen2.5-0.5b --decide-seqs 64 --scoring full_path --tag fp"
+    },
+    "debias-fp-qwen2.5-0.5b-requests-b1.jsonl": {
+      "step": "debias",
+      "runner": "llama-decide (server stopped)",
+      "preset": "qwen2.5-0.5b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+      "decide_seqs": 64,
+      "b": 1,
+      "mode": "full_path",
+      "order_debias": 2,
+      "after": [
+        "urgency=queue",
+        "angry=queue"
+      ],
+      "command": "uv run results-engine/sp3/integrity/checks.py debias-run --model /home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf --preset qwen2.5-0.5b --decide-seqs 64 --scoring full_path --tag fp"
+    },
+    "debias-fp-qwen2.5-0.5b-requests-b5.jsonl": {
+      "step": "debias",
+      "runner": "llama-decide (server stopped)",
+      "preset": "qwen2.5-0.5b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+      "decide_seqs": 64,
+      "b": 5,
+      "mode": "full_path",
+      "order_debias": 2,
+      "after": [
+        "urgency=queue",
+        "angry=queue"
+      ],
+      "command": "uv run results-engine/sp3/integrity/checks.py debias-run --model /home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf --preset qwen2.5-0.5b --decide-seqs 64 --scoring full_path --tag fp"
+    },
+    "debias-fp-qwen2.5-0.5b.json": {
+      "step": "debias",
+      "runner": null,
+      "preset": null,
+      "model": null,
+      "decide_seqs": null,
+      "b": null,
+      "mode": null,
+      "inputs": [
+        "debias-fp-qwen2.5-0.5b-requests-b5.jsonl",
+        "debias-fp-qwen2.5-0.5b-b5.jsonl",
+        "debias-fp-qwen2.5-0.5b-requests-b1.jsonl",
+        "debias-fp-qwen2.5-0.5b-b1.jsonl"
+      ],
+      "command": "uv run results-engine/sp3/integrity/checks.py debias-check --preset qwen2.5-0.5b --tag fp"
+    },
+    "debias-tree-qwen3.5-4b-b1.jsonl": {
+      "step": "debias",
+      "runner": "llama-decide (server stopped)",
+      "preset": "qwen3.5-4b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf",
+      "decide_seqs": 32,
+      "b": 1,
+      "mode": "tree",
+      "order_debias": 2,
+      "after": [
+        "urgency=queue",
+        "angry=queue"
+      ],
+      "command": "uv run results-engine/sp3/integrity/checks.py debias-run --model /home/marduk/.lmstudio/models/lmstudio-community/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf --preset qwen3.5-4b --decide-seqs 32 --scoring tree --tag tree"
+    },
+    "debias-tree-qwen3.5-4b-b5.jsonl": {
+      "step": "debias",
+      "runner": "llama-decide (server stopped)",
+      "preset": "qwen3.5-4b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf",
+      "decide_seqs": 32,
+      "b": 5,
+      "mode": "tree",
+      "order_debias": 2,
+      "after": [
+        "urgency=queue",
+        "angry=queue"
+      ],
+      "command": "uv run results-engine/sp3/integrity/checks.py debias-run --model /home/marduk/.lmstudio/models/lmstudio-community/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf --preset qwen3.5-4b --decide-seqs 32 --scoring tree --tag tree"
+    },
+    "debias-tree-qwen3.5-4b-requests-b1.jsonl": {
+      "step": "debias",
+      "runner": "llama-decide (server stopped)",
+      "preset": "qwen3.5-4b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf",
+      "decide_seqs": 32,
+      "b": 1,
+      "mode": "tree",
+      "order_debias": 2,
+      "after": [
+        "urgency=queue",
+        "angry=queue"
+      ],
+      "command": "uv run results-engine/sp3/integrity/checks.py debias-run --model /home/marduk/.lmstudio/models/lmstudio-community/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf --preset qwen3.5-4b --decide-seqs 32 --scoring tree --tag tree"
+    },
+    "debias-tree-qwen3.5-4b-requests-b5.jsonl": {
+      "step": "debias",
+      "runner": "llama-decide (server stopped)",
+      "preset": "qwen3.5-4b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf",
+      "decide_seqs": 32,
+      "b": 5,
+      "mode": "tree",
+      "order_debias": 2,
+      "after": [
+        "urgency=queue",
+        "angry=queue"
+      ],
+      "command": "uv run results-engine/sp3/integrity/checks.py debias-run --model /home/marduk/.lmstudio/models/lmstudio-community/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf --preset qwen3.5-4b --decide-seqs 32 --scoring tree --tag tree"
+    },
+    "debias-tree-qwen3.5-4b.json": {
+      "step": "debias",
+      "runner": null,
+      "preset": null,
+      "model": null,
+      "decide_seqs": null,
+      "b": null,
+      "mode": null,
+      "inputs": [
+        "debias-tree-qwen3.5-4b-requests-b5.jsonl",
+        "debias-tree-qwen3.5-4b-b5.jsonl",
+        "debias-tree-qwen3.5-4b-requests-b1.jsonl",
+        "debias-tree-qwen3.5-4b-b1.jsonl"
+      ],
+      "command": "uv run results-engine/sp3/integrity/checks.py debias-check --preset qwen3.5-4b --tag tree --binding"
+    },
+    "gpu-log.txt": {
+      "step": "all",
+      "runner": null,
+      "preset": null,
+      "model": null,
+      "decide_seqs": null,
+      "b": null,
+      "mode": null,
+      "note": "the lines run.sh's gpu_ready and router_load wrote at each step start and model load (VRAM, temperature); the last two, marked (diagnostic split s84, ...), were written by hand after the runs",
+      "command": "cp $LOGS/gpu.log results-engine/sp3/integrity/gpu-log.txt"
+    },
+    "notes.md": {
+      "step": "model-free",
+      "runner": null,
+      "preset": null,
+      "model": null,
+      "decide_seqs": null,
+      "b": null,
+      "mode": null,
+      "inputs": [
+        "the files it names",
+        "run-params.json"
+      ],
+      "command": "uv run results-engine/sp3/integrity/checks.py notes"
+    },
+    "offline-recompute.json": {
+      "step": "model-free",
+      "runner": null,
+      "preset": null,
+      "model": null,
+      "decide_seqs": null,
+      "b": null,
+      "mode": null,
+      "inputs": [
+        "reference-fp-after-qwen2.5-0.5b-replay.jsonl.gz",
+        "reference-fp-after-qwen3.5-4b-replay.jsonl.gz",
+        "reference-fp-b5-gemma-4-e4b-replay.jsonl.gz",
+        "reference-fp-b5-qwen2.5-0.5b-replay.jsonl.gz",
+        "reference-fp-gemma-4-e4b-replay.jsonl.gz",
+        "reference-fp-qwen2.5-0.5b-replay.jsonl.gz",
+        "reference-fp-qwen3.5-4b-replay.jsonl.gz",
+        "reference-fp-qwen3.5-9b-replay.jsonl.gz",
+        "reference-tree-b1-qwen2.5-0.5b-replay.jsonl.gz",
+        "reference-tree-b5-qwen2.5-0.5b-replay.jsonl.gz"
+      ],
+      "command": "uv run results-engine/sp3/integrity/checks.py offline-check"
+    },
+    "reference-fp-after-qwen2.5-0.5b-dump.jsonl": {
+      "step": "dumps",
+      "runner": "llama-decide (server stopped)",
+      "preset": "qwen2.5-0.5b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+      "decide_seqs": 64,
+      "b": 1,
+      "mode": "full_path",
+      "after": [
+        "urgency=queue",
+        "angry=queue"
+      ],
+      "command": "uv run reference_check.py dump --model /home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf --preset qwen2.5-0.5b --n 20 --tag fp-after --out-dir results-engine/sp3/integrity --scoring full_path --decide-seqs 64 --after urgency=queue --after angry=queue"
+    },
+    "reference-fp-after-qwen2.5-0.5b-replay.jsonl.gz": {
+      "step": "replays",
+      "runner": "llama-server (serve-engine.sh router)",
+      "preset": "qwen2.5-0.5b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+      "decide_seqs": 21,
+      "b": 1,
+      "mode": "full_path",
+      "after": [
+        "urgency=queue",
+        "angry=queue"
+      ],
+      "inputs": [
+        "reference-fp-after-qwen2.5-0.5b-dump.jsonl"
+      ],
+      "command": "uv run reference_check.py compare --preset qwen2.5-0.5b --tag fp-after --out-dir results-engine/sp3/integrity --url http://127.0.0.1:8097"
+    },
+    "reference-fp-after-qwen2.5-0.5b.json": {
+      "step": "replays",
+      "runner": "llama-server (serve-engine.sh router)",
+      "preset": "qwen2.5-0.5b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+      "decide_seqs": 21,
+      "b": 1,
+      "mode": "full_path",
+      "after": [
+        "urgency=queue",
+        "angry=queue"
+      ],
+      "inputs": [
+        "reference-fp-after-qwen2.5-0.5b-dump.jsonl"
+      ],
+      "command": "uv run reference_check.py compare --preset qwen2.5-0.5b --tag fp-after --out-dir results-engine/sp3/integrity --url http://127.0.0.1:8097"
+    },
+    "reference-fp-after-qwen3.5-4b-dump.jsonl": {
+      "step": "dumps",
+      "runner": "llama-decide (server stopped)",
+      "preset": "qwen3.5-4b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf",
+      "decide_seqs": 32,
+      "b": 1,
+      "mode": "full_path",
+      "after": [
+        "urgency=queue",
+        "angry=queue"
+      ],
+      "command": "uv run reference_check.py dump --model /home/marduk/.lmstudio/models/lmstudio-community/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf --preset qwen3.5-4b --n 20 --tag fp-after --out-dir results-engine/sp3/integrity --scoring full_path --decide-seqs 32 --after urgency=queue --after angry=queue"
+    },
+    "reference-fp-after-qwen3.5-4b-replay.jsonl.gz": {
+      "step": "replays",
+      "runner": "llama-server (serve-engine.sh router)",
+      "preset": "qwen3.5-4b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf",
+      "decide_seqs": 21,
+      "b": 1,
+      "mode": "full_path",
+      "after": [
+        "urgency=queue",
+        "angry=queue"
+      ],
+      "inputs": [
+        "reference-fp-after-qwen3.5-4b-dump.jsonl"
+      ],
+      "command": "uv run reference_check.py compare --preset qwen3.5-4b --tag fp-after --out-dir results-engine/sp3/integrity --url http://127.0.0.1:8097"
+    },
+    "reference-fp-after-qwen3.5-4b.json": {
+      "step": "replays",
+      "runner": "llama-server (serve-engine.sh router)",
+      "preset": "qwen3.5-4b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf",
+      "decide_seqs": 21,
+      "b": 1,
+      "mode": "full_path",
+      "after": [
+        "urgency=queue",
+        "angry=queue"
+      ],
+      "inputs": [
+        "reference-fp-after-qwen3.5-4b-dump.jsonl"
+      ],
+      "command": "uv run reference_check.py compare --preset qwen3.5-4b --tag fp-after --out-dir results-engine/sp3/integrity --url http://127.0.0.1:8097"
+    },
+    "reference-fp-b5-gemma-4-e4b-dump.jsonl": {
+      "step": "dumps",
+      "runner": "llama-decide (server stopped)",
+      "preset": "gemma-4-e4b",
+      "model": "models/gemma-4-E4B-it-Q4_0.gguf",
+      "decide_seqs": 64,
+      "b": 5,
+      "mode": "full_path",
+      "after": null,
+      "command": "uv run reference_check.py dump --model models/gemma-4-E4B-it-Q4_0.gguf --preset gemma-4-e4b --n 20 --tag fp-b5 --out-dir results-engine/sp3/integrity --scoring full_path --decide-seqs 64 --batch 5"
+    },
+    "reference-fp-b5-gemma-4-e4b-replay.jsonl.gz": {
+      "step": "replays",
+      "runner": "llama-server (serve-engine.sh router)",
+      "preset": "gemma-4-e4b",
+      "model": "./models/gemma-4-E4B-it-Q4_0.gguf",
+      "decide_seqs": 21,
+      "b": 5,
+      "mode": "full_path",
+      "after": null,
+      "inputs": [
+        "reference-fp-b5-gemma-4-e4b-dump.jsonl"
+      ],
+      "command": "uv run reference_check.py compare --preset gemma-4-e4b --tag fp-b5 --out-dir results-engine/sp3/integrity --url http://127.0.0.1:8097"
+    },
+    "reference-fp-b5-gemma-4-e4b.json": {
+      "step": "replays",
+      "runner": "llama-server (serve-engine.sh router)",
+      "preset": "gemma-4-e4b",
+      "model": "./models/gemma-4-E4B-it-Q4_0.gguf",
+      "decide_seqs": 21,
+      "b": 5,
+      "mode": "full_path",
+      "after": null,
+      "inputs": [
+        "reference-fp-b5-gemma-4-e4b-dump.jsonl"
+      ],
+      "command": "uv run reference_check.py compare --preset gemma-4-e4b --tag fp-b5 --out-dir results-engine/sp3/integrity --url http://127.0.0.1:8097"
+    },
+    "reference-fp-b5-qwen2.5-0.5b-dump.jsonl": {
+      "step": "dumps",
+      "runner": "llama-decide (server stopped)",
+      "preset": "qwen2.5-0.5b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+      "decide_seqs": 64,
+      "b": 5,
+      "mode": "full_path",
+      "after": null,
+      "command": "uv run reference_check.py dump --model /home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf --preset qwen2.5-0.5b --n 20 --tag fp-b5 --out-dir results-engine/sp3/integrity --scoring full_path --decide-seqs 64 --batch 5"
+    },
+    "reference-fp-b5-qwen2.5-0.5b-replay.jsonl.gz": {
+      "step": "replays",
+      "runner": "llama-server (serve-engine.sh router)",
+      "preset": "qwen2.5-0.5b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+      "decide_seqs": 21,
+      "b": 5,
+      "mode": "full_path",
+      "after": null,
+      "inputs": [
+        "reference-fp-b5-qwen2.5-0.5b-dump.jsonl"
+      ],
+      "command": "uv run reference_check.py compare --preset qwen2.5-0.5b --tag fp-b5 --out-dir results-engine/sp3/integrity --url http://127.0.0.1:8097"
+    },
+    "reference-fp-b5-qwen2.5-0.5b.json": {
+      "step": "replays",
+      "runner": "llama-server (serve-engine.sh router)",
+      "preset": "qwen2.5-0.5b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+      "decide_seqs": 21,
+      "b": 5,
+      "mode": "full_path",
+      "after": null,
+      "inputs": [
+        "reference-fp-b5-qwen2.5-0.5b-dump.jsonl"
+      ],
+      "command": "uv run reference_check.py compare --preset qwen2.5-0.5b --tag fp-b5 --out-dir results-engine/sp3/integrity --url http://127.0.0.1:8097"
+    },
+    "reference-fp-gemma-4-e4b-dump.jsonl": {
+      "step": "dumps",
+      "runner": "llama-decide (server stopped)",
+      "preset": "gemma-4-e4b",
+      "model": "models/gemma-4-E4B-it-Q4_0.gguf",
+      "decide_seqs": 64,
+      "b": 1,
+      "mode": "full_path",
+      "after": null,
+      "command": "uv run reference_check.py dump --model models/gemma-4-E4B-it-Q4_0.gguf --preset gemma-4-e4b --n 20 --tag fp --out-dir results-engine/sp3/integrity --scoring full_path --decide-seqs 64"
+    },
+    "reference-fp-gemma-4-e4b-replay.jsonl.gz": {
+      "step": "replays",
+      "runner": "llama-server (serve-engine.sh router)",
+      "preset": "gemma-4-e4b",
+      "model": "./models/gemma-4-E4B-it-Q4_0.gguf",
+      "decide_seqs": 21,
+      "b": 1,
+      "mode": "full_path",
+      "after": null,
+      "inputs": [
+        "reference-fp-gemma-4-e4b-dump.jsonl"
+      ],
+      "command": "uv run reference_check.py compare --preset gemma-4-e4b --tag fp --out-dir results-engine/sp3/integrity --url http://127.0.0.1:8097"
+    },
+    "reference-fp-gemma-4-e4b.json": {
+      "step": "replays",
+      "runner": "llama-server (serve-engine.sh router)",
+      "preset": "gemma-4-e4b",
+      "model": "./models/gemma-4-E4B-it-Q4_0.gguf",
+      "decide_seqs": 21,
+      "b": 1,
+      "mode": "full_path",
+      "after": null,
+      "inputs": [
+        "reference-fp-gemma-4-e4b-dump.jsonl"
+      ],
+      "command": "uv run reference_check.py compare --preset gemma-4-e4b --tag fp --out-dir results-engine/sp3/integrity --url http://127.0.0.1:8097"
+    },
+    "reference-fp-qwen2.5-0.5b-dump.jsonl": {
+      "step": "dumps",
+      "runner": "llama-decide (server stopped)",
+      "preset": "qwen2.5-0.5b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+      "decide_seqs": 64,
+      "b": 1,
+      "mode": "full_path",
+      "after": null,
+      "command": "uv run reference_check.py dump --model /home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf --preset qwen2.5-0.5b --n 20 --tag fp --out-dir results-engine/sp3/integrity --scoring full_path --decide-seqs 64"
+    },
+    "reference-fp-qwen2.5-0.5b-replay.jsonl.gz": {
+      "step": "replays",
+      "runner": "llama-server (serve-engine.sh router)",
+      "preset": "qwen2.5-0.5b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+      "decide_seqs": 21,
+      "b": 1,
+      "mode": "full_path",
+      "after": null,
+      "inputs": [
+        "reference-fp-qwen2.5-0.5b-dump.jsonl"
+      ],
+      "command": "uv run reference_check.py compare --preset qwen2.5-0.5b --tag fp --out-dir results-engine/sp3/integrity --url http://127.0.0.1:8097"
+    },
+    "reference-fp-qwen2.5-0.5b.json": {
+      "step": "replays",
+      "runner": "llama-server (serve-engine.sh router)",
+      "preset": "qwen2.5-0.5b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+      "decide_seqs": 21,
+      "b": 1,
+      "mode": "full_path",
+      "after": null,
+      "inputs": [
+        "reference-fp-qwen2.5-0.5b-dump.jsonl"
+      ],
+      "command": "uv run reference_check.py compare --preset qwen2.5-0.5b --tag fp --out-dir results-engine/sp3/integrity --url http://127.0.0.1:8097"
+    },
+    "reference-fp-qwen3.5-4b-dump.jsonl": {
+      "step": "dumps",
+      "runner": "llama-decide (server stopped)",
+      "preset": "qwen3.5-4b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf",
+      "decide_seqs": 32,
+      "b": 1,
+      "mode": "full_path",
+      "after": null,
+      "command": "uv run reference_check.py dump --model /home/marduk/.lmstudio/models/lmstudio-community/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf --preset qwen3.5-4b --n 20 --tag fp --out-dir results-engine/sp3/integrity --scoring full_path --decide-seqs 32"
+    },
+    "reference-fp-qwen3.5-4b-replay.jsonl.gz": {
+      "step": "replays",
+      "runner": "llama-server (serve-engine.sh router)",
+      "preset": "qwen3.5-4b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf",
+      "decide_seqs": 21,
+      "b": 1,
+      "mode": "full_path",
+      "after": null,
+      "inputs": [
+        "reference-fp-qwen3.5-4b-dump.jsonl"
+      ],
+      "command": "uv run reference_check.py compare --preset qwen3.5-4b --tag fp --out-dir results-engine/sp3/integrity --url http://127.0.0.1:8097"
+    },
+    "reference-fp-qwen3.5-4b.json": {
+      "step": "replays",
+      "runner": "llama-server (serve-engine.sh router)",
+      "preset": "qwen3.5-4b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf",
+      "decide_seqs": 21,
+      "b": 1,
+      "mode": "full_path",
+      "after": null,
+      "inputs": [
+        "reference-fp-qwen3.5-4b-dump.jsonl"
+      ],
+      "command": "uv run reference_check.py compare --preset qwen3.5-4b --tag fp --out-dir results-engine/sp3/integrity --url http://127.0.0.1:8097"
+    },
+    "reference-fp-qwen3.5-9b-dump.jsonl": {
+      "step": "dumps",
+      "runner": "llama-decide (server stopped)",
+      "preset": "qwen3.5-9b",
+      "model": "models/Qwen3.5-9B-Q4_K_M.gguf",
+      "decide_seqs": 21,
+      "b": 1,
+      "mode": "full_path",
+      "after": null,
+      "command": "uv run reference_check.py dump --model models/Qwen3.5-9B-Q4_K_M.gguf --preset qwen3.5-9b --n 20 --tag fp --out-dir results-engine/sp3/integrity --scoring full_path --decide-seqs 21"
+    },
+    "reference-fp-qwen3.5-9b-replay.jsonl.gz": {
+      "step": "replays",
+      "runner": "llama-server (serve-engine.sh router)",
+      "preset": "qwen3.5-9b",
+      "model": "./models/Qwen3.5-9B-Q4_K_M.gguf",
+      "decide_seqs": 21,
+      "b": 1,
+      "mode": "full_path",
+      "after": null,
+      "inputs": [
+        "reference-fp-qwen3.5-9b-dump.jsonl"
+      ],
+      "command": "uv run reference_check.py compare --preset qwen3.5-9b --tag fp --out-dir results-engine/sp3/integrity --url http://127.0.0.1:8097"
+    },
+    "reference-fp-qwen3.5-9b.json": {
+      "step": "replays",
+      "runner": "llama-server (serve-engine.sh router)",
+      "preset": "qwen3.5-9b",
+      "model": "./models/Qwen3.5-9B-Q4_K_M.gguf",
+      "decide_seqs": 21,
+      "b": 1,
+      "mode": "full_path",
+      "after": null,
+      "inputs": [
+        "reference-fp-qwen3.5-9b-dump.jsonl"
+      ],
+      "command": "uv run reference_check.py compare --preset qwen3.5-9b --tag fp --out-dir results-engine/sp3/integrity --url http://127.0.0.1:8097"
+    },
+    "reference-regression-qwen2.5-0.5b-dump.jsonl": {
+      "step": "regression",
+      "runner": "llama-decide (server stopped)",
+      "preset": "qwen2.5-0.5b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+      "decide_seqs": 9,
+      "b": 1,
+      "mode": "tree",
+      "after": null,
+      "command": "uv run reference_check.py dump --model /home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf --preset qwen2.5-0.5b --n 20 --tag regression --out-dir results-engine/sp3/integrity"
+    },
+    "reference-tree-b1-qwen2.5-0.5b-dump.jsonl": {
+      "step": "dumps",
+      "runner": "llama-decide (server stopped)",
+      "preset": "qwen2.5-0.5b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+      "decide_seqs": 64,
+      "b": 1,
+      "mode": "tree",
+      "after": null,
+      "command": "uv run reference_check.py dump --model /home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf --preset qwen2.5-0.5b --n 20 --tag tree-b1 --out-dir results-engine/sp3/integrity --decide-seqs 64"
+    },
+    "reference-tree-b1-qwen2.5-0.5b-replay.jsonl.gz": {
+      "step": "replays",
+      "runner": "llama-server (serve-engine.sh router)",
+      "preset": "qwen2.5-0.5b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+      "decide_seqs": 21,
+      "b": 1,
+      "mode": "tree",
+      "after": null,
+      "inputs": [
+        "reference-tree-b1-qwen2.5-0.5b-dump.jsonl"
+      ],
+      "command": "uv run reference_check.py compare --preset qwen2.5-0.5b --tag tree-b1 --out-dir results-engine/sp3/integrity --url http://127.0.0.1:8097"
+    },
+    "reference-tree-b1-qwen2.5-0.5b.json": {
+      "step": "replays",
+      "runner": "llama-server (serve-engine.sh router)",
+      "preset": "qwen2.5-0.5b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+      "decide_seqs": 21,
+      "b": 1,
+      "mode": "tree",
+      "after": null,
+      "inputs": [
+        "reference-tree-b1-qwen2.5-0.5b-dump.jsonl"
+      ],
+      "command": "uv run reference_check.py compare --preset qwen2.5-0.5b --tag tree-b1 --out-dir results-engine/sp3/integrity --url http://127.0.0.1:8097"
+    },
+    "reference-tree-b5-qwen2.5-0.5b-dump.jsonl": {
+      "step": "dumps",
+      "runner": "llama-decide (server stopped)",
+      "preset": "qwen2.5-0.5b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+      "decide_seqs": 64,
+      "b": 5,
+      "mode": "tree",
+      "after": null,
+      "command": "uv run reference_check.py dump --model /home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf --preset qwen2.5-0.5b --n 20 --tag tree-b5 --out-dir results-engine/sp3/integrity --decide-seqs 64 --batch 5"
+    },
+    "reference-tree-b5-qwen2.5-0.5b-replay.jsonl.gz": {
+      "step": "replays",
+      "runner": "llama-server (serve-engine.sh router)",
+      "preset": "qwen2.5-0.5b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+      "decide_seqs": 21,
+      "b": 5,
+      "mode": "tree",
+      "after": null,
+      "inputs": [
+        "reference-tree-b5-qwen2.5-0.5b-dump.jsonl"
+      ],
+      "command": "uv run reference_check.py compare --preset qwen2.5-0.5b --tag tree-b5 --out-dir results-engine/sp3/integrity --url http://127.0.0.1:8097"
+    },
+    "reference-tree-b5-qwen2.5-0.5b.json": {
+      "step": "replays",
+      "runner": "llama-server (serve-engine.sh router)",
+      "preset": "qwen2.5-0.5b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+      "decide_seqs": 21,
+      "b": 5,
+      "mode": "tree",
+      "after": null,
+      "inputs": [
+        "reference-tree-b5-qwen2.5-0.5b-dump.jsonl"
+      ],
+      "command": "uv run reference_check.py compare --preset qwen2.5-0.5b --tag tree-b5 --out-dir results-engine/sp3/integrity --url http://127.0.0.1:8097"
+    },
+    "regression-dump-qwen2.5-0.5b.json": {
+      "step": "regression",
+      "runner": null,
+      "preset": null,
+      "model": null,
+      "decide_seqs": null,
+      "b": null,
+      "mode": null,
+      "inputs": [
+        "reference-regression-qwen2.5-0.5b-dump.jsonl"
+      ],
+      "command": "uv run sp3_metrics.py compare results-engine/sp3/baseline/dump-qwen2.5-0.5b.jsonl results-engine/sp3/integrity/reference-regression-qwen2.5-0.5b-dump.jsonl --max-diff 1e-6 --out results-engine/sp3/integrity/regression-dump-qwen2.5-0.5b.json"
+    },
+    "regression-request-identity.json": {
+      "step": "regression",
+      "runner": null,
+      "preset": null,
+      "model": null,
+      "decide_seqs": null,
+      "b": null,
+      "mode": null,
+      "inputs": [
+        "decide_client.py at both commits"
+      ],
+      "command": "uv run results-engine/sp3/integrity/checks.py request-identity --old f972d7e --new 826110a"
+    },
+    "regression-test-gemma-4-e4b.json": {
+      "step": "regression",
+      "runner": null,
+      "preset": null,
+      "model": null,
+      "decide_seqs": null,
+      "b": null,
+      "mode": null,
+      "inputs": [
+        "regression/test/preds/decide-gemma-4-e4b-b5-keywords.jsonl"
+      ],
+      "command": "uv run sp3_metrics.py compare results-engine/sp3/baseline/test/preds/decide-gemma-4-e4b-b5-keywords.jsonl results-engine/sp3/integrity/regression/test/preds/decide-gemma-4-e4b-b5-keywords.jsonl --max-diff 1e-6 --out results-engine/sp3/integrity/regression-test-gemma-4-e4b.json"
+    },
+    "regression-test-qwen3.5-9b.json": {
+      "step": "regression",
+      "runner": null,
+      "preset": null,
+      "model": null,
+      "decide_seqs": null,
+      "b": null,
+      "mode": null,
+      "inputs": [
+        "regression/test/preds/decide-qwen3.5-9b-b5-keywords.jsonl"
+      ],
+      "command": "uv run sp3_metrics.py compare results-engine/sp3/baseline/test/preds/decide-qwen3.5-9b-b5-keywords.jsonl results-engine/sp3/integrity/regression/test/preds/decide-qwen3.5-9b-b5-keywords.jsonl --max-diff 1e-6 --out results-engine/sp3/integrity/regression-test-qwen3.5-9b.json"
+    },
+    "regression-train-gemma-4-e4b.json": {
+      "step": "regression",
+      "runner": null,
+      "preset": null,
+      "model": null,
+      "decide_seqs": null,
+      "b": null,
+      "mode": null,
+      "inputs": [
+        "regression/train/preds/decide-gemma-4-e4b-b5-keywords.jsonl"
+      ],
+      "command": "uv run sp3_metrics.py compare results-engine/sp3/baseline/train/preds/decide-gemma-4-e4b-b5-keywords.jsonl results-engine/sp3/integrity/regression/train/preds/decide-gemma-4-e4b-b5-keywords.jsonl --max-diff 1e-6 --out results-engine/sp3/integrity/regression-train-gemma-4-e4b.json"
+    },
+    "regression-train-qwen3.5-9b.json": {
+      "step": "regression",
+      "runner": null,
+      "preset": null,
+      "model": null,
+      "decide_seqs": null,
+      "b": null,
+      "mode": null,
+      "inputs": [
+        "regression/train/preds/decide-qwen3.5-9b-b5-keywords.jsonl"
+      ],
+      "command": "uv run sp3_metrics.py compare results-engine/sp3/baseline/train/preds/decide-qwen3.5-9b-b5-keywords.jsonl results-engine/sp3/integrity/regression/train/preds/decide-qwen3.5-9b-b5-keywords.jsonl --max-diff 1e-6 --out results-engine/sp3/integrity/regression-train-qwen3.5-9b.json"
+    },
+    "regression/test/preds/decide-gemma-4-e4b-b5-keywords.jsonl": {
+      "step": "regression",
+      "runner": "llama-server (serve-engine.sh router), freshly started",
+      "preset": "gemma-4-e4b",
+      "model": "./models/gemma-4-E4B-it-Q4_0.gguf",
+      "decide_seqs": 21,
+      "b": 5,
+      "mode": "tree",
+      "prompt_variant": "keywords",
+      "command": "uv run decide_client.py --model gemma-4-e4b --batch 5 --test-set /home/marduk/Projects/temp/jev/experiment/data/triage_test.jsonl --out-dir results-engine/sp3/integrity/regression/test"
+    },
+    "regression/test/preds/decide-qwen3.5-9b-b5-keywords.jsonl": {
+      "step": "regression",
+      "runner": "llama-server (serve-engine.sh router), freshly started",
+      "preset": "qwen3.5-9b",
+      "model": "./models/Qwen3.5-9B-Q4_K_M.gguf",
+      "decide_seqs": 21,
+      "b": 5,
+      "mode": "tree",
+      "prompt_variant": "keywords",
+      "command": "uv run decide_client.py --model qwen3.5-9b --batch 5 --test-set /home/marduk/Projects/temp/jev/experiment/data/triage_test.jsonl --out-dir results-engine/sp3/integrity/regression/test"
+    },
+    "regression/test/runs/decide-gemma-4-e4b-b5-keywords.json": {
+      "step": "regression",
+      "runner": "llama-server (serve-engine.sh router), freshly started",
+      "preset": "gemma-4-e4b",
+      "model": "./models/gemma-4-E4B-it-Q4_0.gguf",
+      "decide_seqs": 21,
+      "b": 5,
+      "mode": "tree",
+      "prompt_variant": "keywords",
+      "command": "uv run decide_client.py --model gemma-4-e4b --batch 5 --test-set /home/marduk/Projects/temp/jev/experiment/data/triage_test.jsonl --out-dir results-engine/sp3/integrity/regression/test"
+    },
+    "regression/test/runs/decide-qwen3.5-9b-b5-keywords.json": {
+      "step": "regression",
+      "runner": "llama-server (serve-engine.sh router), freshly started",
+      "preset": "qwen3.5-9b",
+      "model": "./models/Qwen3.5-9B-Q4_K_M.gguf",
+      "decide_seqs": 21,
+      "b": 5,
+      "mode": "tree",
+      "prompt_variant": "keywords",
+      "command": "uv run decide_client.py --model qwen3.5-9b --batch 5 --test-set /home/marduk/Projects/temp/jev/experiment/data/triage_test.jsonl --out-dir results-engine/sp3/integrity/regression/test"
+    },
+    "regression/train/preds/decide-gemma-4-e4b-b5-keywords.jsonl": {
+      "step": "regression",
+      "runner": "llama-server (serve-engine.sh router), freshly started",
+      "preset": "gemma-4-e4b",
+      "model": "./models/gemma-4-E4B-it-Q4_0.gguf",
+      "decide_seqs": 21,
+      "b": 5,
+      "mode": "tree",
+      "prompt_variant": "keywords",
+      "command": "uv run decide_client.py --model gemma-4-e4b --batch 5 --test-set /home/marduk/Projects/temp/jev/experiment/data/triage_train.jsonl --out-dir results-engine/sp3/integrity/regression/train"
+    },
+    "regression/train/preds/decide-qwen3.5-9b-b5-keywords.jsonl": {
+      "step": "regression",
+      "runner": "llama-server (serve-engine.sh router), freshly started",
+      "preset": "qwen3.5-9b",
+      "model": "./models/Qwen3.5-9B-Q4_K_M.gguf",
+      "decide_seqs": 21,
+      "b": 5,
+      "mode": "tree",
+      "prompt_variant": "keywords",
+      "command": "uv run decide_client.py --model qwen3.5-9b --batch 5 --test-set /home/marduk/Projects/temp/jev/experiment/data/triage_train.jsonl --out-dir results-engine/sp3/integrity/regression/train"
+    },
+    "regression/train/runs/decide-gemma-4-e4b-b5-keywords.json": {
+      "step": "regression",
+      "runner": "llama-server (serve-engine.sh router), freshly started",
+      "preset": "gemma-4-e4b",
+      "model": "./models/gemma-4-E4B-it-Q4_0.gguf",
+      "decide_seqs": 21,
+      "b": 5,
+      "mode": "tree",
+      "prompt_variant": "keywords",
+      "command": "uv run decide_client.py --model gemma-4-e4b --batch 5 --test-set /home/marduk/Projects/temp/jev/experiment/data/triage_train.jsonl --out-dir results-engine/sp3/integrity/regression/train"
+    },
+    "regression/train/runs/decide-qwen3.5-9b-b5-keywords.json": {
+      "step": "regression",
+      "runner": "llama-server (serve-engine.sh router), freshly started",
+      "preset": "qwen3.5-9b",
+      "model": "./models/Qwen3.5-9B-Q4_K_M.gguf",
+      "decide_seqs": 21,
+      "b": 5,
+      "mode": "tree",
+      "prompt_variant": "keywords",
+      "command": "uv run decide_client.py --model qwen3.5-9b --batch 5 --test-set /home/marduk/Projects/temp/jev/experiment/data/triage_train.jsonl --out-dir results-engine/sp3/integrity/regression/train"
+    },
+    "rowcap-rows-fp-b5-gemma-4-e4b.json": {
+      "step": "model-free",
+      "runner": null,
+      "preset": null,
+      "model": null,
+      "decide_seqs": null,
+      "b": null,
+      "mode": null,
+      "inputs": [
+        "reference-fp-b5-gemma-4-e4b-dump.jsonl",
+        "reference-fp-b5-gemma-4-e4b.json"
+      ],
+      "command": "uv run results-engine/sp3/integrity/checks.py rowcap-rows --preset gemma-4-e4b --tag fp-b5 --row-cap 65"
+    },
+    "rowcap-rows-fp-b5-qwen2.5-0.5b.json": {
+      "step": "model-free",
+      "runner": null,
+      "preset": null,
+      "model": null,
+      "decide_seqs": null,
+      "b": null,
+      "mode": null,
+      "inputs": [
+        "reference-fp-b5-qwen2.5-0.5b-dump.jsonl",
+        "reference-fp-b5-qwen2.5-0.5b.json"
+      ],
+      "command": "uv run results-engine/sp3/integrity/checks.py rowcap-rows --preset qwen2.5-0.5b --tag fp-b5 --row-cap 65"
+    },
+    "run-params.json": {
+      "step": "model-free",
+      "runner": null,
+      "preset": null,
+      "model": null,
+      "decide_seqs": null,
+      "b": null,
+      "mode": null,
+      "inputs": [
+        "run.sh",
+        "models-engine.ini (blob ccfeeb1)"
+      ],
+      "command": "uv run results-engine/sp3/integrity/checks.py run-params"
+    },
+    "split-rowcap-gemma-4-e4b-full_path-b1.jsonl": {
+      "step": "split",
+      "runner": "llama-decide (server stopped)",
+      "preset": "gemma-4-e4b",
+      "model": "models/gemma-4-E4B-it-Q4_0.gguf",
+      "decide_seqs": 64,
+      "b": 1,
+      "mode": "full_path",
+      "command": "uv run reference_check.py split --model models/gemma-4-E4B-it-Q4_0.gguf --preset gemma-4-e4b --decide-seqs 64 --n 20 --tag rowcap --out-dir results-engine/sp3/integrity"
+    },
+    "split-rowcap-gemma-4-e4b-full_path-b5.jsonl": {
+      "step": "split",
+      "runner": "llama-decide (server stopped)",
+      "preset": "gemma-4-e4b",
+      "model": "models/gemma-4-E4B-it-Q4_0.gguf",
+      "decide_seqs": 64,
+      "b": 5,
+      "mode": "full_path",
+      "command": "uv run reference_check.py split --model models/gemma-4-E4B-it-Q4_0.gguf --preset gemma-4-e4b --decide-seqs 64 --n 20 --tag rowcap --out-dir results-engine/sp3/integrity"
+    },
+    "split-rowcap-gemma-4-e4b-tree-b1.jsonl": {
+      "step": "split",
+      "runner": "llama-decide (server stopped)",
+      "preset": "gemma-4-e4b",
+      "model": "models/gemma-4-E4B-it-Q4_0.gguf",
+      "decide_seqs": 64,
+      "b": 1,
+      "mode": "tree",
+      "command": "uv run reference_check.py split --model models/gemma-4-E4B-it-Q4_0.gguf --preset gemma-4-e4b --decide-seqs 64 --n 20 --tag rowcap --out-dir results-engine/sp3/integrity"
+    },
+    "split-rowcap-gemma-4-e4b-tree-b5.jsonl": {
+      "step": "split",
+      "runner": "llama-decide (server stopped)",
+      "preset": "gemma-4-e4b",
+      "model": "models/gemma-4-E4B-it-Q4_0.gguf",
+      "decide_seqs": 64,
+      "b": 5,
+      "mode": "tree",
+      "command": "uv run reference_check.py split --model models/gemma-4-E4B-it-Q4_0.gguf --preset gemma-4-e4b --decide-seqs 64 --n 20 --tag rowcap --out-dir results-engine/sp3/integrity"
+    },
+    "split-rowcap-gemma-4-e4b.json": {
+      "step": "split",
+      "runner": "llama-decide (server stopped)",
+      "preset": "gemma-4-e4b",
+      "model": "models/gemma-4-E4B-it-Q4_0.gguf",
+      "decide_seqs": 64,
+      "b": [
+        5,
+        1
+      ],
+      "mode": [
+        "full_path",
+        "tree"
+      ],
+      "command": "uv run reference_check.py split --model models/gemma-4-E4B-it-Q4_0.gguf --preset gemma-4-e4b --decide-seqs 64 --n 20 --tag rowcap --out-dir results-engine/sp3/integrity"
+    },
+    "split-rowcap-qwen2.5-0.5b-full_path-b1.jsonl": {
+      "step": "split",
+      "runner": "llama-decide (server stopped)",
+      "preset": "qwen2.5-0.5b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+      "decide_seqs": 64,
+      "b": 1,
+      "mode": "full_path",
+      "command": "uv run reference_check.py split --model /home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf --preset qwen2.5-0.5b --decide-seqs 64 --n 20 --tag rowcap --out-dir results-engine/sp3/integrity"
+    },
+    "split-rowcap-qwen2.5-0.5b-full_path-b5.jsonl": {
+      "step": "split",
+      "runner": "llama-decide (server stopped)",
+      "preset": "qwen2.5-0.5b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+      "decide_seqs": 64,
+      "b": 5,
+      "mode": "full_path",
+      "command": "uv run reference_check.py split --model /home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf --preset qwen2.5-0.5b --decide-seqs 64 --n 20 --tag rowcap --out-dir results-engine/sp3/integrity"
+    },
+    "split-rowcap-qwen2.5-0.5b-tree-b1.jsonl": {
+      "step": "split",
+      "runner": "llama-decide (server stopped)",
+      "preset": "qwen2.5-0.5b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+      "decide_seqs": 64,
+      "b": 1,
+      "mode": "tree",
+      "command": "uv run reference_check.py split --model /home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf --preset qwen2.5-0.5b --decide-seqs 64 --n 20 --tag rowcap --out-dir results-engine/sp3/integrity"
+    },
+    "split-rowcap-qwen2.5-0.5b-tree-b5.jsonl": {
+      "step": "split",
+      "runner": "llama-decide (server stopped)",
+      "preset": "qwen2.5-0.5b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+      "decide_seqs": 64,
+      "b": 5,
+      "mode": "tree",
+      "command": "uv run reference_check.py split --model /home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf --preset qwen2.5-0.5b --decide-seqs 64 --n 20 --tag rowcap --out-dir results-engine/sp3/integrity"
+    },
+    "split-rowcap-qwen2.5-0.5b.json": {
+      "step": "split",
+      "runner": "llama-decide (server stopped)",
+      "preset": "qwen2.5-0.5b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+      "decide_seqs": 64,
+      "b": [
+        5,
+        1
+      ],
+      "mode": [
+        "full_path",
+        "tree"
+      ],
+      "command": "uv run reference_check.py split --model /home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf --preset qwen2.5-0.5b --decide-seqs 64 --n 20 --tag rowcap --out-dir results-engine/sp3/integrity"
+    },
+    "split-s84-gemma-4-e4b-full_path-b1.jsonl": {
+      "step": "nosplit",
+      "runner": "llama-decide (server stopped)",
+      "preset": "gemma-4-e4b",
+      "model": "models/gemma-4-E4B-it-Q4_0.gguf",
+      "decide_seqs": 84,
+      "b": 1,
+      "mode": "full_path",
+      "command": "uv run reference_check.py split --model models/gemma-4-E4B-it-Q4_0.gguf --preset gemma-4-e4b --decide-seqs 84 --n 20 --tag s84 --out-dir results-engine/sp3/integrity"
+    },
+    "split-s84-gemma-4-e4b-full_path-b5.jsonl": {
+      "step": "nosplit",
+      "runner": "llama-decide (server stopped)",
+      "preset": "gemma-4-e4b",
+      "model": "models/gemma-4-E4B-it-Q4_0.gguf",
+      "decide_seqs": 84,
+      "b": 5,
+      "mode": "full_path",
+      "command": "uv run reference_check.py split --model models/gemma-4-E4B-it-Q4_0.gguf --preset gemma-4-e4b --decide-seqs 84 --n 20 --tag s84 --out-dir results-engine/sp3/integrity"
+    },
+    "split-s84-gemma-4-e4b-tree-b1.jsonl": {
+      "step": "nosplit",
+      "runner": "llama-decide (server stopped)",
+      "preset": "gemma-4-e4b",
+      "model": "models/gemma-4-E4B-it-Q4_0.gguf",
+      "decide_seqs": 84,
+      "b": 1,
+      "mode": "tree",
+      "command": "uv run reference_check.py split --model models/gemma-4-E4B-it-Q4_0.gguf --preset gemma-4-e4b --decide-seqs 84 --n 20 --tag s84 --out-dir results-engine/sp3/integrity"
+    },
+    "split-s84-gemma-4-e4b-tree-b5.jsonl": {
+      "step": "nosplit",
+      "runner": "llama-decide (server stopped)",
+      "preset": "gemma-4-e4b",
+      "model": "models/gemma-4-E4B-it-Q4_0.gguf",
+      "decide_seqs": 84,
+      "b": 5,
+      "mode": "tree",
+      "command": "uv run reference_check.py split --model models/gemma-4-E4B-it-Q4_0.gguf --preset gemma-4-e4b --decide-seqs 84 --n 20 --tag s84 --out-dir results-engine/sp3/integrity"
+    },
+    "split-s84-gemma-4-e4b.json": {
+      "step": "nosplit",
+      "runner": "llama-decide (server stopped)",
+      "preset": "gemma-4-e4b",
+      "model": "models/gemma-4-E4B-it-Q4_0.gguf",
+      "decide_seqs": 84,
+      "b": [
+        5,
+        1
+      ],
+      "mode": [
+        "full_path",
+        "tree"
+      ],
+      "command": "uv run reference_check.py split --model models/gemma-4-E4B-it-Q4_0.gguf --preset gemma-4-e4b --decide-seqs 84 --n 20 --tag s84 --out-dir results-engine/sp3/integrity"
+    },
+    "split-s84-qwen2.5-0.5b-full_path-b1.jsonl": {
+      "step": "nosplit",
+      "runner": "llama-decide (server stopped)",
+      "preset": "qwen2.5-0.5b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+      "decide_seqs": 84,
+      "b": 1,
+      "mode": "full_path",
+      "command": "uv run reference_check.py split --model /home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf --preset qwen2.5-0.5b --decide-seqs 84 --n 20 --tag s84 --out-dir results-engine/sp3/integrity"
+    },
+    "split-s84-qwen2.5-0.5b-full_path-b5.jsonl": {
+      "step": "nosplit",
+      "runner": "llama-decide (server stopped)",
+      "preset": "qwen2.5-0.5b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+      "decide_seqs": 84,
+      "b": 5,
+      "mode": "full_path",
+      "command": "uv run reference_check.py split --model /home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf --preset qwen2.5-0.5b --decide-seqs 84 --n 20 --tag s84 --out-dir results-engine/sp3/integrity"
+    },
+    "split-s84-qwen2.5-0.5b-tree-b1.jsonl": {
+      "step": "nosplit",
+      "runner": "llama-decide (server stopped)",
+      "preset": "qwen2.5-0.5b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+      "decide_seqs": 84,
+      "b": 1,
+      "mode": "tree",
+      "command": "uv run reference_check.py split --model /home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf --preset qwen2.5-0.5b --decide-seqs 84 --n 20 --tag s84 --out-dir results-engine/sp3/integrity"
+    },
+    "split-s84-qwen2.5-0.5b-tree-b5.jsonl": {
+      "step": "nosplit",
+      "runner": "llama-decide (server stopped)",
+      "preset": "qwen2.5-0.5b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+      "decide_seqs": 84,
+      "b": 5,
+      "mode": "tree",
+      "command": "uv run reference_check.py split --model /home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf --preset qwen2.5-0.5b --decide-seqs 84 --n 20 --tag s84 --out-dir results-engine/sp3/integrity"
+    },
+    "split-s84-qwen2.5-0.5b.json": {
+      "step": "nosplit",
+      "runner": "llama-decide (server stopped)",
+      "preset": "qwen2.5-0.5b",
+      "model": "/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf",
+      "decide_seqs": 84,
+      "b": [
+        5,
+        1
+      ],
+      "mode": [
+        "full_path",
+        "tree"
+      ],
+      "command": "uv run reference_check.py split --model /home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf --preset qwen2.5-0.5b --decide-seqs 84 --n 20 --tag s84 --out-dir results-engine/sp3/integrity"
+    }
+  }
+}

@@ -1,0 +1,118 @@
+From f660f7075bb48763d567abc779427fb3df86358d Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 2 Oct 2026 08:21:57 +0200
+Subject: [PATCH 36/45] decide: no SIMD dispatch on MSVC targets; small-n tests
+
+clang targeting MSVC defines __clang__ and __x86_64__, but its linker
+does not pull in compiler-rt's __cpu_model for __builtin_cpu_supports:
+MSVC targets now take the scalar path (MinGW keeps SIMD). The macro is
+renamed DECIDE_FULL_VOCAB_LSE_X86; the comment says the -inf mask is
+defensive. The test runs every path on 0..17 tokens (no values: -inf;
+accuracy, NaN last, one finite entry last among -inf).
+---
+ tests/test-decide-fullpath.cpp   | 22 +++++++++++++++++++++-
+ tools/decide/decide-fullpath.cpp | 12 +++++++-----
+ tools/decide/decide-fullpath.h   |  7 ++++---
+ 3 files changed, 32 insertions(+), 9 deletions(-)
+
+diff --git a/tests/test-decide-fullpath.cpp b/tests/test-decide-fullpath.cpp
+index f47edf252..8be083ad8 100644
+--- a/tests/test-decide-fullpath.cpp
++++ b/tests/test-decide-fullpath.cpp
+@@ -74,7 +74,7 @@ struct lse_impl {
+ // the implementations this CPU can run: scalar (the code before the SIMD paths), SSE2 and AVX2+FMA on x86-64, the dispatcher
+ static std::vector<lse_impl> lse_impls() {
+     std::vector<lse_impl> v = {{"scalar", decide::full_vocab_lse_scalar}};
+-#ifdef DECIDE_LSE_X86
++#ifdef DECIDE_FULL_VOCAB_LSE_X86
+     v.push_back({"sse2", decide::full_vocab_lse_sse2});
+     if (decide::full_vocab_lse_avx2_supported()) {
+         v.push_back({"avx2", decide::full_vocab_lse_avx2});
+@@ -420,6 +420,26 @@ int main() {
+             }
+         }
+ 
++        // every length below two AVX2 iterations (0..17 tokens: no vector part, every tail): no values gives -inf; else the
++        // accuracy bound, NaN last gives NaN, one finite entry last among -inf gives exactly that entry
++        for (int n = 0; n <= 17; ++n) {
++            const std::vector<float> l = uniform(n, 5.0f);
++            const double             ref = ref_lse(l);
++            for (const lse_impl & im : impls) {
++                if (n == 0) {
++                    pin(im.fn(l.data(), 0) == -std::numeric_limits<double>::infinity(), "no values must give -inf", im.name, 0);
++                    continue;
++                }
++                pin(std::fabs(im.fn(l.data(), n) - ref) <= 2e-7, "short row off the reference", im.name, n);
++                std::vector<float> bad = l;
++                bad[(size_t) n - 1] = nan;
++                pin(std::isnan(im.fn(bad.data(), n)), "NaN in a short row must give NaN", im.name, n);
++                std::vector<float> one((size_t) n, NEG_INF);
++                one[(size_t) n - 1] = -1.5f;
++                pin(im.fn(one.data(), n) == -1.5, "-inf entries of a short row must add 0", im.name, n);
++            }
++        }
++
+         // timing at 262144 tokens (printed, not asserted); scalar = the code before the SIMD paths
+         const std::vector<float> & row = std::find_if(cases.begin(), cases.end(), [](const lse_case & c) { return c.name == "262144 tokens, +-40"; })->l;
+         std::printf("full_vocab_lse timing, %zu tokens, median of 41:", row.size());
+diff --git a/tools/decide/decide-fullpath.cpp b/tools/decide/decide-fullpath.cpp
+index ba03bed61..e3d5f60b2 100644
+--- a/tools/decide/decide-fullpath.cpp
++++ b/tools/decide/decide-fullpath.cpp
+@@ -6,7 +6,7 @@
+ #include <limits>
+ #include <string>
+ 
+-#ifdef DECIDE_LSE_X86
++#ifdef DECIDE_FULL_VOCAB_LSE_X86
+ #include <immintrin.h>
+ #endif
+ 
+@@ -24,11 +24,13 @@ double full_vocab_lse_scalar(const float * logits, int n_vocab) {
+     return (double) max + std::log(sum);
+ }
+ 
+-#ifdef DECIDE_LSE_X86
++#ifdef DECIDE_FULL_VOCAB_LSE_X86
+ // The SIMD paths: a max pass that also notes NaN, then exp(logits[i] - max) by a Cephes-style float polynomial with every term
+ // added in double (a float running sum next to a huge term would drop the tiny ones). Rows with NaN, +inf, only -inf or no
+-// values return the scalar result (NaN; -inf for no values). Terms below exp(-87.34) (FLT_MIN), -inf among them, add 0, so 2^n
+-// stays a normal float. n = round(x / ln 2) uses the current rounding mode (round to nearest by default).
++// values return the scalar result (NaN; -inf for no values). Arguments below log(FLT_MIN) = -87.34, -inf among them, are clamped
++// there so 2^n stays a normal float, and the `keep` mask makes their terms exactly 0. The mask is defensive: without it each such
++// term would add about FLT_MIN, below double resolution next to the max term's 1, so no test can tell the two apart.
++// n = round(x / ln 2) uses the current rounding mode (round to nearest by default).
+ namespace {
+ constexpr float EXP_LO = -87.33654f;  // log(FLT_MIN)
+ constexpr float LOG2E  = 1.44269504088896341f;
+@@ -166,7 +168,7 @@ bool full_vocab_lse_avx2_supported() {
+ #endif
+ 
+ double full_vocab_lse(const float * logits, int n_vocab) {
+-#ifdef DECIDE_LSE_X86
++#ifdef DECIDE_FULL_VOCAB_LSE_X86
+     return full_vocab_lse_avx2_supported() ? full_vocab_lse_avx2(logits, n_vocab) : full_vocab_lse_sse2(logits, n_vocab);
+ #else
+     return full_vocab_lse_scalar(logits, n_vocab);
+diff --git a/tools/decide/decide-fullpath.h b/tools/decide/decide-fullpath.h
+index 5869ba9e1..a24779a97 100644
+--- a/tools/decide/decide-fullpath.h
++++ b/tools/decide/decide-fullpath.h
+@@ -16,10 +16,11 @@ std::vector<const std::vector<llama_token> *> leaf_merged_sets(const field_trie
+ // NaN, -inf entries add 0, a row of only -inf gives NaN. Runs the fastest implementation below that this CPU supports.
+ double full_vocab_lse(const float * logits, int n_vocab);
+ // the implementations, callable from tests: portable scalar code (float exp, double sum); on x86-64 with GCC or Clang an SSE2
+-// and an AVX2+FMA path (float exp polynomial, double sums), the latter only where full_vocab_lse_avx2_supported()
++// and an AVX2+FMA path (float exp polynomial, double sums), the latter only where full_vocab_lse_avx2_supported(); not on MSVC
++// targets (clang-cl included: __builtin_cpu_supports needs compiler-rt there), which use the scalar code
+ double full_vocab_lse_scalar(const float * logits, int n_vocab);
+-#if defined(__x86_64__) && (defined(__GNUC__) || defined(__clang__))
+-#define DECIDE_LSE_X86 1
++#if defined(__x86_64__) && (defined(__GNUC__) || defined(__clang__)) && !defined(_MSC_VER)
++#define DECIDE_FULL_VOCAB_LSE_X86 1
+ double full_vocab_lse_sse2(const float * logits, int n_vocab);
+ double full_vocab_lse_avx2(const float * logits, int n_vocab);
+ bool   full_vocab_lse_avx2_supported();
+-- 
+2.55.0
+

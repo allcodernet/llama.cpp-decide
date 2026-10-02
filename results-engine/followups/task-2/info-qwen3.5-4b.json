@@ -1,0 +1,186 @@
+{
+  "preset": "qwen3.5-4b",
+  "decide_seqs": 32,
+  "old": {
+    "command": [
+      "-m",
+      "./models/Qwen3.5-4B-Q4_K_M.gguf",
+      "-c",
+      "4096",
+      "-ngl",
+      "99",
+      "-fa",
+      "on",
+      "-ctk",
+      "q8_0",
+      "-ctv",
+      "q8_0",
+      "--jinja",
+      "--reasoning",
+      "off",
+      "-np",
+      "1",
+      "--decide-seqs",
+      "32",
+      "--host",
+      "127.0.0.1",
+      "--port",
+      "8097"
+    ],
+    "statuses": [
+      200,
+      200,
+      200
+    ],
+    "prefix_cache": [
+      {
+        "capacity": 8,
+        "entries": 0,
+        "hits": 0,
+        "misses": 1
+      },
+      {
+        "capacity": 8,
+        "entries": 1,
+        "hits": 0,
+        "misses": 1
+      },
+      {
+        "capacity": 8,
+        "entries": 2,
+        "hits": 1,
+        "misses": 0
+      }
+    ],
+    "info": {
+      "status": 200,
+      "body": {
+        "decide_seqs": 32,
+        "n_ctx": 4096,
+        "n_batch": 2048,
+        "kv_unified": true,
+        "n_parallel": 1,
+        "memory": {
+          "recurrent": true,
+          "swa": false
+        },
+        "prefix": {
+          "hash": "c1d10e41b474ebca",
+          "tokens": 448,
+          "assistant_prefix": "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+          "valid": true
+        },
+        "prefixes": [
+          {
+            "slot": 0,
+            "hash": "c1d10e41b474ebca",
+            "tokens": 448,
+            "valid": true
+          }
+        ],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 2,
+          "bytes": 117620776
+        },
+        "temperature": 1.0,
+        "scoring_modes": [
+          "tree",
+          "full_path"
+        ]
+      }
+    }
+  },
+  "new": {
+    "command": [
+      "-m",
+      "./models/Qwen3.5-4B-Q4_K_M.gguf",
+      "-c",
+      "4096",
+      "-ngl",
+      "99",
+      "-fa",
+      "on",
+      "-ctk",
+      "q8_0",
+      "-ctv",
+      "q8_0",
+      "--jinja",
+      "--reasoning",
+      "off",
+      "-np",
+      "1",
+      "--decide-seqs",
+      "32",
+      "--host",
+      "127.0.0.1",
+      "--port",
+      "8097"
+    ],
+    "statuses": [
+      200,
+      200,
+      200
+    ],
+    "prefix_cache": [
+      {
+        "capacity": 8,
+        "entries": 0,
+        "hits": 0,
+        "misses": 1
+      },
+      {
+        "capacity": 8,
+        "entries": 1,
+        "hits": 0,
+        "misses": 1
+      },
+      {
+        "capacity": 8,
+        "entries": 2,
+        "hits": 1,
+        "misses": 0
+      }
+    ],
+    "info": {
+      "status": 200,
+      "body": {
+        "decide_seqs": 32,
+        "n_ctx": 4096,
+        "n_batch": 2048,
+        "kv_unified": true,
+        "n_parallel": 1,
+        "memory": {
+          "recurrent": true,
+          "swa": false
+        },
+        "prefix": {
+          "hash": "c1d10e41b474ebca",
+          "tokens": 448,
+          "assistant_prefix": "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+          "valid": true
+        },
+        "prefixes": [
+          {
+            "slot": 0,
+            "hash": "c1d10e41b474ebca",
+            "tokens": 448,
+            "valid": true
+          }
+        ],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 2,
+          "bytes": 117620776
+        },
+        "temperature": 1.0,
+        "scoring_modes": [
+          "tree",
+          "full_path"
+        ]
+      }
+    }
+  },
+  "info_equal": true,
+  "pass": true
+}

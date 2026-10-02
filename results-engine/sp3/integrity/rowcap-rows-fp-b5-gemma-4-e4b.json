@@ -1,0 +1,23 @@
+{
+  "preset": "gemma-4-e4b",
+  "tag": "fp-b5",
+  "row_cap": 65,
+  "batch": 5,
+  "rows_per_chunk": {
+    "0": 260,
+    "1": 80
+  },
+  "sequences_cut": [],
+  "node_comparison_per_chunk": {
+    "0": {
+      "values": 432,
+      "median_abs_diff": 4.426226517817132e-06,
+      "max_abs_diff": 0.04554295944833675
+    },
+    "1": {
+      "values": 128,
+      "median_abs_diff": 7.424502444808804e-06,
+      "max_abs_diff": 0.07260694077360835
+    }
+  }
+}

@@ -1,0 +1,385 @@
+From a65ab3f7a9f2e97352b3bd8024a74c3482b4301c Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 23:26:04 +0200
+Subject: [PATCH 27/45] decide: move full-path helpers to decide-fullpath; mode
+ assert; +inf test
+
+leaf_merged_sets, full_path_row and the full-path dump entry move
+unchanged to tools/decide/decide-fullpath.h/.cpp (no engine types).
+The decode entry plumbing (decode_entry, decode_chunks, chunk_rows,
+row_ref, add_full_path_seq) and count_branches stay in decide-engine.
+run_round rejects a full-path state that does not match the trie
+set's scoring mode (500). test-decide-fullpath: a +inf logit makes
+every value read from the row NaN and score_field_full rejects it.
+---
+ tests/test-decide-fullpath.cpp   |  21 ++++++
+ tests/test-decide-trie.cpp       |   2 +-
+ tools/decide/CMakeLists.txt      |   1 +
+ tools/decide/decide-engine.cpp   | 100 ++---------------------------
+ tools/decide/decide-engine.h     |   7 --
+ tools/decide/decide-fullpath.cpp | 107 +++++++++++++++++++++++++++++++
+ tools/decide/decide-fullpath.h   |  24 +++++++
+ 7 files changed, 158 insertions(+), 104 deletions(-)
+ create mode 100644 tools/decide/decide-fullpath.cpp
+ create mode 100644 tools/decide/decide-fullpath.h
+
+diff --git a/tests/test-decide-fullpath.cpp b/tests/test-decide-fullpath.cpp
+index 1dfe83cb5..51a4fbbf8 100644
+--- a/tests/test-decide-fullpath.cpp
++++ b/tests/test-decide-fullpath.cpp
+@@ -1,6 +1,7 @@
+ // spec 4.3-4.5 full-path engine helpers without a model: decode chunks (n_batch and the row cap), the row -> node mapping of
+ // full-path branch sequences across a chunk split, the values of one row, and the branch token / row counts of the budget
+ #include "decide-engine.h"
++#include "decide-fullpath.h"
+ 
+ #include <cmath>
+ #include <cstdio>
+@@ -209,6 +210,26 @@ int main() {
+         broken[5] = std::numeric_limits<float>::quiet_NaN();
+         const decide::node_logp nan_row = decide::full_path_row(broken.data(), 8, t, 0, end_tokens, merged);
+         CHECK(std::isnan(nan_row.child_logp[0]));
++
++        // +inf in the row (token 0: not a child, END or MERGED token): the maximum is +inf, exp(inf - inf) makes the
++        // normaliser NaN, so every value read from the row is NaN; an inner child's merged stays -inf (not read from the row)
++        std::vector<float> inf_row = logits;
++        inf_row[0] = std::numeric_limits<float>::infinity();
++        std::vector<decide::node_logp> inf_rows;
++        for (int n = 0; n < 4; ++n) {
++            inf_rows.push_back(decide::full_path_row(inf_row.data(), 8, t, n, end_tokens, merged));
++        }
++        CHECK(std::isnan(inf_rows[0].child_logp[0]) && std::isnan(inf_rows[0].child_logp[1]));
++        CHECK(inf_rows[0].merged_logp[0] == NEG_INF && std::isnan(inf_rows[0].merged_logp[1]));
++        CHECK(std::isnan(inf_rows[1].child_logp[0]) && std::isnan(inf_rows[1].merged_logp[0]));
++        CHECK(std::isnan(inf_rows[2].end_logp) && std::isnan(inf_rows[3].end_logp));
++        bool rejected = false;
++        try {
++            decide::score_field_full(f, t, inf_rows);
++        } catch (const decide::error & e) {
++            rejected = e.code == "engine" && e.http == 500 && std::string(e.what()).find("non-finite") != std::string::npos;
++        }
++        CHECK(rejected);
+     }
+ 
+     // 4. budget counts per state: tree = branch tokens of the branch nodes and one row per branch node;
+diff --git a/tests/test-decide-trie.cpp b/tests/test-decide-trie.cpp
+index e861c7b05..dc6481c44 100644
+--- a/tests/test-decide-trie.cpp
++++ b/tests/test-decide-trie.cpp
+@@ -1,4 +1,4 @@
+-#include "decide-engine.h"
++#include "decide-fullpath.h"
+ #include "decide-trie.h"
+ #include "decide-vocab.h"
+ #include "common.h"
+diff --git a/tools/decide/CMakeLists.txt b/tools/decide/CMakeLists.txt
+index 79927ea63..20c37d79a 100644
+--- a/tools/decide/CMakeLists.txt
++++ b/tools/decide/CMakeLists.txt
+@@ -3,6 +3,7 @@ add_library(llama-decide STATIC
+     decide-score.cpp decide-score.h
+     decide-trie.cpp decide-trie.h
+     decide-vocab.cpp decide-vocab.h
++    decide-fullpath.cpp decide-fullpath.h
+     decide-engine.cpp decide-engine.h
+     decide-api.cpp decide-api.h
+     decide-compat.cpp decide-compat.h)
+diff --git a/tools/decide/decide-engine.cpp b/tools/decide/decide-engine.cpp
+index d364e7b78..511461f99 100644
+--- a/tools/decide/decide-engine.cpp
++++ b/tools/decide/decide-engine.cpp
+@@ -1,11 +1,10 @@
+ #include "decide-engine.h"
++#include "decide-fullpath.h"
+ #include "common.h"
+ #include "ggml.h"
+ 
+ #include <algorithm>
+-#include <cmath>
+ #include <cstdlib>
+-#include <limits>
+ #include <utility>
+ 
+ namespace decide {
+@@ -25,51 +24,6 @@ static const char * mode_name(scoring_mode m) {
+     return m == scoring_mode::FULL_PATH ? "full_path" : "tree";
+ }
+ 
+-// spec 10: the dump entry of one full-path branch sequence; logp per row: the node, the children's log-probs keyed by token id,
+-// "end" on a leaf row, "merged" (keyed by the leaf child's token id) on a row with leaf children; -inf is written as null
+-static common_json full_path_dump(const std::string & name, const field_trie & t, const full_path_seq & s, const std::vector<node_logp> & rows) {
+-    common_json logp = common_json::array();
+-    for (int node : s.row_node) {
+-        const auto it = std::find_if(rows.begin(), rows.end(), [&](const node_logp & r) { return r.node == node; });
+-        if (it == rows.end()) {
+-            throw error("engine", 500, "field \"" + name + "\": missing full-path row for node " + std::to_string(node));
+-        }
+-        const std::vector<int> & children = t.nodes[node].children;
+-        common_json row = common_json::object();
+-        row["node"] = node;
+-        if (children.empty()) {
+-            row["end"] = it->end_logp;
+-        } else {
+-            common_json child  = common_json::object();
+-            common_json merged = common_json::object();
+-            for (size_t k = 0; k < children.size(); ++k) {
+-                const std::string tok = std::to_string(t.nodes[children[k]].tok);
+-                child[tok] = it->child_logp[k];
+-                if (t.nodes[children[k]].children.empty()) {
+-                    merged[tok] = it->merged_logp[k];
+-                }
+-            }
+-            row["children"] = child;
+-            if (!merged.empty()) {
+-                row["merged"] = merged;
+-            }
+-        }
+-        logp.push_back(row);
+-    }
+-    common_json rows_at = common_json::array();
+-    for (int i : s.row_index) {
+-        rows_at.push_back(i);
+-    }
+-    common_json b = common_json::object();
+-    b["field"]  = name;
+-    b["mode"]   = "full_path";
+-    b["option"] = s.option;
+-    b["tokens"] = token_array(s.tokens);
+-    b["rows"]   = rows_at;
+-    b["logp"]   = logp;
+-    return b;
+-}
+-
+ engine::engine(llama_context * ctx_, const llama_model * model_, const common_chat_templates * tmpls_, engine_config cfg_)
+     : ctx(ctx_), model(model_), vocab(llama_model_get_vocab(model_)), tmpls(tmpls_), cfg(std::move(cfg_)),
+       mem(llama_get_memory(ctx_)), batch(), n_batch((int) llama_n_batch(ctx_)), row_cap((int) llama_n_seq_max(ctx_)),
+@@ -222,55 +176,6 @@ void add_full_path_seq(const full_path_seq & s, llama_seq_id seq, llama_pos pos0
+     }
+ }
+ 
+-std::vector<const std::vector<llama_token> *> leaf_merged_sets(const field_trie & t, const vocab_index & vi, const llama_vocab * vocab) {
+-    std::vector<const std::vector<llama_token> *> out(t.nodes.size(), nullptr);
+-    for (size_t n = 1; n < t.nodes.size(); ++n) {
+-        if (!t.nodes[n].children.empty()) {
+-            continue;
+-        }
+-        const auto it = vi.merged.find(common_token_to_piece(vocab, t.nodes[n].tok, false));
+-        if (it != vi.merged.end()) {
+-            out[n] = &it->second;
+-        }
+-    }
+-    return out;
+-}
+-
+-node_logp full_path_row(const float * logits, int n_vocab, const field_trie & t, int node,
+-                        const std::vector<llama_token> & end_tokens, const std::vector<const std::vector<llama_token> *> & merged) {
+-    // full-vocabulary log-sum-exp; NaN or +inf in the row makes it NaN, which score_field_full rejects
+-    float max = -std::numeric_limits<float>::infinity();
+-    for (int i = 0; i < n_vocab; ++i) {
+-        max = logits[i] > max ? logits[i] : max;
+-    }
+-    double sum = 0.0;
+-    for (int i = 0; i < n_vocab; ++i) {
+-        sum += (double) std::exp(logits[i] - max);
+-    }
+-    const double lse = (double) max + std::log(sum);
+-    // log of the probability mass of `toks` (-inf when empty)
+-    const auto log_mass = [&](const std::vector<llama_token> & toks) {
+-        double m = 0.0;
+-        for (llama_token u : toks) {
+-            m += std::exp((double) logits[u] - lse);
+-        }
+-        return (float) std::log(m);
+-    };
+-
+-    const trie_node & n = t.nodes[node];
+-    node_logp         r;
+-    r.node = node;
+-    for (int child : n.children) {
+-        r.child_logp.push_back((float) ((double) logits[t.nodes[child].tok] - lse));
+-        const bool leaf = t.nodes[child].children.empty();
+-        r.merged_logp.push_back(leaf && merged[child] != nullptr ? log_mass(*merged[child]) : -std::numeric_limits<float>::infinity());
+-    }
+-    if (n.children.empty()) {
+-        r.end_logp = log_mass(end_tokens);
+-    }
+-    return r;
+-}
+-
+ branch_counts count_branches(const trie_set & ts) {
+     branch_counts n;
+     for (const field_trie & t : ts.fields) {
+@@ -510,6 +415,9 @@ int engine::full_path_branches(const compiled_schema & cs, const trie_set & ts,
+ int engine::run_round(const compiled_schema & cs, const trie_set & ts, int K,
+                       const std::vector<std::vector<llama_token>> & state_tokens, size_t first, size_t count,
+                       std::vector<common_json> & answers, stats & st, bool inject, full_path_state * fp) {
++    if ((fp != nullptr) != (ts.mode == scoring_mode::FULL_PATH)) {
++        throw error("engine", 500, std::string("full-path state does not match the scoring mode ") + mode_name(ts.mode));
++    }
+     const llama_seq_id   P        = cfg.seq_base;   // slot 0
+     const prefix_state & p        = slots[0];
+     const llama_pos      n_prefix = (llama_pos) p.tokens.size();
+diff --git a/tools/decide/decide-engine.h b/tools/decide/decide-engine.h
+index 18cb4db5f..c92ac412c 100644
+--- a/tools/decide/decide-engine.h
++++ b/tools/decide/decide-engine.h
+@@ -55,13 +55,6 @@ struct row_ref {
+ void add_full_path_seq(const full_path_seq & s, llama_seq_id seq, llama_pos pos0, size_t state, size_t field,
+                        std::vector<decode_entry> & entries, std::vector<row_ref> & refs);
+ 
+-// spec 4.1: per node of t, the MERGED set of a leaf's edge-token piece; nullptr for the root, inner nodes and pieces without MERGED tokens
+-std::vector<const std::vector<llama_token> *> leaf_merged_sets(const field_trie & t, const vocab_index & vi, const llama_vocab * vocab);
+-// spec 4.4: the values of the row read after `node`, from the full-vocabulary softmax of `logits` (n_vocab values): the log-probs
+-// of the children's tokens, the END mass on a leaf, per leaf child the MERGED mass of merged[child] (-inf otherwise)
+-node_logp full_path_row(const float * logits, int n_vocab, const field_trie & t, int node,
+-                        const std::vector<llama_token> & end_tokens, const std::vector<const std::vector<llama_token> *> & merged);
+-
+ // spec 4.3/4.5: per state and catalogue variant, the tokens of the branch sequences (cells) and the logit rows read
+ struct branch_counts {
+     int64_t tokens = 0;
+diff --git a/tools/decide/decide-fullpath.cpp b/tools/decide/decide-fullpath.cpp
+new file mode 100644
+index 000000000..2011d6ff1
+--- /dev/null
++++ b/tools/decide/decide-fullpath.cpp
+@@ -0,0 +1,107 @@
++#include "decide-fullpath.h"
++#include "common.h"
++
++#include <algorithm>
++#include <cmath>
++#include <limits>
++#include <string>
++
++namespace decide {
++
++std::vector<const std::vector<llama_token> *> leaf_merged_sets(const field_trie & t, const vocab_index & vi, const llama_vocab * vocab) {
++    std::vector<const std::vector<llama_token> *> out(t.nodes.size(), nullptr);
++    for (size_t n = 1; n < t.nodes.size(); ++n) {
++        if (!t.nodes[n].children.empty()) {
++            continue;
++        }
++        const auto it = vi.merged.find(common_token_to_piece(vocab, t.nodes[n].tok, false));
++        if (it != vi.merged.end()) {
++            out[n] = &it->second;
++        }
++    }
++    return out;
++}
++
++node_logp full_path_row(const float * logits, int n_vocab, const field_trie & t, int node,
++                        const std::vector<llama_token> & end_tokens, const std::vector<const std::vector<llama_token> *> & merged) {
++    // full-vocabulary log-sum-exp; NaN or +inf in the row makes it NaN, which score_field_full rejects
++    float max = -std::numeric_limits<float>::infinity();
++    for (int i = 0; i < n_vocab; ++i) {
++        max = logits[i] > max ? logits[i] : max;
++    }
++    double sum = 0.0;
++    for (int i = 0; i < n_vocab; ++i) {
++        sum += (double) std::exp(logits[i] - max);
++    }
++    const double lse = (double) max + std::log(sum);
++    // log of the probability mass of `toks` (-inf when empty)
++    const auto log_mass = [&](const std::vector<llama_token> & toks) {
++        double m = 0.0;
++        for (llama_token u : toks) {
++            m += std::exp((double) logits[u] - lse);
++        }
++        return (float) std::log(m);
++    };
++
++    const trie_node & n = t.nodes[node];
++    node_logp         r;
++    r.node = node;
++    for (int child : n.children) {
++        r.child_logp.push_back((float) ((double) logits[t.nodes[child].tok] - lse));
++        const bool leaf = t.nodes[child].children.empty();
++        r.merged_logp.push_back(leaf && merged[child] != nullptr ? log_mass(*merged[child]) : -std::numeric_limits<float>::infinity());
++    }
++    if (n.children.empty()) {
++        r.end_logp = log_mass(end_tokens);
++    }
++    return r;
++}
++
++common_json full_path_dump(const std::string & name, const field_trie & t, const full_path_seq & s, const std::vector<node_logp> & rows) {
++    common_json logp = common_json::array();
++    for (int node : s.row_node) {
++        const auto it = std::find_if(rows.begin(), rows.end(), [&](const node_logp & r) { return r.node == node; });
++        if (it == rows.end()) {
++            throw error("engine", 500, "field \"" + name + "\": missing full-path row for node " + std::to_string(node));
++        }
++        const std::vector<int> & children = t.nodes[node].children;
++        common_json row = common_json::object();
++        row["node"] = node;
++        if (children.empty()) {
++            row["end"] = it->end_logp;
++        } else {
++            common_json child  = common_json::object();
++            common_json merged = common_json::object();
++            for (size_t k = 0; k < children.size(); ++k) {
++                const std::string tok = std::to_string(t.nodes[children[k]].tok);
++                child[tok] = it->child_logp[k];
++                if (t.nodes[children[k]].children.empty()) {
++                    merged[tok] = it->merged_logp[k];
++                }
++            }
++            row["children"] = child;
++            if (!merged.empty()) {
++                row["merged"] = merged;
++            }
++        }
++        logp.push_back(row);
++    }
++    common_json toks = common_json::array();
++    for (llama_token tok : s.tokens) {
++        toks.push_back(tok);
++    }
++    common_json rows_at = common_json::array();
++    for (int i : s.row_index) {
++        rows_at.push_back(i);
++    }
++    common_json b = common_json::object();
++    b["field"]  = name;
++    b["mode"]   = "full_path";
++    b["option"] = s.option;
++    b["tokens"] = toks;
++    b["rows"]   = rows_at;
++    b["logp"]   = logp;
++    return b;
++}
++
++} // namespace decide
+diff --git a/tools/decide/decide-fullpath.h b/tools/decide/decide-fullpath.h
+new file mode 100644
+index 000000000..5423083ca
+--- /dev/null
++++ b/tools/decide/decide-fullpath.h
+@@ -0,0 +1,24 @@
++#pragma once
++#include "decide-score.h"
++#include "decide-trie.h"
++#include "decide-vocab.h"
++#include "llama.h"
++
++#include <string>
++#include <vector>
++
++// Full-path scoring helpers without a model (spec 4.1, 4.4, 10): the values of one logit row and the dump entry of one branch sequence.
++namespace decide {
++
++// spec 4.1: per node of t, the MERGED set of a leaf's edge-token piece; nullptr for the root, inner nodes and pieces without MERGED tokens
++std::vector<const std::vector<llama_token> *> leaf_merged_sets(const field_trie & t, const vocab_index & vi, const llama_vocab * vocab);
++// spec 4.4: the values of the row read after `node`, from the full-vocabulary softmax of `logits` (n_vocab values): the log-probs
++// of the children's tokens, the END mass on a leaf, per leaf child the MERGED mass of merged[child] (-inf otherwise)
++node_logp full_path_row(const float * logits, int n_vocab, const field_trie & t, int node,
++                        const std::vector<llama_token> & end_tokens, const std::vector<const std::vector<llama_token> *> & merged);
++
++// spec 10: the dump entry of one full-path branch sequence; logp per row: the node, the children's log-probs keyed by token id,
++// "end" on a leaf row, "merged" (keyed by the leaf child's token id) on a row with leaf children; -inf is written as null
++common_json full_path_dump(const std::string & name, const field_trie & t, const full_path_seq & s, const std::vector<node_logp> & rows);
++
++} // namespace decide
+-- 
+2.55.0
+

@@ -1,0 +1,36 @@
+From edee1feec1fec959159a3bf3b49ca4da375e2b32 Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 2 Oct 2026 08:50:48 +0200
+Subject: [PATCH 37/45] decide: mark the injected cell-estimate fault in its
+ message
+
+The cell-estimate fault's 500 keeps the spec text and the real counts and
+now ends in "(injected by LLAMA_DECIDE_FAULT=cell-estimate)", like
+lines-join, so the counts no longer read as a contradiction. The fault
+fires and disarms exactly as before.
+---
+ tools/decide/decide-engine.cpp | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/tools/decide/decide-engine.cpp b/tools/decide/decide-engine.cpp
+index 11a2160f0..cfd4c6818 100644
+--- a/tools/decide/decide-engine.cpp
++++ b/tools/decide/decide-engine.cpp
+@@ -478,9 +478,12 @@ void engine::set_contexts(const compiled_schema & cs, const trie_set & ts, size_
+                 return n;
+             });
+             // spec 5.4: the worst case reserved these cells before the round; more is an estimate defect
+-            if (e.tokens > rs.reserved[f] || fault_fires(fault_mode::CELL_ESTIMATE)) {
++            const bool exceeded = e.tokens > rs.reserved[f];
++            const bool injected = !exceeded && fault_fires(fault_mode::CELL_ESTIMATE);
++            if (exceeded || injected) {
+                 throw error("engine", 500, "cell estimate exceeded: field \"" + F.name + "\" needs " + std::to_string(e.tokens) +
+-                                               " branch cells per state with its answer lines, " + std::to_string(rs.reserved[f]) + " are reserved", F.name);
++                                               " branch cells per state with its answer lines, " + std::to_string(rs.reserved[f]) + " are reserved" +
++                                               (injected ? " (injected by LLAMA_DECIDE_FAULT=cell-estimate)" : ""), F.name);
+             }
+             field_state & fs = rs.fields[s][f];
+             fs.trie  = &e.trie;
+-- 
+2.55.0
+

@@ -1,0 +1,64 @@
+From bf65e97c3a25cbf9c71a9b36cd6561dade719e74 Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 15:53:20 +0200
+Subject: [PATCH 11/45] decide-score: reject NaN and +inf logits with a 500
+ engine error
+
+A NaN logit made every probability NaN, which serialised as null with
+status 200. -inf stays a masked option.
+---
+ tests/test-decide-score.cpp   |  8 ++++++++
+ tools/decide/decide-score.cpp | 11 +++++++++++
+ 2 files changed, 19 insertions(+)
+
+diff --git a/tests/test-decide-score.cpp b/tests/test-decide-score.cpp
+index d1199d9d6..0520c3fd3 100644
+--- a/tests/test-decide-score.cpp
++++ b/tests/test-decide-score.cpp
+@@ -115,6 +115,14 @@ int main() {
+         catch (const decide::error & e) { threw = (e.code == "engine" && e.http == 500); }
+         CHECK(threw);
+     }
++    // 11. NaN or +inf logit -> engine error, never a null probability
++    for (float bad : {std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::infinity()}) {
++        bool threw = false;
++        std::string msg;
++        try { decide::score_field(choice4(), flat4(), {{0, {1.0f, bad, 3.0f, 4.0f}}}); }
++        catch (const decide::error & e) { threw = (e.code == "engine" && e.http == 500); msg = e.what(); }
++        CHECK(threw && msg.find("non-finite logits") != std::string::npos);
++    }
+     if (failures) { std::fprintf(stderr, "%d failure(s)\n", failures); return 1; }
+     std::printf("test-decide-score: OK\n");
+     return 0;
+diff --git a/tools/decide/decide-score.cpp b/tools/decide/decide-score.cpp
+index 44a9815d9..90fdd48ae 100644
+--- a/tools/decide/decide-score.cpp
++++ b/tools/decide/decide-score.cpp
+@@ -66,6 +66,14 @@ field_answer score_field(const field & f, const field_trie & t, const std::vecto
+                                             std::to_string(bn) + ")");
+         }
+     }
++    // -inf is a masked option; NaN or +inf is a broken forward pass
++    for (const node_scores & s : scores) {
++        for (float v : s.child_logits) {
++            if (std::isnan(v) || v == std::numeric_limits<float>::infinity()) {
++                throw error("engine", 500, "field \"" + f.name + "\": non-finite logits at node " + std::to_string(s.node));
++            }
++        }
++    }
+ 
+     std::vector<double> logp(f.options.size(), 0.0);
+ 
+@@ -97,6 +105,9 @@ field_answer score_field(const field & f, const field_trie & t, const std::vecto
+     a.probs.resize(f.options.size());
+     for (size_t i = 0; i < a.probs.size(); ++i) {
+         a.probs[i] = std::isinf(lsm[i]) ? 0.0 : std::exp(lsm[i]);
++        if (!std::isfinite(a.probs[i])) {
++            throw error("engine", 500, "field \"" + f.name + "\": non-finite logits (probability of option " + std::to_string(i) + ")");
++        }
+     }
+ 
+ #ifndef NDEBUG
+-- 
+2.55.0
+

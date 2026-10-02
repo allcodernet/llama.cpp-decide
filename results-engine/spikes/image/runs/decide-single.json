@@ -1,0 +1,539 @@
+{
+ "mode": "single",
+ "schema": {
+  "instructions": "Answer each question about this image.",
+  "fields": {
+   "cat": {
+    "type": "bool",
+    "description": "Is there a cat in this picture?"
+   }
+  }
+ },
+ "rows": [
+  {
+   "image": "cat03",
+   "answers": {
+    "cat": {
+     "value": true,
+     "p_true": 0.9999032135314914,
+     "confidence": 0.9999032135314914
+    }
+   },
+   "usage": {
+    "state_tokens": 0,
+    "scored_tokens": 1,
+    "image_cells": 1602,
+    "image_positions": 42
+   },
+   "timings": {
+    "prefill_ms": 1880.373,
+    "prefix_ms": 0.366,
+    "scoring_ms": 35.828,
+    "total_ms": 1943.306,
+    "rounds": 1,
+    "decodes": 5,
+    "retries": 0,
+    "image_encode_ms": 609.878,
+    "image_decode_ms": 1217.067
+   },
+   "total_usage": {
+    "prompt_tokens": 1617,
+    "cached_tokens": 52,
+    "state_tokens": 0,
+    "scored_tokens": 1
+   },
+   "wall_s": 1.9442286491394043,
+   "reference": {
+    "cat/0": {
+     "children": [
+      " true",
+      " false"
+     ],
+     "probs": [
+      0.9998612394014844,
+      0.00013876059851560292
+     ],
+     "covered": 0.9996637841438639
+    }
+   },
+   "max_abs_diff": 4.197413000696677e-05
+  },
+  {
+   "image": "kitten",
+   "answers": {
+    "cat": {
+     "value": true,
+     "p_true": 0.9998407209795055,
+     "confidence": 0.9998407209795055
+    }
+   },
+   "usage": {
+    "state_tokens": 0,
+    "scored_tokens": 1,
+    "image_cells": 1082,
+    "image_positions": 42
+   },
+   "timings": {
+    "prefill_ms": 1229.422,
+    "prefix_ms": 0.393,
+    "scoring_ms": 36.163,
+    "total_ms": 1281.634,
+    "rounds": 1,
+    "decodes": 5,
+    "retries": 0,
+    "image_encode_ms": 330.269,
+    "image_decode_ms": 845.177
+   },
+   "total_usage": {
+    "prompt_tokens": 1097,
+    "cached_tokens": 52,
+    "state_tokens": 0,
+    "scored_tokens": 1
+   },
+   "wall_s": 1.2824933528900146,
+   "reference": {
+    "cat/0": {
+     "children": [
+      " true",
+      " false"
+     ],
+     "probs": [
+      0.9998170546935157,
+      0.00018294530648431913
+     ],
+     "covered": 0.9989258656179568
+    }
+   },
+   "max_abs_diff": 2.366628598982068e-05
+  },
+  {
+   "image": "coco_39769",
+   "answers": {
+    "cat": {
+     "value": true,
+     "p_true": 0.9996131690099472,
+     "confidence": 0.9996131690099472
+    }
+   },
+   "usage": {
+    "state_tokens": 0,
+    "scored_tokens": 1,
+    "image_cells": 1038,
+    "image_positions": 39
+   },
+   "timings": {
+    "prefill_ms": 1178.592,
+    "prefix_ms": 0.389,
+    "scoring_ms": 36.218,
+    "total_ms": 1233.535,
+    "rounds": 1,
+    "decodes": 5,
+    "retries": 0,
+    "image_encode_ms": 301.335,
+    "image_decode_ms": 823.378
+   },
+   "total_usage": {
+    "prompt_tokens": 1053,
+    "cached_tokens": 52,
+    "state_tokens": 0,
+    "scored_tokens": 1
+   },
+   "wall_s": 1.2343621253967285,
+   "reference": {
+    "cat/0": {
+     "children": [
+      " true",
+      " false"
+     ],
+     "probs": [
+      0.9995925890418687,
+      0.00040741095813135196
+     ],
+     "covered": 0.9992428449970808
+    }
+   },
+   "max_abs_diff": 2.0579968078585293e-05
+  },
+  {
+   "image": "wildcat",
+   "answers": {
+    "cat": {
+     "value": true,
+     "p_true": 0.9998800542238893,
+     "confidence": 0.9998800542238893
+    }
+   },
+   "usage": {
+    "state_tokens": 0,
+    "scored_tokens": 1,
+    "image_cells": 1842,
+    "image_positions": 48
+   },
+   "timings": {
+    "prefill_ms": 2251.682,
+    "prefix_ms": 0.391,
+    "scoring_ms": 36.587,
+    "total_ms": 2335.728,
+    "rounds": 1,
+    "decodes": 5,
+    "retries": 0,
+    "image_encode_ms": 781.598,
+    "image_decode_ms": 1415.19
+   },
+   "total_usage": {
+    "prompt_tokens": 1857,
+    "cached_tokens": 52,
+    "state_tokens": 0,
+    "scored_tokens": 1
+   },
+   "wall_s": 2.3365790843963623,
+   "reference": {
+    "cat/0": {
+     "children": [
+      " true",
+      " false"
+     ],
+     "probs": [
+      0.9998831020207086,
+      0.00011689797929133607
+     ],
+     "covered": 0.9998390619233373
+    }
+   },
+   "max_abs_diff": 3.047796819405352e-06
+  },
+  {
+   "image": "lynx",
+   "answers": {
+    "cat": {
+     "value": true,
+     "p_true": 0.8383251361055809,
+     "confidence": 0.8383251361055809
+    }
+   },
+   "usage": {
+    "state_tokens": 0,
+    "scored_tokens": 1,
+    "image_cells": 1082,
+    "image_positions": 42
+   },
+   "timings": {
+    "prefill_ms": 1233.343,
+    "prefix_ms": 0.433,
+    "scoring_ms": 36.594,
+    "total_ms": 1291.052,
+    "rounds": 1,
+    "decodes": 5,
+    "retries": 0,
+    "image_encode_ms": 321.034,
+    "image_decode_ms": 858.109
+   },
+   "total_usage": {
+    "prompt_tokens": 1097,
+    "cached_tokens": 52,
+    "state_tokens": 0,
+    "scored_tokens": 1
+   },
+   "wall_s": 1.291919469833374,
+   "reference": {
+    "cat/0": {
+     "children": [
+      " true",
+      " false"
+     ],
+     "probs": [
+      0.8225925384857916,
+      0.1774074615142083
+     ],
+     "covered": 0.99853734765014
+    }
+   },
+   "max_abs_diff": 0.01573259761978929
+  },
+  {
+   "image": "fox",
+   "answers": {
+    "cat": {
+     "value": false,
+     "p_true": 0.0012123637851366715,
+     "confidence": 0.9987876362148633
+    }
+   },
+   "usage": {
+    "state_tokens": 0,
+    "scored_tokens": 1,
+    "image_cells": 1202,
+    "image_positions": 42
+   },
+   "timings": {
+    "prefill_ms": 1378.254,
+    "prefix_ms": 0.389,
+    "scoring_ms": 36.461,
+    "total_ms": 1427.323,
+    "rounds": 1,
+    "decodes": 5,
+    "retries": 0,
+    "image_encode_ms": 385.944,
+    "image_decode_ms": 934.743
+   },
+   "total_usage": {
+    "prompt_tokens": 1217,
+    "cached_tokens": 52,
+    "state_tokens": 0,
+    "scored_tokens": 1
+   },
+   "wall_s": 1.4281601905822754,
+   "reference": {
+    "cat/0": {
+     "children": [
+      " true",
+      " false"
+     ],
+     "probs": [
+      0.0010660506837617263,
+      0.9989339493162382
+     ],
+     "covered": 0.9991178265345005
+    }
+   },
+   "max_abs_diff": 0.00014631310137494524
+  },
+  {
+   "image": "labrador",
+   "answers": {
+    "cat": {
+     "value": false,
+     "p_true": 6.337038793614542e-05,
+     "confidence": 0.999936629612064
+    }
+   },
+   "usage": {
+    "state_tokens": 0,
+    "scored_tokens": 1,
+    "image_cells": 1082,
+    "image_positions": 38
+   },
+   "timings": {
+    "prefill_ms": 1225.899,
+    "prefix_ms": 0.561,
+    "scoring_ms": 37.134,
+    "total_ms": 1282.367,
+    "rounds": 1,
+    "decodes": 5,
+    "retries": 0,
+    "image_encode_ms": 322.27,
+    "image_decode_ms": 849.206
+   },
+   "total_usage": {
+    "prompt_tokens": 1097,
+    "cached_tokens": 52,
+    "state_tokens": 0,
+    "scored_tokens": 1
+   },
+   "wall_s": 1.2832398414611816,
+   "reference": {
+    "cat/0": {
+     "children": [
+      " true",
+      " false"
+     ],
+     "probs": [
+      5.572910231797712e-05,
+      0.999944270897682
+     ],
+     "covered": 0.9994588180024357
+    }
+   },
+   "max_abs_diff": 7.6412856181683e-06
+  },
+  {
+   "image": "coco_776",
+   "answers": {
+    "cat": {
+     "value": false,
+     "p_true": 0.00044645130448942906,
+     "confidence": 0.9995535486955105
+    }
+   },
+   "usage": {
+    "state_tokens": 0,
+    "scored_tokens": 1,
+    "image_cells": 1082,
+    "image_positions": 42
+   },
+   "timings": {
+    "prefill_ms": 1231.379,
+    "prefix_ms": 0.384,
+    "scoring_ms": 36.306,
+    "total_ms": 1286.902,
+    "rounds": 1,
+    "decodes": 5,
+    "retries": 0,
+    "image_encode_ms": 325.063,
+    "image_decode_ms": 852.205
+   },
+   "total_usage": {
+    "prompt_tokens": 1097,
+    "cached_tokens": 52,
+    "state_tokens": 0,
+    "scored_tokens": 1
+   },
+   "wall_s": 1.2877707481384277,
+   "reference": {
+    "cat/0": {
+     "children": [
+      " true",
+      " false"
+     ],
+     "probs": [
+      0.00026133128045211255,
+      0.9997386687195479
+     ],
+     "covered": 0.9998542530777599
+    }
+   },
+   "max_abs_diff": 0.0001851200240373165
+  },
+  {
+   "image": "coco_139",
+   "answers": {
+    "cat": {
+     "value": false,
+     "p_true": 0.07162289933032949,
+     "confidence": 0.9283771006696705
+    }
+   },
+   "usage": {
+    "state_tokens": 0,
+    "scored_tokens": 1,
+    "image_cells": 1082,
+    "image_positions": 42
+   },
+   "timings": {
+    "prefill_ms": 1230.376,
+    "prefix_ms": 0.396,
+    "scoring_ms": 36.286,
+    "total_ms": 1285.545,
+    "rounds": 1,
+    "decodes": 5,
+    "retries": 0,
+    "image_encode_ms": 322.927,
+    "image_decode_ms": 853.263
+   },
+   "total_usage": {
+    "prompt_tokens": 1097,
+    "cached_tokens": 52,
+    "state_tokens": 0,
+    "scored_tokens": 1
+   },
+   "wall_s": 1.2863731384277344,
+   "reference": {
+    "cat/0": {
+     "children": [
+      " true",
+      " false"
+     ],
+     "probs": [
+      0.06170912586974909,
+      0.9382908741302509
+     ],
+     "covered": 0.9999197266177349
+    }
+   },
+   "max_abs_diff": 0.009913773460580422
+  },
+  {
+   "image": "coco_632",
+   "answers": {
+    "cat": {
+     "value": false,
+     "p_true": 0.004559852258251985,
+     "confidence": 0.9954401477417479
+    }
+   },
+   "usage": {
+    "state_tokens": 0,
+    "scored_tokens": 1,
+    "image_cells": 1038,
+    "image_positions": 39
+   },
+   "timings": {
+    "prefill_ms": 1181.116,
+    "prefix_ms": 0.389,
+    "scoring_ms": 36.303,
+    "total_ms": 1236.198,
+    "rounds": 1,
+    "decodes": 5,
+    "retries": 0,
+    "image_encode_ms": 300.105,
+    "image_decode_ms": 827.148
+   },
+   "total_usage": {
+    "prompt_tokens": 1053,
+    "cached_tokens": 52,
+    "state_tokens": 0,
+    "scored_tokens": 1
+   },
+   "wall_s": 1.2370543479919434,
+   "reference": {
+    "cat/0": {
+     "children": [
+      " true",
+      " false"
+     ],
+     "probs": [
+      0.0056975872065607395,
+      0.9943024127934392
+     ],
+     "covered": 0.9999483053288297
+    }
+   },
+   "max_abs_diff": 0.0011377349483088217
+  }
+ ],
+ "spike": {
+  "prefix_text": "<|im_start|>system\nAnswer each question about this image.\n\nAnswer with one JSON object. Read the input, then fill every field below.\n\nFields:\n- \"cat\": Is there a cat in this picture? true or false.<|im_end|>\n<|im_start|>user\n",
+  "tail_text": "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n{\n",
+  "branches": [
+   {
+    "field": "cat",
+    "node": 0,
+    "text": "  \"cat\":",
+    "children": [
+     " true",
+     " false"
+    ]
+   }
+  ]
+ },
+ "engine": {
+  "scoring": "tree",
+  "order_debias": 1,
+  "temperature": 1.0,
+  "phases": 1,
+  "seqs_per_state": 2,
+  "states_per_round": 7,
+  "quote_split_fields": [],
+  "prefix_cache": {
+   "capacity": 8,
+   "entries": 0,
+   "hits": 0,
+   "misses": 0
+  },
+  "spike": {
+   "prefix_text": "<|im_start|>system\nAnswer each question about this image.\n\nAnswer with one JSON object. Read the input, then fill every field below.\n\nFields:\n- \"cat\": Is there a cat in this picture? true or false.<|im_end|>\n<|im_start|>user\n",
+   "tail_text": "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n{\n",
+   "branches": [
+    {
+     "field": "cat",
+     "node": 0,
+     "text": "  \"cat\":",
+     "children": [
+      " true",
+      " false"
+     ]
+    }
+   ]
+  }
+ }
+}

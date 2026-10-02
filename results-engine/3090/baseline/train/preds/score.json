@@ -1,0 +1,25 @@
+{
+  "preds_dir": "results-engine/3090/baseline/train/preds",
+  "test_set": "local/data/triage_train.jsonl",
+  "n_tickets": 320,
+  "runs": {
+    "decide-qwen3.8-27b-b5-keywords": {
+      "queue": 0.965625,
+      "urgency": 0.853125,
+      "urgency_near": 0.996875,
+      "angry": 1,
+      "nll_queue": 0.08855242135802803,
+      "nll_urgency": 0.35231170102438414,
+      "nll_angry": 0.04300701322559279,
+      "nll_sum": 0.483871135608005,
+      "ece_queue": 0.02086769463921005,
+      "ece_urgency": 0.03463847563804707,
+      "ece_angry": 0.039072342310824876,
+      "brier_angry": 0.0063783746426333094,
+      "p50_ms": 101.44515729998602,
+      "rounds": [
+        1
+      ]
+    }
+  }
+}

@@ -1,0 +1,308 @@
+{
+ "mode": "mixed",
+ "schema": {
+  "instructions": "Answer each question about this image.",
+  "fields": {
+   "cat": {
+    "type": "bool",
+    "description": "Is there a cat in this picture?"
+   },
+   "dog": {
+    "type": "bool",
+    "description": "Is there a dog in this picture?"
+   },
+   "animal": {
+    "type": "choice",
+    "description": "Which kind of animal is the main subject of the picture?",
+    "options": {
+     "cat": "a cat of any kind, domestic or wild",
+     "dog": "a dog",
+     "fox": "a fox",
+     "other": "another animal, or a toy or picture of an animal",
+     "none": "no animal at all"
+    }
+   },
+   "indoors": {
+    "type": "bool",
+    "description": "Was the picture taken indoors?"
+   }
+  }
+ },
+ "states": [
+  "A photo of a sleeping dog on a sofa.",
+  {
+   "image": "/home/marduk/llama.cpp-decision/local/spike-image/kitten.jpg"
+  }
+ ],
+ "response": {
+  "object": "decide",
+  "results": [
+   {
+    "answers": {
+     "cat": {
+      "value": false,
+      "p_true": 7.296140630759234e-05,
+      "confidence": 0.9999270385936925
+     },
+     "dog": {
+      "value": true,
+      "p_true": 0.9895215539118224,
+      "confidence": 0.9895215539118224
+     },
+     "animal": {
+      "value": "dog",
+      "probabilities": {
+       "cat": 3.60396894975321e-05,
+       "dog": 0.9694186356581028,
+       "fox": 9.87764825624726e-07,
+       "other": 0.01816722348361114,
+       "none": 0.012377113403962955
+      },
+      "confidence": 0.9694186356581028
+     },
+     "indoors": {
+      "value": true,
+      "p_true": 0.9872207232091191,
+      "confidence": 0.9872207232091191
+     }
+    },
+    "usage": {
+     "state_tokens": 10,
+     "scored_tokens": 4
+    }
+   },
+   {
+    "answers": {
+     "cat": {
+      "value": true,
+      "p_true": 0.9999726056926921,
+      "confidence": 0.9999726056926921
+     },
+     "dog": {
+      "value": false,
+      "p_true": 0.0025118601361435646,
+      "confidence": 0.9974881398638565
+     },
+     "animal": {
+      "value": "cat",
+      "probabilities": {
+       "cat": 0.9989731813026498,
+       "dog": 3.541671972990771e-05,
+       "fox": 6.029676561224041e-06,
+       "other": 0.0009390217719161642,
+       "none": 4.6350529142756956e-05
+      },
+      "confidence": 0.9989731813026498
+     },
+     "indoors": {
+      "value": true,
+      "p_true": 0.9415544215690717,
+      "confidence": 0.9415544215690717
+     }
+    },
+    "usage": {
+     "state_tokens": 0,
+     "scored_tokens": 4,
+     "image_cells": 1082,
+     "image_positions": 42
+    }
+   }
+  ],
+  "usage": {
+   "prompt_tokens": 1150,
+   "cached_tokens": 160,
+   "state_tokens": 10,
+   "scored_tokens": 8
+  },
+  "timings": {
+   "prefill_ms": 1301.45,
+   "prefix_ms": 0.411,
+   "scoring_ms": 119.688,
+   "total_ms": 1438.898,
+   "rounds": 1,
+   "decodes": 5,
+   "retries": 0,
+   "image_encode_ms": 326.575,
+   "image_decode_ms": 868.376
+  },
+  "engine": {
+   "scoring": "tree",
+   "order_debias": 1,
+   "temperature": 1.0,
+   "phases": 1,
+   "seqs_per_state": 5,
+   "states_per_round": 3,
+   "quote_split_fields": [],
+   "prefix_cache": {
+    "capacity": 8,
+    "entries": 1,
+    "hits": 0,
+    "misses": 0
+   },
+   "spike": {
+    "prefix_text": "<|im_start|>system\nAnswer each question about this image.\n\nAnswer with one JSON object. Read the input, then fill every field below.\n\nFields:\n- \"cat\": Is there a cat in this picture? true or false.\n- \"dog\": Is there a dog in this picture? true or false.\n- \"animal\": Which kind of animal is the main subject of the picture?\n  Allowed values:\n    \"cat\": a cat of any kind, domestic or wild\n    \"dog\": a dog\n    \"fox\": a fox\n    \"other\": another animal, or a toy or picture of an animal\n    \"none\": no animal at all\n- \"indoors\": Was the picture taken indoors? true or false.<|im_end|>\n<|im_start|>user\n",
+    "tail_text": "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n{\n",
+    "branches": [
+     {
+      "field": "cat",
+      "node": 0,
+      "text": "  \"cat\":",
+      "children": [
+       " true",
+       " false"
+      ]
+     },
+     {
+      "field": "dog",
+      "node": 0,
+      "text": "  \"dog\":",
+      "children": [
+       " true",
+       " false"
+      ]
+     },
+     {
+      "field": "animal",
+      "node": 0,
+      "text": "  \"animal\": \"",
+      "children": [
+       "cat",
+       "dog",
+       "fox",
+       "other",
+       "none"
+      ]
+     },
+     {
+      "field": "indoors",
+      "node": 0,
+      "text": "  \"indoors\":",
+      "children": [
+       " true",
+       " false"
+      ]
+     }
+    ]
+   }
+  },
+  "wall_s": 1.4400312900543213
+ },
+ "text_only": {
+  "object": "decide",
+  "results": [
+   {
+    "answers": {
+     "cat": {
+      "value": false,
+      "p_true": 7.986805077581682e-05,
+      "confidence": 0.9999201319492241
+     },
+     "dog": {
+      "value": true,
+      "p_true": 0.9873342095142753,
+      "confidence": 0.9873342095142753
+     },
+     "animal": {
+      "value": "dog",
+      "probabilities": {
+       "cat": 3.5139309329903784e-05,
+       "dog": 0.976476597316239,
+       "fox": 1.0001239632685628e-06,
+       "other": 0.013831372348405433,
+       "none": 0.009655890902062552
+      },
+      "confidence": 0.976476597316239
+     },
+     "indoors": {
+      "value": true,
+      "p_true": 0.9868337511930672,
+      "confidence": 0.9868337511930672
+     }
+    },
+    "usage": {
+     "state_tokens": 10,
+     "scored_tokens": 4
+    }
+   }
+  ],
+  "usage": {
+   "prompt_tokens": 39,
+   "cached_tokens": 160,
+   "state_tokens": 10,
+   "scored_tokens": 4
+  },
+  "timings": {
+   "prefill_ms": 51.098,
+   "prefix_ms": 0.383,
+   "scoring_ms": 82.737,
+   "total_ms": 135.129,
+   "rounds": 1,
+   "decodes": 2,
+   "retries": 0,
+   "image_encode_ms": 0.0,
+   "image_decode_ms": 0.0
+  },
+  "engine": {
+   "scoring": "tree",
+   "order_debias": 1,
+   "temperature": 1.0,
+   "phases": 1,
+   "seqs_per_state": 5,
+   "states_per_round": 3,
+   "quote_split_fields": [],
+   "prefix_cache": {
+    "capacity": 8,
+    "entries": 1,
+    "hits": 0,
+    "misses": 0
+   },
+   "spike": {
+    "prefix_text": "<|im_start|>system\nAnswer each question about this image.\n\nAnswer with one JSON object. Read the input, then fill every field below.\n\nFields:\n- \"cat\": Is there a cat in this picture? true or false.\n- \"dog\": Is there a dog in this picture? true or false.\n- \"animal\": Which kind of animal is the main subject of the picture?\n  Allowed values:\n    \"cat\": a cat of any kind, domestic or wild\n    \"dog\": a dog\n    \"fox\": a fox\n    \"other\": another animal, or a toy or picture of an animal\n    \"none\": no animal at all\n- \"indoors\": Was the picture taken indoors? true or false.<|im_end|>\n<|im_start|>user\n",
+    "tail_text": "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n{\n",
+    "branches": [
+     {
+      "field": "cat",
+      "node": 0,
+      "text": "  \"cat\":",
+      "children": [
+       " true",
+       " false"
+      ]
+     },
+     {
+      "field": "dog",
+      "node": 0,
+      "text": "  \"dog\":",
+      "children": [
+       " true",
+       " false"
+      ]
+     },
+     {
+      "field": "animal",
+      "node": 0,
+      "text": "  \"animal\": \"",
+      "children": [
+       "cat",
+       "dog",
+       "fox",
+       "other",
+       "none"
+      ]
+     },
+     {
+      "field": "indoors",
+      "node": 0,
+      "text": "  \"indoors\":",
+      "children": [
+       " true",
+       " false"
+      ]
+     }
+    ]
+   }
+  },
+  "wall_s": 0.13611245155334473
+ },
+ "text_state_diff": 0.007057961658136214
+}

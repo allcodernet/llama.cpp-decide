@@ -1,0 +1,142 @@
+{
+  "resp": "results-engine/sp3/checks/task-5/fp-b5-qwen2.5-0.5b.jsonl",
+  "lines": 4,
+  "states": 20,
+  "max_abs_sum_minus_1": 1.1102230246251565e-16,
+  "coverage": {
+    "queue": {
+      "min": 0.9866473899170254,
+      "median": 0.9940846517952293,
+      "max": 0.9977092242300365,
+      "n": 20
+    },
+    "urgency": {
+      "min": 0.9974311845337482,
+      "median": 0.9996152514097797,
+      "max": 0.9999095409539144,
+      "n": 20
+    },
+    "angry": {
+      "min": 0.9933677021167452,
+      "median": 0.9976499389511588,
+      "max": 0.9990815034881181,
+      "n": 20
+    }
+  },
+  "engine": [
+    {
+      "scoring": "full_path",
+      "seqs_per_state": 11,
+      "states_per_round": 5,
+      "quote_split_fields": [],
+      "prefix_cache": {
+        "capacity": 8,
+        "entries": 0,
+        "hits": 0,
+        "misses": 1
+      }
+    },
+    {
+      "scoring": "full_path",
+      "seqs_per_state": 11,
+      "states_per_round": 5,
+      "quote_split_fields": [],
+      "prefix_cache": {
+        "capacity": 8,
+        "entries": 0,
+        "hits": 0,
+        "misses": 0
+      }
+    },
+    {
+      "scoring": "full_path",
+      "seqs_per_state": 11,
+      "states_per_round": 5,
+      "quote_split_fields": [],
+      "prefix_cache": {
+        "capacity": 8,
+        "entries": 0,
+        "hits": 0,
+        "misses": 0
+      }
+    },
+    {
+      "scoring": "full_path",
+      "seqs_per_state": 11,
+      "states_per_round": 5,
+      "quote_split_fields": [],
+      "prefix_cache": {
+        "capacity": 8,
+        "entries": 0,
+        "hits": 0,
+        "misses": 0
+      }
+    }
+  ],
+  "usage": [
+    {
+      "prompt_tokens": 784,
+      "cached_tokens": 0,
+      "state_tokens": 166,
+      "scored_tokens": 85
+    },
+    {
+      "prompt_tokens": 577,
+      "cached_tokens": 248,
+      "state_tokens": 207,
+      "scored_tokens": 85
+    },
+    {
+      "prompt_tokens": 600,
+      "cached_tokens": 248,
+      "state_tokens": 230,
+      "scored_tokens": 85
+    },
+    {
+      "prompt_tokens": 657,
+      "cached_tokens": 248,
+      "state_tokens": 287,
+      "scored_tokens": 85
+    }
+  ],
+  "timings": [
+    {
+      "prefill_ms": 39.769,
+      "prefix_ms": 23.471,
+      "scoring_ms": 73.734,
+      "total_ms": 118.026,
+      "rounds": 1,
+      "decodes": 4,
+      "retries": 0
+    },
+    {
+      "prefill_ms": 18.186,
+      "prefix_ms": 0.248,
+      "scoring_ms": 69.056,
+      "total_ms": 90.523,
+      "rounds": 1,
+      "decodes": 3,
+      "retries": 0
+    },
+    {
+      "prefill_ms": 14.141,
+      "prefix_ms": 0.248,
+      "scoring_ms": 65.004,
+      "total_ms": 82.376,
+      "rounds": 1,
+      "decodes": 3,
+      "retries": 0
+    },
+    {
+      "prefill_ms": 16.546,
+      "prefix_ms": 0.251,
+      "scoring_ms": 65.324,
+      "total_ms": 85.339,
+      "rounds": 1,
+      "decodes": 3,
+      "retries": 0
+    }
+  ],
+  "problems": [],
+  "pass": true
+}

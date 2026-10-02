@@ -1,0 +1,732 @@
+{
+ "question": "Is there a cat in this picture? Answer with yes or no.",
+ "rows": [
+  {
+   "image": "cat03",
+   "token": "Yes",
+   "p_yes_raw": 0.9988613803329491,
+   "p_no_raw": 0.0008924506980179308,
+   "p_yes": 0.9991073295542188,
+   "prompt_tokens": 1628,
+   "timings": {
+    "cache_n": 0,
+    "prompt_n": 1628,
+    "prompt_ms": 1937.344,
+    "prompt_per_token_ms": 1.190014742014742,
+    "prompt_per_second": 840.3257242905752,
+    "predicted_n": 1,
+    "predicted_ms": 0.001,
+    "predicted_per_token_ms": 0.0,
+    "predicted_per_second": 0.0
+   },
+   "wall_s": 2.0291268825531006,
+   "top5": [
+    {
+     "id": 9175,
+     "token": "Yes",
+     "bytes": [
+      89,
+      101,
+      115
+     ],
+     "logprob": -0.13055966794490814
+    },
+    {
+     "id": 9405,
+     "token": "yes",
+     "bytes": [
+      121,
+      101,
+      115
+     ],
+     "logprob": -2.243741750717163
+    },
+    {
+     "id": 9542,
+     "token": " yes",
+     "bytes": [
+      32,
+      121,
+      101,
+      115
+     ],
+     "logprob": -4.599872589111328
+    },
+    {
+     "id": 7179,
+     "token": " Yes",
+     "bytes": [
+      32,
+      89,
+      101,
+      115
+     ],
+     "logprob": -5.282395839691162
+    },
+    {
+     "id": 2665,
+     "token": "No",
+     "bytes": [
+      78,
+      111
+     ],
+     "logprob": -7.174869060516357
+    }
+   ]
+  },
+  {
+   "image": "kitten",
+   "token": "Yes",
+   "p_yes_raw": 0.9845939110682121,
+   "p_no_raw": 0.013268853057410109,
+   "p_yes": 0.986702727534846,
+   "prompt_tokens": 1108,
+   "timings": {
+    "cache_n": 0,
+    "prompt_n": 1108,
+    "prompt_ms": 1271.584,
+    "prompt_per_token_ms": 1.1476389891696752,
+    "prompt_per_second": 871.3541535596547,
+    "predicted_n": 1,
+    "predicted_ms": 0.001,
+    "predicted_per_token_ms": 0.0,
+    "predicted_per_second": 0.0
+   },
+   "wall_s": 1.3572583198547363,
+   "top5": [
+    {
+     "id": 9175,
+     "token": "Yes",
+     "bytes": [
+      89,
+      101,
+      115
+     ],
+     "logprob": -0.2214844822883606
+    },
+    {
+     "id": 9405,
+     "token": "yes",
+     "bytes": [
+      121,
+      101,
+      115
+     ],
+     "logprob": -1.7728227376937866
+    },
+    {
+     "id": 2665,
+     "token": "No",
+     "bytes": [
+      78,
+      111
+     ],
+     "logprob": -4.583341121673584
+    },
+    {
+     "id": 9542,
+     "token": " yes",
+     "bytes": [
+      32,
+      121,
+      101,
+      115
+     ],
+     "logprob": -4.905700206756592
+    },
+    {
+     "id": 7179,
+     "token": " Yes",
+     "bytes": [
+      32,
+      89,
+      101,
+      115
+     ],
+     "logprob": -5.259448528289795
+    }
+   ]
+  },
+  {
+   "image": "coco_39769",
+   "token": "Yes",
+   "p_yes_raw": 0.9419427769999522,
+   "p_no_raw": 0,
+   "p_yes": 1.0,
+   "prompt_tokens": 328,
+   "timings": {
+    "cache_n": 0,
+    "prompt_n": 328,
+    "prompt_ms": 434.262,
+    "prompt_per_token_ms": 1.323969512195122,
+    "prompt_per_second": 755.3044014903445,
+    "predicted_n": 1,
+    "predicted_ms": 0.001,
+    "predicted_per_token_ms": 0.0,
+    "predicted_per_second": 0.0
+   },
+   "wall_s": 0.5018625259399414,
+   "top5": [
+    {
+     "id": 9175,
+     "token": "Yes",
+     "bytes": [
+      89,
+      101,
+      115
+     ],
+     "logprob": -0.06620202958583832
+    },
+    {
+     "id": 71093,
+     "token": "```",
+     "bytes": [
+      96,
+      96,
+      96
+     ],
+     "logprob": -2.877330780029297
+    },
+    {
+     "id": 7179,
+     "token": " Yes",
+     "bytes": [
+      32,
+      89,
+      101,
+      115
+     ],
+     "logprob": -5.911203384399414
+    },
+    {
+     "id": 9405,
+     "token": "yes",
+     "bytes": [
+      121,
+      101,
+      115
+     ],
+     "logprob": -6.209499359130859
+    },
+    {
+     "id": 9542,
+     "token": " yes",
+     "bytes": [
+      32,
+      121,
+      101,
+      115
+     ],
+     "logprob": -6.753910064697266
+    }
+   ]
+  },
+  {
+   "image": "wildcat",
+   "token": "Yes",
+   "p_yes_raw": 0.9976285635189537,
+   "p_no_raw": 0.002223286047983961,
+   "p_yes": 0.9977763845224201,
+   "prompt_tokens": 1868,
+   "timings": {
+    "cache_n": 0,
+    "prompt_n": 1868,
+    "prompt_ms": 2298.438,
+    "prompt_per_token_ms": 1.2304271948608139,
+    "prompt_per_second": 812.725859910078,
+    "predicted_n": 1,
+    "predicted_ms": 0.001,
+    "predicted_per_token_ms": 0.0,
+    "predicted_per_second": 0.0
+   },
+   "wall_s": 2.412421226501465,
+   "top5": [
+    {
+     "id": 9175,
+     "token": "Yes",
+     "bytes": [
+      89,
+      101,
+      115
+     ],
+     "logprob": -0.10374166816473007
+    },
+    {
+     "id": 9405,
+     "token": "yes",
+     "bytes": [
+      121,
+      101,
+      115
+     ],
+     "logprob": -2.357283592224121
+    },
+    {
+     "id": 2665,
+     "token": "No",
+     "bytes": [
+      78,
+      111
+     ],
+     "logprob": -6.259377479553223
+    },
+    {
+     "id": 9542,
+     "token": " yes",
+     "bytes": [
+      32,
+      121,
+      101,
+      115
+     ],
+     "logprob": -7.037421226501465
+    },
+    {
+     "id": 7179,
+     "token": " Yes",
+     "bytes": [
+      32,
+      89,
+      101,
+      115
+     ],
+     "logprob": -7.7794389724731445
+    }
+   ]
+  },
+  {
+   "image": "lynx",
+   "token": "Yes",
+   "p_yes_raw": 0.9778723155917161,
+   "p_no_raw": 0.021787003183727994,
+   "p_yes": 0.9782055718638061,
+   "prompt_tokens": 453,
+   "timings": {
+    "cache_n": 0,
+    "prompt_n": 453,
+    "prompt_ms": 545.456,
+    "prompt_per_token_ms": 1.2040971302428256,
+    "prompt_per_second": 830.497785339239,
+    "predicted_n": 1,
+    "predicted_ms": 0.001,
+    "predicted_per_token_ms": 0.0,
+    "predicted_per_second": 0.0
+   },
+   "wall_s": 0.6220650672912598,
+   "top5": [
+    {
+     "id": 7179,
+     "token": " Yes",
+     "bytes": [
+      32,
+      89,
+      101,
+      115
+     ],
+     "logprob": -0.42808467149734497
+    },
+    {
+     "id": 9175,
+     "token": "Yes",
+     "bytes": [
+      89,
+      101,
+      115
+     ],
+     "logprob": -1.6853210926055908
+    },
+    {
+     "id": 9542,
+     "token": " yes",
+     "bytes": [
+      32,
+      121,
+      101,
+      115
+     ],
+     "logprob": -1.990958571434021
+    },
+    {
+     "id": 2233,
+     "token": " No",
+     "bytes": [
+      32,
+      78,
+      111
+     ],
+     "logprob": -4.4275431632995605
+    },
+    {
+     "id": 874,
+     "token": " no",
+     "bytes": [
+      32,
+      110,
+      111
+     ],
+     "logprob": -4.820521831512451
+    }
+   ]
+  },
+  {
+   "image": "fox",
+   "token": "No",
+   "p_yes_raw": 0.012597635485285714,
+   "p_no_raw": 0.9865530938166658,
+   "p_yes": 0.012608343381870871,
+   "prompt_tokens": 1228,
+   "timings": {
+    "cache_n": 0,
+    "prompt_n": 1228,
+    "prompt_ms": 1422.581,
+    "prompt_per_token_ms": 1.1584535830618892,
+    "prompt_per_second": 863.2197393329449,
+    "predicted_n": 1,
+    "predicted_ms": 0.001,
+    "predicted_per_token_ms": 0.0,
+    "predicted_per_second": 0.0
+   },
+   "wall_s": 1.4934322834014893,
+   "top5": [
+    {
+     "id": 2233,
+     "token": " No",
+     "bytes": [
+      32,
+      78,
+      111
+     ],
+     "logprob": -0.4978064298629761
+    },
+    {
+     "id": 874,
+     "token": " no",
+     "bytes": [
+      32,
+      110,
+      111
+     ],
+     "logprob": -1.1261862516403198
+    },
+    {
+     "id": 2665,
+     "token": "No",
+     "bytes": [
+      78,
+      111
+     ],
+     "logprob": -2.9522743225097656
+    },
+    {
+     "id": 7179,
+     "token": " Yes",
+     "bytes": [
+      32,
+      89,
+      101,
+      115
+     ],
+     "logprob": -4.552518844604492
+    },
+    {
+     "id": 2083,
+     "token": "no",
+     "bytes": [
+      110,
+      111
+     ],
+     "logprob": -6.1183319091796875
+    }
+   ]
+  },
+  {
+   "image": "labrador",
+   "token": "no",
+   "p_yes_raw": 0.03493913385897071,
+   "p_no_raw": 0.9648414239008497,
+   "p_yes": 0.034946802663634334,
+   "prompt_tokens": 424,
+   "timings": {
+    "cache_n": 0,
+    "prompt_n": 424,
+    "prompt_ms": 535.199,
+    "prompt_per_token_ms": 1.26226179245283,
+    "prompt_per_second": 792.2286850311754,
+    "predicted_n": 1,
+    "predicted_ms": 0.001,
+    "predicted_per_token_ms": 0.0,
+    "predicted_per_second": 0.0
+   },
+   "wall_s": 0.6050078868865967,
+   "top5": [
+    {
+     "id": 2083,
+     "token": "no",
+     "bytes": [
+      110,
+      111
+     ],
+     "logprob": -0.5740880966186523
+    },
+    {
+     "id": 2665,
+     "token": "No",
+     "bytes": [
+      78,
+      111
+     ],
+     "logprob": -0.9141892790794373
+    },
+    {
+     "id": 9175,
+     "token": "Yes",
+     "bytes": [
+      89,
+      101,
+      115
+     ],
+     "logprob": -3.7063302993774414
+    },
+    {
+     "id": 9405,
+     "token": "yes",
+     "bytes": [
+      121,
+      101,
+      115
+     ],
+     "logprob": -4.577151298522949
+    },
+    {
+     "id": 874,
+     "token": " no",
+     "bytes": [
+      32,
+      110,
+      111
+     ],
+     "logprob": -7.195244789123535
+    }
+   ]
+  },
+  {
+   "image": "coco_776",
+   "token": "no",
+   "p_yes_raw": 0.02254215680645121,
+   "p_no_raw": 0.7905575839031079,
+   "p_yes": 0.027723728932418038,
+   "prompt_tokens": 288,
+   "timings": {
+    "cache_n": 0,
+    "prompt_n": 288,
+    "prompt_ms": 403.526,
+    "prompt_per_token_ms": 1.4011319444444446,
+    "prompt_per_second": 713.7086581781596,
+    "predicted_n": 1,
+    "predicted_ms": 0.001,
+    "predicted_per_token_ms": 0.0,
+    "predicted_per_second": 0.0
+   },
+   "wall_s": 0.47068190574645996,
+   "top5": [
+    {
+     "id": 2083,
+     "token": "no",
+     "bytes": [
+      110,
+      111
+     ],
+     "logprob": -0.6707947850227356
+    },
+    {
+     "id": 2665,
+     "token": "No",
+     "bytes": [
+      78,
+      111
+     ],
+     "logprob": -1.702143907546997
+    },
+    {
+     "id": 71093,
+     "token": "```",
+     "bytes": [
+      96,
+      96,
+      96
+     ],
+     "logprob": -1.977189302444458
+    },
+    {
+     "id": 874,
+     "token": " no",
+     "bytes": [
+      32,
+      110,
+      111
+     ],
+     "logprob": -2.3408939838409424
+    },
+    {
+     "id": 760,
+     "token": "The",
+     "bytes": [
+      84,
+      104,
+      101
+     ],
+     "logprob": -4.241520881652832
+    }
+   ]
+  },
+  {
+   "image": "coco_139",
+   "token": "```",
+   "p_yes_raw": 0.1210181390578062,
+   "p_no_raw": 0.238248182106607,
+   "p_yes": 0.33684799250198555,
+   "prompt_tokens": 288,
+   "timings": {
+    "cache_n": 0,
+    "prompt_n": 288,
+    "prompt_ms": 397.256,
+    "prompt_per_token_ms": 1.379361111111111,
+    "prompt_per_second": 724.9733169543067,
+    "predicted_n": 1,
+    "predicted_ms": 0.001,
+    "predicted_per_token_ms": 0.0,
+    "predicted_per_second": 0.0
+   },
+   "wall_s": 0.4616861343383789,
+   "top5": [
+    {
+     "id": 71093,
+     "token": "```",
+     "bytes": [
+      96,
+      96,
+      96
+     ],
+     "logprob": -0.8373198509216309
+    },
+    {
+     "id": 2665,
+     "token": "No",
+     "bytes": [
+      78,
+      111
+     ],
+     "logprob": -1.523658275604248
+    },
+    {
+     "id": 27775,
+     "token": "Based",
+     "bytes": [
+      66,
+      97,
+      115,
+      101,
+      100
+     ],
+     "logprob": -1.928443431854248
+    },
+    {
+     "id": 9175,
+     "token": "Yes",
+     "bytes": [
+      89,
+      101,
+      115
+     ],
+     "logprob": -2.1333136558532715
+    },
+    {
+     "id": 21765,
+     "token": "Looking",
+     "bytes": [
+      76,
+      111,
+      111,
+      107,
+      105,
+      110,
+      103
+     ],
+     "logprob": -3.334765911102295
+    }
+   ]
+  },
+  {
+   "image": "coco_632",
+   "token": "No",
+   "p_yes_raw": 0.07527396577913366,
+   "p_no_raw": 0.8452238505553166,
+   "p_yes": 0.08177527903204052,
+   "prompt_tokens": 328,
+   "timings": {
+    "cache_n": 0,
+    "prompt_n": 328,
+    "prompt_ms": 437.725,
+    "prompt_per_token_ms": 1.3345274390243904,
+    "prompt_per_second": 749.3289165571991,
+    "predicted_n": 1,
+    "predicted_ms": 0.001,
+    "predicted_per_token_ms": 0.0,
+    "predicted_per_second": 0.0
+   },
+   "wall_s": 0.504065990447998,
+   "top5": [
+    {
+     "id": 2665,
+     "token": "No",
+     "bytes": [
+      78,
+      111
+     ],
+     "logprob": -0.36644113063812256
+    },
+    {
+     "id": 2083,
+     "token": "no",
+     "bytes": [
+      110,
+      111
+     ],
+     "logprob": -2.0175411701202393
+    },
+    {
+     "id": 9175,
+     "token": "Yes",
+     "bytes": [
+      89,
+      101,
+      115
+     ],
+     "logprob": -2.621253252029419
+    },
+    {
+     "id": 27775,
+     "token": "Based",
+     "bytes": [
+      66,
+      97,
+      115,
+      101,
+      100
+     ],
+     "logprob": -2.8534748554229736
+    },
+    {
+     "id": 874,
+     "token": " no",
+     "bytes": [
+      32,
+      110,
+      111
+     ],
+     "logprob": -4.0049567222595215
+    }
+   ]
+  }
+ ]
+}

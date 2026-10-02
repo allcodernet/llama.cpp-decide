@@ -1,0 +1,66 @@
+{
+  "resp": "results-engine/sp3/checks/task-7/k2-qwen3.5-4b.jsonl",
+  "states": 5,
+  "statistic": {
+    "n_tickets": 5,
+    "max_abs_diff": 0.05609248775823583,
+    "fields": {
+      "queue": {
+        "median_abs_diff": 0.0033598688563691364,
+        "max_abs_diff": 0.05609248775823583,
+        "argmax_disagreements": 0,
+        "disagreements_over_margin": 0,
+        "pass": true
+      },
+      "urgency": {
+        "median_abs_diff": 0.0007449545276221325,
+        "max_abs_diff": 0.03124295783586467,
+        "argmax_disagreements": 1,
+        "disagreements_over_margin": 0,
+        "pass": true
+      },
+      "angry": {
+        "median_abs_diff": 0.00015878549079187637,
+        "max_abs_diff": 0.0007811530270682709,
+        "argmax_disagreements": 0,
+        "disagreements_over_margin": 0,
+        "pass": true
+      }
+    },
+    "pass": true
+  },
+  "k2_engine": {
+    "scoring": "tree",
+    "order_debias": 2,
+    "temperature": 1.0,
+    "phases": 1,
+    "seqs_per_state": 8,
+    "states_per_round": 3,
+    "quote_split_fields": [],
+    "prefix_cache": {
+      "capacity": 8,
+      "entries": 1,
+      "hits": 1,
+      "misses": 0
+    }
+  },
+  "k2_usage": {
+    "prompt_tokens": 602,
+    "cached_tokens": 508,
+    "state_tokens": 166,
+    "scored_tokens": 30
+  },
+  "k2_timings": {
+    "prefill_ms": 291.658,
+    "prefix_ms": 7.128,
+    "scoring_ms": 210.323,
+    "total_ms": 504.415,
+    "rounds": 2,
+    "decodes": 4,
+    "retries": 0
+  },
+  "order_spread_vs_k0_max_abs_diff": 0.02547987717818634,
+  "problems": [],
+  "pass_structure": true,
+  "pass": true
+}

@@ -1,0 +1,80 @@
+{
+  "resp": "results-engine/sp3/checks/task-7/info-qwen2.5-0.5b.jsonl",
+  "want": [
+    [
+      4,
+      15
+    ],
+    [
+      8,
+      7
+    ],
+    [
+      16,
+      3
+    ],
+    [
+      44,
+      1
+    ]
+  ],
+  "got": [
+    [
+      4,
+      15
+    ],
+    [
+      8,
+      7
+    ],
+    [
+      16,
+      3
+    ],
+    [
+      44,
+      1
+    ]
+  ],
+  "temperature": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+  ],
+  "prefixes": [
+    [
+      {
+        "slot": 0,
+        "hash": "90dfadfca52df8e1",
+        "tokens": 248,
+        "valid": true
+      }
+    ],
+    [
+      {
+        "slot": 0,
+        "hash": "90dfadfca52df8e1",
+        "tokens": 248,
+        "valid": true
+      }
+    ],
+    [
+      {
+        "slot": 0,
+        "hash": "90dfadfca52df8e1",
+        "tokens": 248,
+        "valid": true
+      }
+    ],
+    [
+      {
+        "slot": 0,
+        "hash": "90dfadfca52df8e1",
+        "tokens": 248,
+        "valid": true
+      }
+    ]
+  ],
+  "pass": true
+}

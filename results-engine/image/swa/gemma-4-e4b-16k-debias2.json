@@ -1,0 +1,168 @@
+{
+ "model": "gemma-4-e4b-16k",
+ "debias": 2,
+ "chat": false,
+ "info": {
+  "n_ctx": 16384,
+  "n_batch": 2048,
+  "decide_seqs": 16,
+  "n_parallel": 1,
+  "memory": {
+   "recurrent": false,
+   "swa": true,
+   "swa_cells": 9216
+  }
+ },
+ "probe": {
+  "status": 400,
+  "error": {
+   "message": "state 0 needs 40160 cells (held 0, prefix 136, K_eff 2 \u00d7 (state 20000, tail 7, branches 5)), the sliding-window cache holds 9216 cells (limit 9200); start with --swa-full to use n_ctx",
+   "code": "budget"
+  },
+  "budget": {
+   "needs": 40160,
+   "held": 0,
+   "prefix": 136,
+   "K": 2,
+   "state": 20000,
+   "tail": 7,
+   "branches": 5,
+   "limit": 9200,
+   "swa_cells": 9216
+  }
+ },
+ "largest_admitted": 4520,
+ "sweep": [
+  {
+   "state_tokens": 4456,
+   "status": 200,
+   "error": null,
+   "budget": null,
+   "usage": {
+    "prompt_tokens": 9072,
+    "cached_tokens": 0,
+    "state_tokens": 4456,
+    "scored_tokens": 2
+   }
+  },
+  {
+   "state_tokens": 4504,
+   "status": 200,
+   "error": null,
+   "budget": null,
+   "usage": {
+    "prompt_tokens": 9032,
+    "cached_tokens": 136,
+    "state_tokens": 4504,
+    "scored_tokens": 2
+   }
+  },
+  {
+   "state_tokens": 4518,
+   "status": 200,
+   "error": null,
+   "budget": null,
+   "usage": {
+    "prompt_tokens": 9060,
+    "cached_tokens": 136,
+    "state_tokens": 4518,
+    "scored_tokens": 2
+   }
+  },
+  {
+   "state_tokens": 4519,
+   "status": 200,
+   "error": null,
+   "budget": null,
+   "usage": {
+    "prompt_tokens": 9062,
+    "cached_tokens": 136,
+    "state_tokens": 4519,
+    "scored_tokens": 2
+   }
+  },
+  {
+   "state_tokens": 4520,
+   "status": 200,
+   "error": null,
+   "budget": null,
+   "usage": {
+    "prompt_tokens": 9064,
+    "cached_tokens": 136,
+    "state_tokens": 4520,
+    "scored_tokens": 2
+   }
+  },
+  {
+   "state_tokens": 4521,
+   "status": 400,
+   "error": {
+    "message": "state 0 needs 9202 cells (held 0, prefix 136, K_eff 2 \u00d7 (state 4521, tail 7, branches 5)), the sliding-window cache holds 9216 cells (limit 9200); start with --swa-full to use n_ctx",
+    "code": "budget"
+   },
+   "budget": {
+    "needs": 9202,
+    "held": 0,
+    "prefix": 136,
+    "K": 2,
+    "state": 4521,
+    "tail": 7,
+    "branches": 5,
+    "limit": 9200,
+    "swa_cells": 9216
+   },
+   "usage": null
+  },
+  {
+   "state_tokens": 4522,
+   "status": 400,
+   "error": {
+    "message": "state 0 needs 9204 cells (held 0, prefix 136, K_eff 2 \u00d7 (state 4522, tail 7, branches 5)), the sliding-window cache holds 9216 cells (limit 9200); start with --swa-full to use n_ctx",
+    "code": "budget"
+   },
+   "budget": {
+    "needs": 9204,
+    "held": 0,
+    "prefix": 136,
+    "K": 2,
+    "state": 4522,
+    "tail": 7,
+    "branches": 5,
+    "limit": 9200,
+    "swa_cells": 9216
+   },
+   "usage": null
+  },
+  {
+   "state_tokens": 4536,
+   "status": 400,
+   "error": {
+    "message": "state 0 needs 9232 cells (held 0, prefix 136, K_eff 2 \u00d7 (state 4536, tail 7, branches 5)), the sliding-window cache holds 9216 cells (limit 9200); start with --swa-full to use n_ctx",
+    "code": "budget"
+   },
+   "budget": {
+    "needs": 9232,
+    "held": 0,
+    "prefix": 136,
+    "K": 2,
+    "state": 4536,
+    "tail": 7,
+    "branches": 5,
+    "limit": 9200,
+    "swa_cells": 9216
+   },
+   "usage": null
+  }
+ ],
+ "checks": {
+  "info: memory.swa_cells 9216": true,
+  "probe: 400 budget with the cell counts": true,
+  "probe: K_eff 2": true,
+  "probe: limit min(n_ctx, swa_cells) - 16": true,
+  "probe: names the SWA cache (and --swa-full) exactly when it is the bound": true,
+  "sweep: every state up to the largest admitted answers 200 with exactly its tokens": true,
+  "sweep: every state over it answers 400 budget with the probe's held, limit and bound": true,
+  "sweep: no 500": true
+ },
+ "pass": true
+}

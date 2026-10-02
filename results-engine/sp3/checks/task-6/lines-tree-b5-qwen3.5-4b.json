@@ -1,0 +1,35 @@
+{
+  "req": "results-engine/sp3/checks/task-6/requests-after-tree-b5-qwen3.5-4b.jsonl",
+  "after": "results-engine/sp3/checks/task-6/after-tree-b5-qwen3.5-4b.jsonl",
+  "plain": "results-engine/sp3/checks/task-6/plain-tree-b5-qwen3.5-4b.jsonl",
+  "mode": "tree",
+  "dependent_entries": 40,
+  "lines_free_tokens_kept": true,
+  "not_kept": [],
+  "lines_token_counts": {
+    "8": 40
+  },
+  "tokens_after_the_value": null,
+  "split_mismatch": 0,
+  "prompt_tokens_after_minus_plain_vs_lines_tokens": [
+    [
+      80,
+      80
+    ],
+    [
+      80,
+      80
+    ],
+    [
+      80,
+      80
+    ],
+    [
+      80,
+      80
+    ]
+  ],
+  "prompt_tokens_extra_equal": true,
+  "budget": null,
+  "pass": true
+}

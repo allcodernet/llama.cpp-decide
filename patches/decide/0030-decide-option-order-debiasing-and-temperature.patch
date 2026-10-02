@@ -1,0 +1,875 @@
+From 77e456ec9b75570be2c4b3083108f816627fb8d4 Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Sat, 26 Sep 2026 00:43:36 +0200
+Subject: [PATCH 30/45] decide: option-order debiasing and temperature
+
+A request with order_debias K gets K_eff = effective_variants catalogue
+variants: slot v holds variant v's prefix (resident, restored from the prefix
+cache or built), state c owns K*(1+B) sequence ids from seq_base + K, variant
+v's trunk at offset v*(1+B) with its branches after it (K = 1 is the old
+layout). Each variant runs the same branches in the same phases; per field the
+K distributions are averaged (order_spread, mean coverage), then temperature
+(options.temperature, else --decide-temperature) is applied with
+apply_temperature + rebuild_answer. Dependent fields use the lines of these
+answers in every variant. The sequence budget and its 400 message count K
+prefix slots; the per-state cell message names K_eff for K > 1.
+Response: engine.order_debias and engine.temperature, scored_tokens x K;
+dump: tokens.prefixes and a variant on every entry; info: seqs_per_state and
+states_per_round for the body's K. The order_debias and temperature guards are
+removed. Model-free helpers in decide-debias (layout, budget, temperature,
+variant combination) with test-decide-debias.
+---
+ tests/CMakeLists.txt           |   3 +
+ tests/test-decide-debias.cpp   | 160 +++++++++++++++++++++++
+ tests/test-decide-fullpath.cpp |   4 +-
+ tools/decide/CMakeLists.txt    |   1 +
+ tools/decide/decide-api.cpp    |  10 --
+ tools/decide/decide-cli.cpp    |   9 +-
+ tools/decide/decide-debias.cpp |  31 +++++
+ tools/decide/decide-debias.h   |  32 +++++
+ tools/decide/decide-engine.cpp | 230 ++++++++++++++++++---------------
+ tools/decide/decide-engine.h   |  36 +++---
+ 10 files changed, 377 insertions(+), 139 deletions(-)
+ create mode 100644 tests/test-decide-debias.cpp
+ create mode 100644 tools/decide/decide-debias.cpp
+ create mode 100644 tools/decide/decide-debias.h
+
+diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
+index 97a21428d..e239ecbb0 100644
+--- a/tests/CMakeLists.txt
++++ b/tests/CMakeLists.txt
+@@ -398,6 +398,9 @@ target_link_libraries(test-decide-cache PRIVATE llama-decide)
+ llama_build_and_test(test-decide-fullpath.cpp)
+ target_link_libraries(test-decide-fullpath PRIVATE llama-decide)
+ 
++llama_build_and_test(test-decide-debias.cpp)
++target_link_libraries(test-decide-debias PRIVATE llama-decide)
++
+ # spec 5 sequential fields; the tokenizer part runs on the vocab-only files of two families
+ llama_build(test-decide-after.cpp)
+ target_link_libraries(test-decide-after PRIVATE llama-decide)
+diff --git a/tests/test-decide-debias.cpp b/tests/test-decide-debias.cpp
+new file mode 100644
+index 000000000..be9c7c497
+--- /dev/null
++++ b/tests/test-decide-debias.cpp
+@@ -0,0 +1,160 @@
++// spec 6.1, 7, 8 without a model: the sequence layout of K catalogue variants, the sequence budget and its 400 message, the request
++// temperature, and one field's answer from its variant answers (mean, order_spread, mean coverage, then temperature)
++#include "decide-debias.h"
++
++#include <cmath>
++#include <cstdio>
++#include <set>
++#include <string>
++#include <vector>
++
++static int failures = 0;
++#define CHECK(cond) do { if (!(cond)) { std::fprintf(stderr, "FAIL %s:%d: %s\n", __FILE__, __LINE__, #cond); failures++; } } while (0)
++
++static bool near(double a, double b, double eps = 1e-12) { return std::fabs(a - b) < eps; }
++
++static decide::field choice2() {
++    decide::field f; f.name = "c"; f.type = decide::field_type::CHOICE;
++    for (const char * k : {"x", "y"}) f.options.push_back({k, "", decide::json_string(k)});
++    return f;
++}
++static decide::field score3() {
++    decide::field f; f.name = "u"; f.type = decide::field_type::SCORE;
++    for (int i = 0; i < 3; ++i) f.options.push_back({std::to_string(i), "L", std::to_string(i)});
++    return f;
++}
++static decide::field bool2() {
++    decide::field f; f.name = "b"; f.type = decide::field_type::BOOL;
++    f.options = {{"true", "", "true"}, {"false", "", "false"}};
++    return f;
++}
++static decide::field_answer answer(const decide::field & f, std::vector<double> p, double coverage = NAN) {
++    decide::field_answer extras; extras.coverage = coverage;
++    return decide::rebuild_answer(f, p, extras);
++}
++template <typename F> static bool engine_500(F fn, const char * text) {
++    try { fn(); }
++    catch (const decide::error & e) { return e.code == "engine" && e.http == 500 && std::string(e.what()).find(text) != std::string::npos; }
++    return false;
++}
++
++int main() {
++    using decide::trunk_seq;
++
++    // 1. spec 6.1 layout. K = 1 is the layout without debiasing: prefix in seq_base, trunk c at seq_base + 1 + c (1 + B)
++    for (int B : {1, 3, 10}) {
++        for (size_t c = 0; c < 5; ++c) {
++            CHECK(trunk_seq(7, 1, B, c, 0) == 7 + 1 + (llama_seq_id) c * (1 + B));
++        }
++    }
++    // K = 2, B = 3 from seq_base 1: slots 1, 2; state 0 owns 3..10 (trunks 3 and 7), state 1 owns 11..18 (trunks 11 and 15)
++    CHECK(trunk_seq(1, 2, 3, 0, 0) == 3 && trunk_seq(1, 2, 3, 0, 1) == 7 && trunk_seq(1, 2, 3, 1, 0) == 11 && trunk_seq(1, 2, 3, 1, 1) == 15);
++    // K = 4, B = 10 from seq_base 1: slots 1..4, state 0 owns 5..48, variant 3's trunk at 5 + 3 * 11
++    CHECK(trunk_seq(1, 4, 10, 0, 0) == 5 && trunk_seq(1, 4, 10, 0, 3) == 38 && trunk_seq(1, 4, 10, 1, 0) == 49);
++    // every trunk and branch id of a full round: each id once, the block of state c is [base + K + c S, base + K + (c + 1) S),
++    // no id below base + K (the prefix slots) or at base + D and above
++    for (int K : {1, 2, 4}) {
++        for (int B : {3, 10}) {
++            const int D = 64, base = 5;
++            const decide::seq_budget b = decide::sequence_budget(D, K, B);
++            CHECK(b.seqs_per_state == K * (1 + B) && b.states_per_round >= 1);
++            std::set<llama_seq_id> ids;
++            bool in_block = true;
++            for (int c = 0; c < b.states_per_round; ++c) {
++                const llama_seq_id lo = base + K + c * b.seqs_per_state;
++                for (int v = 0; v < K; ++v) {
++                    const llama_seq_id T = trunk_seq(base, K, B, (size_t) c, v);
++                    CHECK(T == lo + v * (1 + B));
++                    for (int i = 0; i <= B; ++i) {   // the trunk, then its B branches
++                        ids.insert(T + i);
++                        in_block = in_block && T + i >= lo && T + i < lo + b.seqs_per_state;
++                    }
++                }
++            }
++            CHECK(in_block);
++            CHECK((int) ids.size() == b.states_per_round * b.seqs_per_state);
++            CHECK(*ids.begin() == base + K && *ids.rbegin() == base + K + b.states_per_round * b.seqs_per_state - 1);
++            CHECK(*ids.rbegin() < base + D);
++        }
++    }
++
++    // 2. spec 7.3 budget: K (1 + B) sequences per state, (D - K) / that states per round; 0 is the 400 with the numbers
++    {
++        using decide::sequence_budget;
++        const auto sb = [](int D, int K, int B) { const decide::seq_budget b = sequence_budget(D, K, B); return std::vector<int>{b.seqs_per_state, b.states_per_round}; };
++        CHECK(sb(9, 1, 3) == (std::vector<int>{4, 2}));      // triage tree without debiasing
++        CHECK(sb(64, 1, 3) == (std::vector<int>{4, 15}));
++        CHECK(sb(64, 2, 3) == (std::vector<int>{8, 7}));
++        CHECK(sb(32, 2, 3) == (std::vector<int>{8, 3}));
++        CHECK(sb(21, 4, 3) == (std::vector<int>{16, 1}));    // Qwen3.5-9B, K = 4, tree
++        CHECK(sb(64, 4, 10) == (std::vector<int>{44, 1}));   // every switch on Qwen2.5-0.5B
++        CHECK(sb(32, 4, 10) == (std::vector<int>{44, 0}));   // every switch on Qwen3.5-4B
++        CHECK(sb(3, 1, 3) == (std::vector<int>{4, 0}));
++        CHECK(sb(3, 4, 3) == (std::vector<int>{16, 0}));     // fewer sequences than prefix slots
++        CHECK(decide::sequence_budget_message(32, 4, 10, "full_path") ==
++              "schema needs 44 sequences per state (K_eff 4 \u00d7 (1 trunk + 10 branch sequences, full_path)); --decide-seqs 32 leaves 28 after 4 prefix slots");
++        // K = 1: the budget texts without debiasing
++        CHECK(decide::sequence_budget_message(3, 1, 3, "tree") ==
++              "schema needs 4 sequences per state (K_eff 1 \u00d7 (1 trunk + 3 branch sequences, tree)); --decide-seqs 3 leaves 2 after 1 prefix slots");
++        CHECK(decide::sequence_budget_message(10, 1, 10, "full_path") ==
++              "schema needs 11 sequences per state (K_eff 1 \u00d7 (1 trunk + 10 branch sequences, full_path)); --decide-seqs 10 leaves 9 after 1 prefix slots");
++    }
++
++    // 3. spec 8: options.temperature when given (0 = not given), else the server default
++    {
++        CHECK(decide::resolve_temperature(0.0, 1.0) == 1.0);
++        CHECK(decide::resolve_temperature(0.0, 0.7) == 0.7);
++        CHECK(decide::resolve_temperature(2.0, 1.0) == 2.0);
++        CHECK(decide::resolve_temperature(0.5, 2.0) == 0.5);
++    }
++
++    // 4. spec 7.2, 8: a field's answer from its variant answers
++    {
++        using decide::combine_variants;
++        // one variant at T = 1: the variant's answer itself (the answer without debiasing, bit for bit), no order_spread
++        const decide::field s = score3();
++        const decide::field_answer one = answer(s, {0.1, 0.6, 0.3});
++        const decide::field_answer same = combine_variants(s, {one}, 1.0);
++        CHECK(same.probs == one.probs && same.argmax == one.argmax && same.expected == one.expected);
++        CHECK(std::isnan(same.coverage) && std::isnan(same.order_spread) && same.given.is_null());
++        const decide::field_answer full = combine_variants(s, {answer(s, {0.1, 0.6, 0.3}, 0.93)}, 1.0);
++        CHECK(full.coverage == 0.93 && std::isnan(full.order_spread));
++        CHECK(!decide::answer_json(s, same).contains("order_spread") && decide::answer_json(s, same).dump() == decide::answer_json(s, one).dump());
++
++        // two variants at T = 1: the mean [0.4, 0.6]; order_spread max(0.6 - 0.2, 0.8 - 0.4) = 0.4; coverage the mean 0.8
++        const decide::field c = choice2();
++        const decide::field_answer v0 = answer(c, {0.6, 0.4}, 0.9), v1 = answer(c, {0.2, 0.8}, 0.7);
++        const decide::field_answer m = combine_variants(c, {v0, v1}, 1.0);
++        CHECK(near(m.probs[0], 0.4) && near(m.probs[1], 0.6) && m.argmax == 1 && near(m.order_spread, 0.4) && near(m.coverage, 0.8));
++
++        // T = 2 on the mean, not on the variants: p_T = sqrt(0.4) : sqrt(0.6); value, order_spread and coverage stay those of the mean
++        const decide::field_answer t = combine_variants(c, {v0, v1}, 2.0);
++        const double z = std::sqrt(0.4) + std::sqrt(0.6);
++        CHECK(near(t.probs[0], std::sqrt(0.4) / z) && near(t.probs[1], std::sqrt(0.6) / z) && t.argmax == 1);   // 0.4495, 0.5505
++        CHECK(near(t.order_spread, 0.4) && near(t.coverage, 0.8));
++        // tempering each variant before the mean gives another distribution (0.4419 for x)
++        const double tv0 = std::sqrt(0.6) / (std::sqrt(0.6) + std::sqrt(0.4)), tv1 = std::sqrt(0.2) / (std::sqrt(0.2) + std::sqrt(0.8));
++        CHECK(!near(t.probs[0], (tv0 + tv1) / 2, 1e-4));
++
++        // score: expected and confidence from the tempered mean. Mean of [0.2, 0.3, 0.5] and [0.4, 0.3, 0.3] = [0.3, 0.3, 0.4];
++        // T = 0.5: 0.09 : 0.09 : 0.16 over 0.34
++        const decide::field_answer st = combine_variants(s, {answer(s, {0.2, 0.3, 0.5}), answer(s, {0.4, 0.3, 0.3})}, 0.5);
++        CHECK(near(st.probs[0], 0.09 / 0.34) && near(st.probs[2], 0.16 / 0.34) && st.argmax == 2);
++        CHECK(near(st.expected, (0.09 + 2 * 0.16) / 0.34) && near(st.order_spread, 0.2));
++        CHECK(near(decide::answer_json(s, st).at("confidence").get<double>(), 0.16 / 0.34));
++
++        // bool, K = 4 (the mean [0.4, 0.6]), T = 0.5: 0.16 : 0.36 over 0.52; value false; order_spread 0.3 (p_true 0.25 .. 0.55)
++        const decide::field b = bool2();
++        const decide::field_answer bt = combine_variants(b, {answer(b, {0.55, 0.45}), answer(b, {0.25, 0.75}), answer(b, {0.4, 0.6}), answer(b, {0.4, 0.6})}, 0.5);
++        const common_json j = decide::answer_json(b, bt);
++        CHECK(j.at("value").get<bool>() == false && near(j.at("p_true").get<double>(), 0.16 / 0.52) && near(j.at("confidence").get<double>(), 0.36 / 0.52));
++        CHECK(near(j.at("order_spread").get<double>(), 0.3) && !j.contains("coverage"));
++
++        // a temperature that was not resolved (0) is an engine error, not a distribution
++        CHECK(engine_500([&] { combine_variants(c, {v0, v1}, 0.0); }, "temperature"));
++    }
++
++    if (failures) { std::fprintf(stderr, "%d failure(s)\n", failures); return 1; }
++    std::printf("test-decide-debias: OK\n");
++    return 0;
++}
+diff --git a/tests/test-decide-fullpath.cpp b/tests/test-decide-fullpath.cpp
+index 51a4fbbf8..fbda24139 100644
+--- a/tests/test-decide-fullpath.cpp
++++ b/tests/test-decide-fullpath.cpp
+@@ -87,7 +87,7 @@ int main() {
+         std::vector<decide::row_ref>      refs;
+         const llama_pos pos0 = 30;
+         for (size_t o = 0; o < plan.size(); ++o) {
+-            decide::add_full_path_seq(plan[o], 50 + (llama_seq_id) o, pos0, 2, 1, entries, refs);
++            decide::add_full_path_seq(plan[o], 50 + (llama_seq_id) o, pos0, 2, 3, 1, entries, refs);
+         }
+         // option 0: 4 tokens, option 1: 4, option 2: 3
+         CHECK(entries.size() == 11 && refs.size() == t.nodes.size());
+@@ -110,7 +110,7 @@ int main() {
+         std::vector<int> reads(t.nodes.size(), 0);
+         for (int j : tagged) {
+             const decide::row_ref & r = refs[entries[j].tag];
+-            CHECK(r.state == 2 && r.field == 1 && r.node >= 0 && r.node < (int) t.nodes.size());
++            CHECK(r.state == 2 && r.variant == 3 && r.field == 1 && r.node >= 0 && r.node < (int) t.nodes.size());
+             if (r.node < 0 || r.node >= (int) t.nodes.size()) {
+                 continue;
+             }
+diff --git a/tools/decide/CMakeLists.txt b/tools/decide/CMakeLists.txt
+index 5f6127bd2..eed472cb5 100644
+--- a/tools/decide/CMakeLists.txt
++++ b/tools/decide/CMakeLists.txt
+@@ -5,6 +5,7 @@ add_library(llama-decide STATIC
+     decide-vocab.cpp decide-vocab.h
+     decide-fullpath.cpp decide-fullpath.h
+     decide-after.cpp decide-after.h
++    decide-debias.cpp decide-debias.h
+     decide-engine.cpp decide-engine.h
+     decide-api.cpp decide-api.h
+     decide-compat.cpp decide-compat.h)
+diff --git a/tools/decide/decide-api.cpp b/tools/decide/decide-api.cpp
+index 863e60057..baeac7f31 100644
+--- a/tools/decide/decide-api.cpp
++++ b/tools/decide/decide-api.cpp
+@@ -14,14 +14,6 @@ static api_result error_result(int status, const std::string & code, const std::
+     return {status, body};
+ }
+ 
+-// a feature without its engine part is a clean 500, not a wrong answer; the engine change for a feature removes its line
+-static void require_implemented(const compiled_schema & cs, const engine & eng) {
+-    const auto missing = [](const char * feature) { return error("engine", 500, std::string("not implemented yet: ") + feature); };
+-    if (effective_variants(cs) > 1)      throw missing("order_debias");
+-    if (cs.opts.temperature != 0)        throw missing("temperature");
+-    if (eng.config().temperature != 1.0) throw missing("temperature");   // --decide-temperature
+-}
+-
+ static scoring_mode mode_of(const compiled_schema & cs) {
+     return cs.opts.scoring == "full_path" ? scoring_mode::FULL_PATH : scoring_mode::TREE;
+ }
+@@ -30,7 +22,6 @@ api_result handle_decide(engine & eng, const llama_vocab * vocab, const common_j
+     try {
+         const compiled_schema          cs     = compile_request(body);
+         const std::vector<std::string> states = states_of(body);
+-        require_implemented(cs, eng);
+         const trie_set                 ts     = build_tries(cs, vocab, mode_of(cs));
+         return {200, eng.decide(cs, ts, states, dump_tokens)};
+     } catch (const error & e) {
+@@ -46,7 +37,6 @@ api_result handle_info(engine & eng, const llama_vocab * vocab, const common_jso
+             return {200, eng.info(nullptr, nullptr)};
+         }
+         const compiled_schema cs = compile_request(*schema_body);
+-        require_implemented(cs, eng);
+         const trie_set        ts = build_tries(cs, vocab, mode_of(cs));
+         return {200, eng.info(&cs, &ts)};
+     } catch (const error & e) {
+diff --git a/tools/decide/decide-cli.cpp b/tools/decide/decide-cli.cpp
+index a5926966d..7654e4d10 100644
+--- a/tools/decide/decide-cli.cpp
++++ b/tools/decide/decide-cli.cpp
+@@ -4,8 +4,8 @@
+ //                [-c N] [-b N] [-ngl N] [-fa on] [--chat-template T] [--info] [--dump-tokens] < requests.jsonl
+ //
+ // --info prints the info JSON for each line's schema instead of deciding.
+-// --dump-tokens adds the "tokens" object (prefix, state, tail, branch ids with their phase; full-path: the rows read and their log-probs;
+-// fields with "after": the lines and given of the state) to every response.
++// --dump-tokens adds the "tokens" object (prefix, the prefixes of all catalogue variants, state, tail, branch ids with their variant and
++// phase; full-path: the rows read and their log-probs; fields with "after": the lines and given of the state) to every response.
+ // Exits 1 on the first error, with the error JSON on stderr.
+ // LLAMA_DECIDE_FAULT (testing, see --help) makes chosen decodes report "no KV slot" or one prefix restore fail.
+ 
+@@ -29,8 +29,9 @@ static void print_usage(int, char ** argv) {
+     printf("  %s -m model.gguf --decide-seqs N [--info] [--dump-tokens] < requests.jsonl\n\n", argv[0]);
+     printf("  one /v1/decide request body per stdin line, one response per stdout line; stops at the first error\n");
+     printf("  --info         print the info JSON for each line's schema instead of deciding\n");
+-    printf("  --dump-tokens  add the \"tokens\" object (prefix, state, tail, branch ids with their phase; full-path: the rows read\n");
+-    printf("                 and their log-probs, null = -inf; fields with \"after\": the lines and given) to every response\n\n");
++    printf("  --dump-tokens  add the \"tokens\" object (prefix, prefixes of all catalogue variants, state, tail, branch ids with\n");
++    printf("                 their variant and phase; full-path: the rows read and their log-probs, null = -inf; fields with\n");
++    printf("                 \"after\": the lines and given) to every response\n\n");
+     printf("  LLAMA_DECIDE_FAULT (testing) makes a decode return 1 (\"no KV slot\") without decoding, or a prefix restore fail:\n");
+     printf("    rc1         the first branch-phase decode of the first attempt of every round (the retry runs normally)\n");
+     printf("    rc1-twice   the first branch-phase decode of both attempts of the first round after start (a 500)\n");
+diff --git a/tools/decide/decide-debias.cpp b/tools/decide/decide-debias.cpp
+new file mode 100644
+index 000000000..52d69af58
+--- /dev/null
++++ b/tools/decide/decide-debias.cpp
+@@ -0,0 +1,31 @@
++#include "decide-debias.h"
++
++namespace decide {
++
++llama_seq_id trunk_seq(llama_seq_id seq_base, int K, int B, size_t c, int v) {
++    return seq_base + K + (llama_seq_id) c * K * (1 + B) + v * (1 + B);
++}
++
++seq_budget sequence_budget(int decide_seqs, int K, int B) {
++    seq_budget b;
++    b.seqs_per_state   = K * (1 + B);
++    b.states_per_round = decide_seqs > K ? (decide_seqs - K) / b.seqs_per_state : 0;
++    return b;
++}
++
++std::string sequence_budget_message(int decide_seqs, int K, int B, const std::string & mode) {
++    return "schema needs " + std::to_string(K * (1 + B)) + " sequences per state (K_eff " + std::to_string(K) + " \u00d7 (1 trunk + " +
++           std::to_string(B) + " branch sequences, " + mode + ")); --decide-seqs " + std::to_string(decide_seqs) + " leaves " +
++           std::to_string(decide_seqs - K) + " after " + std::to_string(K) + " prefix slots";
++}
++
++double resolve_temperature(double requested, double server_default) {
++    return requested > 0 ? requested : server_default;
++}
++
++field_answer combine_variants(const field & f, const std::vector<field_answer> & per_variant, double T) {
++    const field_answer mean = average_variants(f, per_variant);
++    return rebuild_answer(f, apply_temperature(mean.probs, T), mean);
++}
++
++} // namespace decide
+diff --git a/tools/decide/decide-debias.h b/tools/decide/decide-debias.h
+new file mode 100644
+index 000000000..78e1d2b8c
+--- /dev/null
++++ b/tools/decide/decide-debias.h
+@@ -0,0 +1,32 @@
++#pragma once
++#include "decide-score.h"
++#include "llama.h"
++
++#include <string>
++#include <vector>
++
++// Option-order debiasing (spec 6.1, 7) and temperature (spec 8) without a model: the sequence layout of K catalogue variants,
++// the sequence budget, the request temperature and one field's answer from its variant answers.
++namespace decide {
++
++// spec 6.1: slot v (prefix of variant v) is seq_base + v; state c of a round owns the K * (1 + B) ids from seq_base + K + c * K * (1 + B);
++// variant v's trunk is at offset v * (1 + B) of that block and its B branches follow it. K = 1 is the layout without debiasing.
++llama_seq_id trunk_seq(llama_seq_id seq_base, int K, int B, size_t c, int v);
++
++// spec 7.3: sequences per state K * (1 + B) and states per round (D - K) / that; 0 states: the schema does not fit
++struct seq_budget {
++    int seqs_per_state   = 0;
++    int states_per_round = 0;
++};
++seq_budget  sequence_budget(int decide_seqs, int K, int B);
++// spec 7.3: the 400 budget message when no state fits; mode "tree" or "full_path"
++std::string sequence_budget_message(int decide_seqs, int K, int B, const std::string & mode);
++
++// spec 8: options.temperature when given (> 0; 0 = not given), else the server default
++double resolve_temperature(double requested, double server_default);
++
++// spec 7.2, 8: a field's answer from its answers under the K catalogue variants: the mean (order_spread with 2 or more variants,
++// coverage the mean, given of variant 0), then temperature T on the mean. One variant at T = 1 returns that variant's answer.
++field_answer combine_variants(const field & f, const std::vector<field_answer> & per_variant, double T);
++
++} // namespace decide
+diff --git a/tools/decide/decide-engine.cpp b/tools/decide/decide-engine.cpp
+index 0ccbf9d94..51ebd294d 100644
+--- a/tools/decide/decide-engine.cpp
++++ b/tools/decide/decide-engine.cpp
+@@ -1,4 +1,5 @@
+ #include "decide-engine.h"
++#include "decide-debias.h"
+ #include "decide-fullpath.h"
+ #include "common.h"
+ #include "ggml.h"
+@@ -164,7 +165,7 @@ std::vector<std::pair<int32_t, int>> chunk_rows(const std::vector<decode_entry>
+     return out;
+ }
+ 
+-void add_full_path_seq(const full_path_seq & s, llama_seq_id seq, llama_pos pos0, size_t state, size_t field,
++void add_full_path_seq(const full_path_seq & s, llama_seq_id seq, llama_pos pos0, size_t state, int variant, size_t field,
+                        std::vector<decode_entry> & entries, std::vector<row_ref> & refs) {
+     const size_t base = entries.size();
+     for (size_t i = 0; i < s.tokens.size(); ++i) {
+@@ -172,7 +173,7 @@ void add_full_path_seq(const full_path_seq & s, llama_seq_id seq, llama_pos pos0
+     }
+     for (size_t r = 0; r < s.row_index.size(); ++r) {
+         entries[base + (size_t) s.row_index[r]].tag = (int) refs.size();
+-        refs.push_back({state, field, s.row_node[r]});
++        refs.push_back({state, variant, field, s.row_node[r]});
+     }
+ }
+ 
+@@ -210,10 +211,6 @@ std::vector<int64_t> reserved_branch_tokens(const trie_set & ts, const std::vect
+     return out;
+ }
+ 
+-llama_seq_id engine::trunk_seq(int K, int B, size_t c, int v) const {
+-    return cfg.seq_base + K + (llama_seq_id) c * K * (1 + B) + v * (1 + B);
+-}
+-
+ int64_t engine::held_cells() const {
+     int64_t held = 0;
+     for (llama_seq_id s : cfg.slot_seqs) {
+@@ -438,39 +435,46 @@ int engine::branch_phase(const compiled_schema & cs, const trie_set & ts, int K,
+     // tree: per branch node, trunk copy + stem + edge tokens to the node, its row at the last token.
+     // full-path: per option, trunk copy + stem + path, a row at the stem's last token and after every path token (a node's row only in
+     // the first option through it). A dependent field's stem starts with its lines. A row-cap chunk boundary may split a sequence.
++    // spec 7.2: every variant's trunk gets the same branch sequences (same tries and lines), each at its own positions
+     const bool           full = ts.mode == scoring_mode::FULL_PATH;
+     std::vector<entry>   entries;
+     std::vector<row_ref> refs;
+     for (size_t c = 0; c < count; ++c) {
+-        const llama_seq_id T = trunk_seq(K, ts.branches_per_state, c, 0);
+         for (size_t f : fields) {
+             field_state & fs = rs.fields[first + c][f];
+             if (fs.trie == nullptr || (full && fs.plan == nullptr)) {
+                 throw error("engine", 500, "field \"" + cs.fields[f].name + "\" has no trie for its phase (scoring mode " + mode_name(ts.mode) + ")");
+             }
+-            fs.scores.clear();
+-            fs.rows.clear();
+-            llama_seq_id B = T + 1 + rs.first_seq[f];
+-            if (full) {
+-                for (const full_path_seq & s : *fs.plan) {
+-                    llama_memory_seq_cp(mem, T, B, -1, -1);
+-                    add_full_path_seq(s, B++, trunk_len[c], first + c, f, entries, refs);
+-                }
+-                continue;
+-            }
+-            for (int k : fs.trie->branch_nodes) {
+-                llama_memory_seq_cp(mem, T, B, -1, -1);
+-                const std::vector<llama_token> toks = branch_tokens(*fs.trie, k);
+-                if (toks.empty()) {
+-                    throw error("engine", 500, "field \"" + cs.fields[f].name + "\": empty branch at node " + std::to_string(k));
++            fs.scores.assign(K, {});
++            fs.rows.assign(K, {});
++        }
++        for (int v = 0; v < K; ++v) {
++            const llama_seq_id T    = trunk_seq(cfg.seq_base, K, ts.branches_per_state, c, v);
++            const llama_pos    pos0 = trunk_len[c * K + v];
++            for (size_t f : fields) {
++                const field_state & fs = rs.fields[first + c][f];
++                llama_seq_id        B  = T + 1 + rs.first_seq[f];
++                if (full) {
++                    for (const full_path_seq & s : *fs.plan) {
++                        llama_memory_seq_cp(mem, T, B, -1, -1);
++                        add_full_path_seq(s, B++, pos0, first + c, v, f, entries, refs);
++                    }
++                    continue;
+                 }
+-                llama_pos pos = trunk_len[c];
+-                for (size_t i = 0; i < toks.size(); ++i) {
+-                    const int tag = i + 1 == toks.size() ? (int) refs.size() : -1;
+-                    entries.push_back({toks[i], pos++, B, tag});
++                for (int k : fs.trie->branch_nodes) {
++                    llama_memory_seq_cp(mem, T, B, -1, -1);
++                    const std::vector<llama_token> toks = branch_tokens(*fs.trie, k);
++                    if (toks.empty()) {
++                        throw error("engine", 500, "field \"" + cs.fields[f].name + "\": empty branch at node " + std::to_string(k));
++                    }
++                    llama_pos pos = pos0;
++                    for (size_t i = 0; i < toks.size(); ++i) {
++                        const int tag = i + 1 == toks.size() ? (int) refs.size() : -1;
++                        entries.push_back({toks[i], pos++, B, tag});
++                    }
++                    refs.push_back({first + c, v, f, k});
++                    B++;
+                 }
+-                refs.push_back({first + c, f, k});
+-                B++;
+             }
+         }
+     }
+@@ -485,7 +489,7 @@ int engine::branch_phase(const compiled_schema & cs, const trie_set & ts, int K,
+             field_state &      fs = rs.fields[r.state][r.field];
+             const field_trie & t  = *fs.trie;
+             if (full) {
+-                fs.rows.push_back(full_path_row(logits, n_vocab, t, r.node, vi.end_tokens, rs.merged[r.field]));
++                fs.rows[r.variant].push_back(full_path_row(logits, n_vocab, t, r.node, vi.end_tokens, rs.merged[r.field]));
+                 continue;
+             }
+             node_scores ns;
+@@ -493,7 +497,7 @@ int engine::branch_phase(const compiled_schema & cs, const trie_set & ts, int K,
+             for (int child : t.nodes[r.node].children) {
+                 ns.child_logits.push_back(logits[t.nodes[child].tok]);
+             }
+-            fs.scores.push_back(std::move(ns));
++            fs.scores[r.variant].push_back(std::move(ns));
+         }
+     }, st, inject);
+ }
+@@ -501,26 +505,26 @@ int engine::branch_phase(const compiled_schema & cs, const trie_set & ts, int K,
+ int engine::run_round(const compiled_schema & cs, const trie_set & ts, int K,
+                       const std::vector<std::vector<llama_token>> & state_tokens, size_t first, size_t count,
+                       request_state & rs, stats & st, int fail_phase) {
+-    const llama_seq_id   P        = cfg.seq_base;   // slot 0
+-    const prefix_state & p        = slots[0];
+-    const llama_pos      n_prefix = (llama_pos) p.tokens.size();
+-    const int            n_branch = ts.branches_per_state;
++    const int n_branch = ts.branches_per_state;
+ 
+-    // trunk phase: prefix copy + state + tail, no logits
++    // trunk phase: per state and variant v, a copy of slot v's prefix + state + tail, no logits
+     int64_t t0 = ggml_time_us();
+     std::vector<entry>     entries;
+-    std::vector<llama_pos> trunk_len(count);
++    std::vector<llama_pos> trunk_len(count * K);   // per state and variant
+     for (size_t c = 0; c < count; ++c) {
+-        const llama_seq_id T = trunk_seq(K, n_branch, c, 0);
+-        llama_memory_seq_cp(mem, P, T, -1, -1);
+-        llama_pos pos = n_prefix;
+-        for (llama_token tok : state_tokens[first + c]) {
+-            entries.push_back({tok, pos++, T, -1});
+-        }
+-        for (llama_token tok : p.tail_tokens) {
+-            entries.push_back({tok, pos++, T, -1});
++        for (int v = 0; v < K; ++v) {
++            const prefix_state & p = slots[v];
++            const llama_seq_id   T = trunk_seq(cfg.seq_base, K, n_branch, c, v);
++            llama_memory_seq_cp(mem, cfg.seq_base + v, T, -1, -1);
++            llama_pos pos = (llama_pos) p.tokens.size();
++            for (llama_token tok : state_tokens[first + c]) {
++                entries.push_back({tok, pos++, T, -1});
++            }
++            for (llama_token tok : p.tail_tokens) {
++                entries.push_back({tok, pos++, T, -1});
++            }
++            trunk_len[c * K + v] = pos;
+         }
+-        trunk_len[c] = pos;
+     }
+     int rc = decode_chunked(entries, nullptr, st);
+     llama_synchronize(ctx);
+@@ -539,11 +543,16 @@ int engine::run_round(const compiled_schema & cs, const trie_set & ts, int K,
+         if (rc != 0) {
+             break;
+         }
++        // spec 7.2, 8: per field the mean over the variants, then temperature; the next phase's lines use these values
+         for (size_t c = 0; c < count; ++c) {
+             for (size_t f : rs.phases[level]) {
+-                const field_state & fs = rs.fields[first + c][f];
+-                field_answer a = ts.mode == scoring_mode::FULL_PATH ? score_field_full(cs.fields[f], *fs.trie, fs.rows)
+-                                                                    : score_field(cs.fields[f], *fs.trie, fs.scores);
++                const field_state &       fs = rs.fields[first + c][f];
++                std::vector<field_answer> per_variant;
++                for (int v = 0; v < K; ++v) {
++                    per_variant.push_back(ts.mode == scoring_mode::FULL_PATH ? score_field_full(cs.fields[f], *fs.trie, fs.rows[v])
++                                                                             : score_field(cs.fields[f], *fs.trie, fs.scores[v]));
++                }
++                field_answer a = combine_variants(cs.fields[f], per_variant, rs.temperature);
+                 a.given = fs.given;
+                 rs.answers[first + c][f] = std::move(a);
+             }
+@@ -571,15 +580,13 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+     if (ts.fields.size() != cs.fields.size()) {
+         throw error("engine", 500, "trie set does not match the schema");
+     }
+-    const int K              = 1;   // prefix slots (catalogue variants) of this request
+-    const int B              = ts.branches_per_state;
+-    const int seqs_per_state = K * (1 + B);
+-    int       spr            = (cfg.decide_seqs - K) / seqs_per_state;
++    const int        K              = effective_variants(cs);   // spec 7.1: catalogue variants = prefix slots of this request
++    const int        B              = ts.branches_per_state;
++    const seq_budget budget         = sequence_budget(cfg.decide_seqs, K, B);
++    const int        seqs_per_state = budget.seqs_per_state;
++    int              spr            = budget.states_per_round;
+     if (spr == 0) {
+-        throw error("budget", 400, "schema needs " + std::to_string(seqs_per_state) + " sequences per state (K_eff " + std::to_string(K) +
+-                                       " \u00d7 (1 trunk + " + std::to_string(B) + " branch sequences, " + mode_name(ts.mode) + ")); --decide-seqs " +
+-                                       std::to_string(cfg.decide_seqs) + " leaves " + std::to_string(cfg.decide_seqs - K) + " after " +
+-                                       std::to_string(K) + " prefix slots");
++        throw error("budget", 400, sequence_budget_message(cfg.decide_seqs, K, B, mode_name(ts.mode)));
+     }
+ 
+     std::vector<std::vector<llama_token>> state_tokens;
+@@ -592,8 +599,9 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+ 
+     // spec 5: the phases; per field its branch sequence ids and its branch cells with the worst-case lines of spec 5.4
+     request_state rs;
+-    rs.phases   = phase_fields(cs);
+-    rs.reserved = reserved_branch_tokens(ts, worst_lines_tokens(cs, line_tokens_max(cs, vocab)));
++    rs.temperature = resolve_temperature(cs.opts.temperature, cfg.temperature);
++    rs.phases      = phase_fields(cs);
++    rs.reserved    = reserved_branch_tokens(ts, worst_lines_tokens(cs, line_tokens_max(cs, vocab)));
+     int64_t branch_total = 0;
+     int     n_seqs       = 0;
+     for (size_t f = 0; f < ts.fields.size(); ++f) {
+@@ -626,6 +634,10 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+     for (int v = 0; v < K; ++v) {
+         ps.push_back(prepare_prefix(cs, v, K));
+         prefix_total += (int64_t) ps.back().tokens.size();
++        // the budget, the joins and the dump use one tail for every variant
++        if (ps.back().tail_text != ps[0].tail_text) {
++            throw error("engine", 500, "catalogue variant " + std::to_string(v) + " renders another chat template tail");
++        }
+     }
+     check_trie_joins(cs, ts, vocab, ps[0].tail_text, who);
+     rs.tail_text = ps[0].tail_text;
+@@ -641,11 +653,12 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+     for (size_t i = 0; i < states.size(); ++i) {
+         const int64_t need = held + prefix_total + K * ((int64_t) state_tokens[i].size() + tail + branch_total);
+         if (need > n_ctx - 16) {
+-            throw error("budget", 400, "state " + std::to_string(i) + " needs " + std::to_string(need) +
+-                                           " cells (held " + std::to_string(held) + ", prefix " + std::to_string(prefix_total) +
+-                                           ", state " + std::to_string(state_tokens[i].size()) + ", tail " + std::to_string(tail) +
+-                                           ", branches " + std::to_string(branch_total) + "), n_ctx - 16 is " +
+-                                           std::to_string(n_ctx - 16));
++            const std::string per_variant = "state " + std::to_string(state_tokens[i].size()) + ", tail " + std::to_string(tail) +
++                                            ", branches " + std::to_string(branch_total);
++            throw error("budget", 400, "state " + std::to_string(i) + " needs " + std::to_string(need) + " cells (held " +
++                                           std::to_string(held) + ", prefix " + std::to_string(prefix_total) + ", " +
++                                           (K == 1 ? per_variant : "K_eff " + std::to_string(K) + " \u00d7 (" + per_variant + ")") +
++                                           "), n_ctx - 16 is " + std::to_string(n_ctx - 16));
+         }
+     }
+ 
+@@ -734,7 +747,7 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+     for (size_t i = 0; i < states.size(); ++i) {
+         common_json u = common_json::object();
+         u["state_tokens"]  = (int64_t) state_tokens[i].size();
+-        u["scored_tokens"] = counts.rows;
++        u["scored_tokens"] = K * counts.rows;
+         common_json a = common_json::object();
+         for (size_t f = 0; f < cs.fields.size(); ++f) {
+             a[cs.fields[f].name] = answer_json(cs.fields[f], rs.answers[i][f]);
+@@ -749,7 +762,7 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+     usage["prompt_tokens"] = st.prompt_tokens;
+     usage["cached_tokens"] = st.cached_tokens;
+     usage["state_tokens"]  = state_total;
+-    usage["scored_tokens"] = n_states * counts.rows;
++    usage["scored_tokens"] = n_states * K * counts.rows;
+ 
+     llama_synchronize(ctx);
+     common_json timings = common_json::object();
+@@ -787,6 +800,8 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+ 
+     common_json eng = common_json::object();
+     eng["scoring"]            = mode_name(ts.mode);
++    eng["order_debias"]       = K;
++    eng["temperature"]        = rs.temperature;
+     eng["phases"]             = (int64_t) rs.phases.size();
+     eng["seqs_per_state"]     = seqs_per_state;
+     eng["states_per_round"]   = spr;
+@@ -809,12 +824,17 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+             common_json s = common_json::object();
+             s["state"]    = token_array(state_tokens[i]);
+             s["tail"]     = token_array(ps[0].tail_tokens);
+-            s["branches"] = dump_branches(cs, ts, rs, i);
++            s["branches"] = dump_branches(cs, ts, rs, K, i);
+             per_state.push_back(s);
+         }
+         common_json tokens = common_json::object();
+-        tokens["prefix"] = token_array(ps[0].tokens);
+-        tokens["states"] = per_state;
++        common_json prefixes = common_json::array();
++        for (const prefix_state & p : ps) {
++            prefixes.push_back(token_array(p.tokens));
++        }
++        tokens["prefix"]   = token_array(ps[0].tokens);
++        tokens["prefixes"] = prefixes;
++        tokens["states"]   = per_state;
+         if (!resplit.empty()) {
+             tokens["resplit_options"] = resplit;
+         }
+@@ -823,42 +843,45 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+     return out;
+ }
+ 
+-common_json engine::dump_branches(const compiled_schema & cs, const trie_set & ts, const request_state & rs, size_t i) const {
++common_json engine::dump_branches(const compiled_schema & cs, const trie_set & ts, const request_state & rs, int K, size_t i) const {
+     common_json branches = common_json::array();
+     for (size_t level = 0; level < rs.phases.size(); ++level) {
+-        for (size_t f : rs.phases[level]) {
+-            const field_state &      fs = rs.fields[i][f];
+-            const field_trie &       t  = *fs.trie;
+-            std::vector<common_json> entries;
+-            if (ts.mode == scoring_mode::FULL_PATH) {
+-                for (const full_path_seq & s : *fs.plan) {
+-                    entries.push_back(full_path_dump(cs.fields[f].name, t, s, fs.rows));
+-                }
+-            } else {
+-                for (int k : t.branch_nodes) {
+-                    std::vector<llama_token> children;
+-                    common_json              options = common_json::array();   // per child: option indices through it
+-                    for (int child : t.nodes[k].children) {
+-                        children.push_back(t.nodes[child].tok);
+-                        options.push_back(t.nodes[child].options_through);
++        for (int v = 0; v < K; ++v) {
++            for (size_t f : rs.phases[level]) {
++                const field_state &      fs = rs.fields[i][f];
++                const field_trie &       t  = *fs.trie;
++                std::vector<common_json> entries;
++                if (ts.mode == scoring_mode::FULL_PATH) {
++                    for (const full_path_seq & s : *fs.plan) {
++                        entries.push_back(full_path_dump(cs.fields[f].name, t, s, fs.rows[v]));
++                    }
++                } else {
++                    for (int k : t.branch_nodes) {
++                        std::vector<llama_token> children;
++                        common_json              options = common_json::array();   // per child: option indices through it
++                        for (int child : t.nodes[k].children) {
++                            children.push_back(t.nodes[child].tok);
++                            options.push_back(t.nodes[child].options_through);
++                        }
++                        common_json b = common_json::object();
++                        b["field"]    = cs.fields[f].name;
++                        b["mode"]     = "tree";
++                        b["node"]     = k;
++                        b["tokens"]   = token_array(branch_tokens(t, k));
++                        b["children"] = token_array(children);
++                        b["options"]  = options;
++                        entries.push_back(b);
+                     }
+-                    common_json b = common_json::object();
+-                    b["field"]    = cs.fields[f].name;
+-                    b["mode"]     = "tree";
+-                    b["node"]     = k;
+-                    b["tokens"]   = token_array(branch_tokens(t, k));
+-                    b["children"] = token_array(children);
+-                    b["options"]  = options;
+-                    entries.push_back(b);
+                 }
+-            }
+-            for (common_json & b : entries) {
+-                b["phase"] = (int64_t) level;
+-                if (!fs.given.is_null()) {
+-                    b["lines"] = fs.lines;
+-                    b["given"] = fs.given;
++                for (common_json & b : entries) {
++                    b["variant"] = v;
++                    b["phase"]   = (int64_t) level;
++                    if (!fs.given.is_null()) {
++                        b["lines"] = fs.lines;
++                        b["given"] = fs.given;
++                    }
++                    branches.push_back(b);
+                 }
+-                branches.push_back(b);
+             }
+         }
+     }
+@@ -930,12 +953,11 @@ common_json engine::info(const compiled_schema * cs, const trie_set * ts) {
+     j["prefix_cache"]  = prefix_cache;
+     j["temperature"]   = cfg.temperature;
+     j["scoring_modes"] = common_json::array({"tree", "full_path"});
+-    if (ts != nullptr) {
+-        const int K              = 1;
+-        const int seqs_per_state = K * (1 + ts->branches_per_state);
++    if (cs != nullptr && ts != nullptr) {
++        const seq_budget b = sequence_budget(cfg.decide_seqs, effective_variants(*cs), ts->branches_per_state);
+         common_json schema = common_json::object();
+-        schema["seqs_per_state"]   = seqs_per_state;
+-        schema["states_per_round"] = (cfg.decide_seqs - K) / seqs_per_state;
++        schema["seqs_per_state"]   = b.seqs_per_state;
++        schema["states_per_round"] = b.states_per_round;
+         j["schema"] = schema;
+     }
+     return j;
+diff --git a/tools/decide/decide-engine.h b/tools/decide/decide-engine.h
+index c994a9da2..a19d64c3f 100644
+--- a/tools/decide/decide-engine.h
++++ b/tools/decide/decide-engine.h
+@@ -45,15 +45,16 @@ std::vector<std::pair<size_t, size_t>> decode_chunks(const std::vector<decode_en
+ // the rows requested in chunk [begin, end): (index in that chunk's batch = the llama_get_logits_ith argument, tag)
+ std::vector<std::pair<int32_t, int>> chunk_rows(const std::vector<decode_entry> & entries, size_t begin, size_t end);
+ 
+-// spec 4.3: the owner of one full-path logit row
++// spec 4.3, 7.2: the owner of one logit row
+ struct row_ref {
+     size_t state;
++    int    variant;
+     size_t field;
+     int    node;
+ };
+ // spec 4.3: one full-path branch sequence: s.tokens in `seq` from position pos0; the token at each s.row_index requests its row,
+-// tagged with the index of the row_ref {state, field, s.row_node} appended to refs
+-void add_full_path_seq(const full_path_seq & s, llama_seq_id seq, llama_pos pos0, size_t state, size_t field,
++// tagged with the index of the row_ref {state, variant, field, s.row_node} appended to refs
++void add_full_path_seq(const full_path_seq & s, llama_seq_id seq, llama_pos pos0, size_t state, int variant, size_t field,
+                        std::vector<decode_entry> & entries, std::vector<row_ref> & refs);
+ 
+ // spec 4.3/4.5: per state and catalogue variant, the tokens of the branch sequences (cells) and the logit rows read
+@@ -81,8 +82,6 @@ public:
+     // Info JSON (spec 3.3); builds/validates the prefix for cs in slot 0 when given.
+     common_json info(const compiled_schema * cs, const trie_set * ts);
+ 
+-    const engine_config & config() const { return cfg; }
+-
+     static constexpr int    MAX_SLOTS       = 8;                    // spec 6.1: slot v lives in seq_base + v
+     static constexpr size_t CACHE_MAX_BYTES = (size_t) 2 << 30;     // spec 6.2: snapshot bytes over all cache entries
+ 
+@@ -114,14 +113,14 @@ private:
+     // spec 9: LLAMA_DECIDE_FAULT
+     enum class fault_mode { NONE, RC1, RC1_TWICE, RC1_PHASE1, RESTORE };
+     // spec 5: one field of one state: the trie its branches use (lines-free, or the context trie of its lines), for a dependent field
+-    // its lines and given, and the rows read in its phase
++    // its lines and given (the same for every catalogue variant), and per variant the rows read in its phase
+     struct field_state {
+-        const field_trie *                 trie = nullptr;
+-        const std::vector<full_path_seq> * plan = nullptr;   // full-path mode
+-        std::string                        lines;
+-        common_json                        given;            // null for level-0 fields
+-        std::vector<node_scores>           scores;           // tree mode
+-        std::vector<node_logp>             rows;             // full-path mode
++        const field_trie *                    trie = nullptr;
++        const std::vector<full_path_seq> *    plan = nullptr;   // full-path mode
++        std::string                           lines;
++        common_json                           given;            // null for level-0 fields
++        std::vector<std::vector<node_scores>> scores;           // tree mode, per variant
++        std::vector<std::vector<node_logp>>   rows;             // full-path mode, per variant
+     };
+     // spec 4.3, 5: the phases of one request and its per-state fields and answers
+     struct request_state {
+@@ -133,7 +132,8 @@ private:
+         std::string                                                tail_text;   // spec 5.3: the tail|context-stem join
+         context_cache                                              contexts;    // spec 5.3
+         std::vector<std::vector<field_state>>                      fields;      // per state and field
+-        std::vector<std::vector<field_answer>>                     answers;     // per state and field; the lines of dependent fields come from these
++        std::vector<std::vector<field_answer>>                     answers;     // per state and field (variant mean, then temperature); the lines of dependent fields come from these
++        double                                                     temperature = 1.0;   // spec 8: the request's T
+     };
+ 
+     rendered render(const compiled_schema * cs, int variant, int variants) const;
+@@ -150,22 +150,20 @@ private:
+     bool     slot_live(int v) const;
+     int      n_slots() const;
+     size_t   cache_bytes() const;
+-    // spec 6.1: trunk of state c, variant v, with K prefix slots and B branch sequences per trunk; its branches follow it
+-    llama_seq_id trunk_seq(int K, int B, size_t c, int v) const;
+     common_json  run_request(const compiled_schema & cs, const trie_set & ts, const std::vector<std::string> & states, bool dump_tokens);
+     // returns 0, or 1 when a decode found no KV slot (caller cleans up and retries); throws on anything else.
+-    // Fills rs.answers[first + c] for every state c of the round. fail_phase: the first decode of that phase returns 1 without decoding (spec 9; -1: none).
++    // Fills rs.answers[first + c] for every state c of the round from the K catalogue variants. fail_phase: the first decode of that phase returns 1 without decoding (spec 9; -1: none).
+     int      run_round(const compiled_schema & cs, const trie_set & ts, int K,
+                        const std::vector<std::vector<llama_token>> & state_tokens, size_t first, size_t count,
+                        request_state & rs, stats & st, int fail_phase);
+     // spec 5.2-5.4: before phase `level`: per state of the round, the lines of the level's fields from the answers, their context tries
+     // (cached per request) and the exact cell check
+     void     set_contexts(const compiled_schema & cs, const trie_set & ts, size_t level, size_t first, size_t count, request_state & rs) const;
+-    // spec 4.3, 5.5: one branch phase of a round: the branch sequences of `fields` after each trunk; fills rs.fields[first + c] rows. Returns rc as run_round.
++    // spec 4.3, 5.5, 7.2: one branch phase of a round: the branch sequences of `fields` after each of the K trunks of a state; fills rs.fields[first + c] rows per variant. Returns rc as run_round.
+     int      branch_phase(const compiled_schema & cs, const trie_set & ts, int K, const std::vector<size_t> & fields, size_t first, size_t count,
+                           const std::vector<llama_pos> & trunk_len, request_state & rs, stats & st, bool inject);
+-    // spec 10: the dump entries of state i, phase by phase
+-    common_json dump_branches(const compiled_schema & cs, const trie_set & ts, const request_state & rs, size_t i) const;
++    // spec 10: the dump entries of state i, phase by phase, per phase variant by variant
++    common_json dump_branches(const compiled_schema & cs, const trie_set & ts, const request_state & rs, int K, size_t i) const;
+     int      decode_chunked(const std::vector<entry> & entries, const std::function<void(size_t, size_t)> & on_chunk_done, stats & st,
+                             bool inject = false);
+     // removes the trunks and branches of `count` states (the ids after the K prefix slots)
+-- 
+2.55.0
+

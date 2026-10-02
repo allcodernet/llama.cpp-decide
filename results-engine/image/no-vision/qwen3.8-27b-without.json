@@ -1,0 +1,2670 @@
+{
+ "model": "qwen3.8-27b",
+ "info_before": {
+  "decide_seqs": 64,
+  "n_ctx": 4096,
+  "n_batch": 2048,
+  "kv_unified": true,
+  "n_parallel": 1,
+  "memory": {
+   "recurrent": true,
+   "swa": false
+  },
+  "prefix": {
+   "hash": "",
+   "tokens": 0,
+   "assistant_prefix": "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+   "valid": false
+  },
+  "prefixes": [],
+  "prefix_cache": {
+   "capacity": 8,
+   "entries": 0,
+   "bytes": 0
+  },
+  "temperature": 0.8992,
+  "scoring_modes": [
+   "tree",
+   "full_path"
+  ],
+  "vision": {
+   "available": false,
+   "reason": "no_projector"
+  }
+ },
+ "text": [
+  {
+   "label": "tree",
+   "status": 200,
+   "response": {
+    "object": "decide",
+    "results": [
+     {
+      "answers": {
+       "queue": {
+        "value": "billing",
+        "probabilities": {
+         "billing": 0.9893012410710648,
+         "technical": 2.34650614774738e-05,
+         "sales": 0.0005064962249616897,
+         "feedback": 0.010168797642495949
+        },
+        "confidence": 0.9893012410710648
+       },
+       "urgency": {
+        "value": 0,
+        "expected": 0.06670362190702525,
+        "probabilities": [
+         0.9368542343124954,
+         0.05965998950167348,
+         0.003413696152141253,
+         7.208003368975811e-05
+        ],
+        "confidence": 0.9368542343124954
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.0002598357784897954,
+        "confidence": 0.9997401642215101
+       }
+      },
+      "usage": {
+       "state_tokens": 32,
+       "scored_tokens": 3
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "billing",
+        "probabilities": {
+         "billing": 0.9996563036219465,
+         "technical": 3.946120212149746e-05,
+         "sales": 0.00011903740817378807,
+         "feedback": 0.00018519776775827819
+        },
+        "confidence": 0.9996563036219465
+       },
+       "urgency": {
+        "value": 1,
+        "expected": 0.8704514484344537,
+        "probabilities": [
+         0.17276689514335242,
+         0.7842336682827851,
+         0.04278052956991923,
+         0.00021890700394338016
+        ],
+        "confidence": 0.7842336682827851
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.0002497308124472465,
+        "confidence": 0.9997502691875528
+       }
+      },
+      "usage": {
+       "state_tokens": 32,
+       "scored_tokens": 3
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "feedback",
+        "probabilities": {
+         "billing": 0.0005517681752602307,
+         "technical": 1.2302058453928639e-06,
+         "sales": 0.004559698400391661,
+         "feedback": 0.9948873032185027
+        },
+        "confidence": 0.9948873032185027
+       },
+       "urgency": {
+        "value": 0,
+        "expected": 0.20098023764347395,
+        "probabilities": [
+         0.8315996943130968,
+         0.13638891788501029,
+         0.031442843647215175,
+         0.0005685441546777746
+        ],
+        "confidence": 0.8315996943130968
+       },
+       "angry": {
+        "value": true,
+        "p_true": 0.978612260433352,
+        "confidence": 0.978612260433352
+       }
+      },
+      "usage": {
+       "state_tokens": 35,
+       "scored_tokens": 3
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "billing",
+        "probabilities": {
+         "billing": 0.9975705801840917,
+         "technical": 0.0014615674134113095,
+         "sales": 3.6967137057219856e-05,
+         "feedback": 0.0009308852654395718
+        },
+        "confidence": 0.9975705801840917
+       },
+       "urgency": {
+        "value": 1,
+        "expected": 1.2271440792902746,
+        "probabilities": [
+         0.009724770801775277,
+         0.7537448328993389,
+         0.23619194250572173,
+         0.0003384537931640179
+        ],
+        "confidence": 0.7537448328993389
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.0020185857790223733,
+        "confidence": 0.9979814142209775
+       }
+      },
+      "usage": {
+       "state_tokens": 31,
+       "scored_tokens": 3
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "feedback",
+        "probabilities": {
+         "billing": 3.1393153221769063e-06,
+         "technical": 1.70722750091322e-06,
+         "sales": 3.1925474601745486e-06,
+         "feedback": 0.9999919609097169
+        },
+        "confidence": 0.9999919609097169
+       },
+       "urgency": {
+        "value": 0,
+        "expected": 0.00236784267301241,
+        "probabilities": [
+         0.998812879044276,
+         0.0005264207605020361,
+         0.00014067867315528383,
+         0.000520021522066602
+        ],
+        "confidence": 0.998812879044276
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.0003621098058778954,
+        "confidence": 0.9996378901941221
+       }
+      },
+      "usage": {
+       "state_tokens": 36,
+       "scored_tokens": 3
+      }
+     }
+    ],
+    "usage": {
+     "prompt_tokens": 749,
+     "cached_tokens": 0,
+     "state_tokens": 166,
+     "scored_tokens": 15
+    },
+    "timings": {
+     "prefill_ms": 695.788,
+     "prefix_ms": 393.946,
+     "scoring_ms": 162.89,
+     "total_ms": 863.28,
+     "rounds": 1,
+     "decodes": 3,
+     "retries": 0
+    },
+    "engine": {
+     "scoring": "tree",
+     "order_debias": 1,
+     "temperature": 0.8992,
+     "phases": 1,
+     "seqs_per_state": 4,
+     "states_per_round": 15,
+     "quote_split_fields": [],
+     "prefix_cache": {
+      "capacity": 8,
+      "entries": 0,
+      "hits": 0,
+      "misses": 1
+     }
+    }
+   }
+  },
+  {
+   "label": "tree",
+   "status": 200,
+   "response": {
+    "object": "decide",
+    "results": [
+     {
+      "answers": {
+       "queue": {
+        "value": "feedback",
+        "probabilities": {
+         "billing": 0.0001399566006012405,
+         "technical": 0.1311151280527002,
+         "sales": 0.0009654998021498001,
+         "feedback": 0.8677794155445487
+        },
+        "confidence": 0.8677794155445487
+       },
+       "urgency": {
+        "value": 0,
+        "expected": 0.034210723071539245,
+        "probabilities": [
+         0.9747646755865408,
+         0.018016530006024614,
+         0.005462190156789601,
+         0.0017566042506451422
+        ],
+        "confidence": 0.9747646755865408
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.000734736840373198,
+        "confidence": 0.9992652631596268
+       }
+      },
+      "usage": {
+       "state_tokens": 20,
+       "scored_tokens": 3
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "billing",
+        "probabilities": {
+         "billing": 0.9718758300654948,
+         "technical": 0.028117722837909816,
+         "sales": 6.281438336137022e-06,
+         "feedback": 1.6565825908138862e-07
+        },
+        "confidence": 0.9718758300654948
+       },
+       "urgency": {
+        "value": 3,
+        "expected": 2.965228140217077,
+        "probabilities": [
+         7.28149788208695e-05,
+         0.00011201741321762038,
+         0.0343293800200257,
+         0.9654857875879359
+        ],
+        "confidence": 0.9654857875879359
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.2957579772655116,
+        "confidence": 0.7042420227344884
+       }
+      },
+      "usage": {
+       "state_tokens": 63,
+       "scored_tokens": 3
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "technical",
+        "probabilities": {
+         "billing": 4.5796937880145625e-06,
+         "technical": 0.9999953120501023,
+         "sales": 1.0216648163450486e-07,
+         "feedback": 6.089628054624287e-09
+        },
+        "confidence": 0.9999953120501023
+       },
+       "urgency": {
+        "value": 2,
+        "expected": 2.1133410219318547,
+        "probabilities": [
+         6.15674808045122e-05,
+         0.0002783809238472949,
+         0.8859175137780378,
+         0.11374253781731052
+        ],
+        "confidence": 0.8859175137780378
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.010379859152791526,
+        "confidence": 0.9896201408472085
+       }
+      },
+      "usage": {
+       "state_tokens": 28,
+       "scored_tokens": 3
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "technical",
+        "probabilities": {
+         "billing": 2.5618253855132025e-05,
+         "technical": 0.9999743617089842,
+         "sales": 1.4101272589163587e-08,
+         "feedback": 5.935888139811085e-09
+        },
+        "confidence": 0.9999743617089842
+       },
+       "urgency": {
+        "value": 3,
+        "expected": 2.9965999301320108,
+        "probabilities": [
+         0.00013501201596561728,
+         0.00011291971923865096,
+         0.002769194381615113,
+         0.9969828738831806
+        ],
+        "confidence": 0.9969828738831806
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.006831622010789497,
+        "confidence": 0.9931683779892104
+       }
+      },
+      "usage": {
+       "state_tokens": 33,
+       "scored_tokens": 3
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "billing",
+        "probabilities": {
+         "billing": 0.9964489731296952,
+         "technical": 0.0035499171407568537,
+         "sales": 1.005342663737458e-06,
+         "feedback": 1.0438688428632658e-07
+        },
+        "confidence": 0.9964489731296952
+       },
+       "urgency": {
+        "value": 3,
+        "expected": 2.86719175883228,
+        "probabilities": [
+         6.75662803946524e-05,
+         6.433479798264024e-05,
+         0.1324768727305704,
+         0.8673912261910522
+        ],
+        "confidence": 0.8673912261910522
+       },
+       "angry": {
+        "value": true,
+        "p_true": 0.9844301555254859,
+        "confidence": 0.9844301555254859
+       }
+      },
+      "usage": {
+       "state_tokens": 63,
+       "scored_tokens": 3
+      }
+     }
+    ],
+    "usage": {
+     "prompt_tokens": 342,
+     "cached_tokens": 448,
+     "state_tokens": 207,
+     "scored_tokens": 15
+    },
+    "timings": {
+     "prefill_ms": 329.411,
+     "prefix_ms": 0.449,
+     "scoring_ms": 161.288,
+     "total_ms": 493.076,
+     "rounds": 1,
+     "decodes": 2,
+     "retries": 0
+    },
+    "engine": {
+     "scoring": "tree",
+     "order_debias": 1,
+     "temperature": 0.8992,
+     "phases": 1,
+     "seqs_per_state": 4,
+     "states_per_round": 15,
+     "quote_split_fields": [],
+     "prefix_cache": {
+      "capacity": 8,
+      "entries": 0,
+      "hits": 0,
+      "misses": 0
+     }
+    }
+   }
+  },
+  {
+   "label": "full_path",
+   "status": 200,
+   "response": {
+    "object": "decide",
+    "results": [
+     {
+      "answers": {
+       "queue": {
+        "value": "billing",
+        "probabilities": {
+         "billing": 0.9890274268886392,
+         "technical": 2.6931834173534874e-05,
+         "sales": 0.0005008076130230607,
+         "feedback": 0.010444833664164118
+        },
+        "confidence": 0.9890274268886392,
+        "coverage": 0.9997506905826424
+       },
+       "urgency": {
+        "value": 0,
+        "expected": 0.0605471753008967,
+        "probabilities": [
+         0.9426626489015894,
+         0.05419344069567358,
+         0.003077996602988728,
+         6.591379974855536e-05
+        ],
+        "confidence": 0.9426626489015894,
+        "coverage": 0.9997937864700007
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.00023158130574064357,
+        "confidence": 0.9997684186942593,
+        "coverage": 0.9962195094516997
+       }
+      },
+      "usage": {
+       "state_tokens": 32,
+       "scored_tokens": 17
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "billing",
+        "probabilities": {
+         "billing": 0.9996192332860334,
+         "technical": 4.39013024972221e-05,
+         "sales": 0.0001334813648266854,
+         "feedback": 0.00020338404664253622
+        },
+        "confidence": 0.9996192332860334,
+        "coverage": 0.9998994824151882
+       },
+       "urgency": {
+        "value": 1,
+        "expected": 0.881428579242077,
+        "probabilities": [
+         0.16268829384125133,
+         0.7934000205792131,
+         0.04370649807574258,
+         0.00020518750379292474
+        ],
+        "confidence": 0.7934000205792131,
+        "coverage": 0.9997544916817201
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.00029056292250069927,
+        "confidence": 0.9997094370774993,
+        "coverage": 0.9967325253953649
+       }
+      },
+      "usage": {
+       "state_tokens": 32,
+       "scored_tokens": 17
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "feedback",
+        "probabilities": {
+         "billing": 0.0005154355798749789,
+         "technical": 1.1213751133194564e-06,
+         "sales": 0.0044876711902166,
+         "feedback": 0.994995771854795
+        },
+        "confidence": 0.994995771854795,
+        "coverage": 0.9993506327397732
+       },
+       "urgency": {
+        "value": 0,
+        "expected": 0.202450520481898,
+        "probabilities": [
+         0.8333201137301779,
+         0.13153831762482526,
+         0.03451250307791716,
+         0.0006290655670794723
+        ],
+        "confidence": 0.8333201137301779,
+        "coverage": 0.9996618776413108
+       },
+       "angry": {
+        "value": true,
+        "p_true": 0.9793916163784806,
+        "confidence": 0.9793916163784806,
+        "coverage": 0.9974647738025078
+       }
+      },
+      "usage": {
+       "state_tokens": 35,
+       "scored_tokens": 17
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "billing",
+        "probabilities": {
+         "billing": 0.9972943332727681,
+         "technical": 0.001579133382208563,
+         "sales": 4.1163173533575116e-05,
+         "feedback": 0.0010853701714897614
+        },
+        "confidence": 0.9972943332727681,
+        "coverage": 0.999701534233183
+       },
+       "urgency": {
+        "value": 1,
+        "expected": 1.2199582318135187,
+        "probabilities": [
+         0.009451124008172043,
+         0.7614776019699776,
+         0.22873319222201038,
+         0.0003380817998400933
+        ],
+        "confidence": 0.7614776019699776,
+        "coverage": 0.9996139886888293
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.002271877806997512,
+        "confidence": 0.9977281221930026,
+        "coverage": 0.9953825184076327
+       }
+      },
+      "usage": {
+       "state_tokens": 31,
+       "scored_tokens": 17
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "feedback",
+        "probabilities": {
+         "billing": 3.4558973397767042e-06,
+         "technical": 1.5465660550301967e-06,
+         "sales": 2.764679421165328e-06,
+         "feedback": 0.9999922328571841
+        },
+        "confidence": 0.9999922328571841,
+        "coverage": 0.999954040194414
+       },
+       "urgency": {
+        "value": 0,
+        "expected": 0.0023228858258695284,
+        "probabilities": [
+         0.9988337695253692,
+         0.0005176949874320628,
+         0.00014041562315901456,
+         0.0005081198640398123
+        ],
+        "confidence": 0.9988337695253692,
+        "coverage": 0.9998708021320447
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.0003317318983036314,
+        "confidence": 0.9996682681016963,
+        "coverage": 0.9983760820430766
+       }
+      },
+      "usage": {
+       "state_tokens": 36,
+       "scored_tokens": 17
+      }
+     }
+    ],
+    "usage": {
+     "prompt_tokens": 561,
+     "cached_tokens": 448,
+     "state_tokens": 166,
+     "scored_tokens": 85
+    },
+    "timings": {
+     "prefill_ms": 286.853,
+     "prefix_ms": 0.319,
+     "scoring_ms": 586.141,
+     "total_ms": 876.036,
+     "rounds": 1,
+     "decodes": 3,
+     "retries": 0
+    },
+    "engine": {
+     "scoring": "full_path",
+     "order_debias": 1,
+     "temperature": 0.8992,
+     "phases": 1,
+     "seqs_per_state": 11,
+     "states_per_round": 5,
+     "quote_split_fields": [],
+     "prefix_cache": {
+      "capacity": 8,
+      "entries": 0,
+      "hits": 0,
+      "misses": 0
+     }
+    }
+   }
+  },
+  {
+   "label": "full_path",
+   "status": 200,
+   "response": {
+    "object": "decide",
+    "results": [
+     {
+      "answers": {
+       "queue": {
+        "value": "feedback",
+        "probabilities": {
+         "billing": 0.00012809871496468047,
+         "technical": 0.12931549059449796,
+         "sales": 0.001005276858791584,
+         "feedback": 0.8695511338317458
+        },
+        "confidence": 0.8695511338317458,
+        "coverage": 0.9991900444685544
+       },
+       "urgency": {
+        "value": 0,
+        "expected": 0.034416692172588303,
+        "probabilities": [
+         0.9745056220573524,
+         0.01845090902900831,
+         0.005164623597337835,
+         0.0018788453163014398
+        ],
+        "confidence": 0.9745056220573524,
+        "coverage": 0.9997756753447598
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.0007348406203898087,
+        "confidence": 0.9992651593796102,
+        "coverage": 0.9965427254395143
+       }
+      },
+      "usage": {
+       "state_tokens": 20,
+       "scored_tokens": 17
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "billing",
+        "probabilities": {
+         "billing": 0.9706911661308675,
+         "technical": 0.02930156588235527,
+         "sales": 7.085812504009396e-06,
+         "feedback": 1.821742731351626e-07
+        },
+        "confidence": 0.9706911661308675,
+        "coverage": 0.9997110121910783
+       },
+       "urgency": {
+        "value": 3,
+        "expected": 2.9645749934179237,
+        "probabilities": [
+         7.011445350151278e-05,
+         0.00010434007966023757,
+         0.0350059830622513,
+         0.9648195624045869
+        ],
+        "confidence": 0.9648195624045869,
+        "coverage": 0.9997245859801526
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.2979242302980533,
+        "confidence": 0.7020757697019466,
+        "coverage": 0.9977325282541586
+       }
+      },
+      "usage": {
+       "state_tokens": 63,
+       "scored_tokens": 17
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "technical",
+        "probabilities": {
+         "billing": 3.1782043848036557e-06,
+         "technical": 0.999996746484363,
+         "sales": 7.067536305626067e-08,
+         "feedback": 4.635889268312718e-09
+        },
+        "confidence": 0.999996746484363,
+        "coverage": 0.9998499272527877
+       },
+       "urgency": {
+        "value": 2,
+        "expected": 2.1111559510833677,
+        "probabilities": [
+         5.891188436201198e-05,
+         0.0002867783019732582,
+         0.8880937566595994,
+         0.11156055315406518
+        ],
+        "confidence": 0.8880937566595994,
+        "coverage": 0.9997774162986877
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.009576397841110884,
+        "confidence": 0.990423602158889,
+        "coverage": 0.9966181463363016
+       }
+      },
+      "usage": {
+       "state_tokens": 28,
+       "scored_tokens": 17
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "technical",
+        "probabilities": {
+         "billing": 2.7037208981030996e-05,
+         "technical": 0.9999729436438161,
+         "sales": 1.363792483889565e-08,
+         "feedback": 5.50927801063923e-09
+        },
+        "confidence": 0.9999729436438161,
+        "coverage": 0.9998475448832225
+       },
+       "urgency": {
+        "value": 3,
+        "expected": 2.9967407585189774,
+        "probabilities": [
+         0.00012265948927423726,
+         9.468701784249076e-05,
+         0.0027018889775148915,
+         0.9970807645153683
+        ],
+        "confidence": 0.9970807645153683,
+        "coverage": 0.999756014721818
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.006874759215948853,
+        "confidence": 0.9931252407840511,
+        "coverage": 0.9976340712334594
+       }
+      },
+      "usage": {
+       "state_tokens": 33,
+       "scored_tokens": 17
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "billing",
+        "probabilities": {
+         "billing": 0.9965265228714383,
+         "technical": 0.0034723836568392947,
+         "sales": 1.0035905467246916e-06,
+         "feedback": 8.988117580129139e-08
+        },
+        "confidence": 0.9965265228714383,
+        "coverage": 0.999852805687671
+       },
+       "urgency": {
+        "value": 3,
+        "expected": 2.8698070493710826,
+        "probabilities": [
+         7.957710378762529e-05,
+         6.572181222554229e-05,
+         0.1298227756931038,
+         0.8700319253908831
+        ],
+        "confidence": 0.8700319253908831,
+        "coverage": 0.9998423000783055
+       },
+       "angry": {
+        "value": true,
+        "p_true": 0.9822904270316744,
+        "confidence": 0.9822904270316744,
+        "coverage": 0.9980084580272668
+       }
+      },
+      "usage": {
+       "state_tokens": 63,
+       "scored_tokens": 17
+      }
+     }
+    ],
+    "usage": {
+     "prompt_tokens": 602,
+     "cached_tokens": 448,
+     "state_tokens": 207,
+     "scored_tokens": 85
+    },
+    "timings": {
+     "prefill_ms": 326.29,
+     "prefix_ms": 0.334,
+     "scoring_ms": 575.393,
+     "total_ms": 904.904,
+     "rounds": 1,
+     "decodes": 3,
+     "retries": 0
+    },
+    "engine": {
+     "scoring": "full_path",
+     "order_debias": 1,
+     "temperature": 0.8992,
+     "phases": 1,
+     "seqs_per_state": 11,
+     "states_per_round": 5,
+     "quote_split_fields": [],
+     "prefix_cache": {
+      "capacity": 8,
+      "entries": 0,
+      "hits": 0,
+      "misses": 0
+     }
+    }
+   }
+  },
+  {
+   "label": "after",
+   "status": 200,
+   "response": {
+    "object": "decide",
+    "results": [
+     {
+      "answers": {
+       "queue": {
+        "value": "billing",
+        "probabilities": {
+         "billing": 0.9894106356078535,
+         "technical": 2.51245653212297e-05,
+         "sales": 0.0004980215254689553,
+         "feedback": 0.01006621830135621
+        },
+        "confidence": 0.9894106356078535
+       },
+       "urgency": {
+        "value": 0,
+        "expected": 0.07144596518819454,
+        "probabilities": [
+         0.9286051932931484,
+         0.07134502780944202,
+         4.83993134764221e-05,
+         1.3795839332261192e-06
+        ],
+        "confidence": 0.9286051932931484,
+        "given": {
+         "queue": "billing"
+        }
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.00025937361657149457,
+        "confidence": 0.9997406263834285,
+        "given": {
+         "queue": "billing"
+        }
+       }
+      },
+      "usage": {
+       "state_tokens": 32,
+       "scored_tokens": 3
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "billing",
+        "probabilities": {
+         "billing": 0.9996255249944896,
+         "technical": 4.363149854220126e-05,
+         "sales": 0.00012318523823559146,
+         "feedback": 0.00020765826873268167
+        },
+        "confidence": 0.9996255249944896
+       },
+       "urgency": {
+        "value": 1,
+        "expected": 0.9022920212236522,
+        "probabilities": [
+         0.09959256961769601,
+         0.8985278784577395,
+         0.0018745130077801955,
+         5.038916784070249e-06
+        ],
+        "confidence": 0.8985278784577395,
+        "given": {
+         "queue": "billing"
+        }
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.0005880537807743909,
+        "confidence": 0.9994119462192256,
+        "given": {
+         "queue": "billing"
+        }
+       }
+      },
+      "usage": {
+       "state_tokens": 32,
+       "scored_tokens": 3
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "feedback",
+        "probabilities": {
+         "billing": 0.0004814228393385937,
+         "technical": 1.308853347331185e-06,
+         "sales": 0.004213949660104387,
+         "feedback": 0.9953033186472096
+        },
+        "confidence": 0.9953033186472096
+       },
+       "urgency": {
+        "value": 0,
+        "expected": 0.35891826135996696,
+        "probabilities": [
+         0.6542911086158233,
+         0.33256452510647516,
+         0.013079362579612773,
+         6.500369808874965e-05
+        ],
+        "confidence": 0.6542911086158233,
+        "given": {
+         "queue": "feedback"
+        }
+       },
+       "angry": {
+        "value": true,
+        "p_true": 0.9825178618882173,
+        "confidence": 0.9825178618882173,
+        "given": {
+         "queue": "feedback"
+        }
+       }
+      },
+      "usage": {
+       "state_tokens": 35,
+       "scored_tokens": 3
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "billing",
+        "probabilities": {
+         "billing": 0.9975917522227424,
+         "technical": 0.0014327899409263358,
+         "sales": 3.945629295357032e-05,
+         "feedback": 0.000936001543377558
+        },
+        "confidence": 0.9975917522227424
+       },
+       "urgency": {
+        "value": 1,
+        "expected": 1.0450704994466484,
+        "probabilities": [
+         0.0006089172956251003,
+         0.9537245111325683,
+         0.04565372640133989,
+         1.2845170466735972e-05
+        ],
+        "confidence": 0.9537245111325683,
+        "given": {
+         "queue": "billing"
+        }
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.0018000350295003815,
+        "confidence": 0.9981999649704997,
+        "given": {
+         "queue": "billing"
+        }
+       }
+      },
+      "usage": {
+       "state_tokens": 31,
+       "scored_tokens": 3
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "feedback",
+        "probabilities": {
+         "billing": 2.955647093380844e-06,
+         "technical": 1.554150729314912e-06,
+         "sales": 2.9869075011870437e-06,
+         "feedback": 0.9999925032946761
+        },
+        "confidence": 0.9999925032946761
+       },
+       "urgency": {
+        "value": 0,
+        "expected": 1.8969681268945423e-05,
+        "probabilities": [
+         0.9999868886753337,
+         8.685828177286597e-06,
+         2.992636374418708e-06,
+         1.4328601142738032e-06
+        ],
+        "confidence": 0.9999868886753337,
+        "given": {
+         "queue": "feedback"
+        }
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.00037073203519543904,
+        "confidence": 0.9996292679648044,
+        "given": {
+         "queue": "feedback"
+        }
+       }
+      },
+      "usage": {
+       "state_tokens": 36,
+       "scored_tokens": 3
+      }
+     }
+    ],
+    "usage": {
+     "prompt_tokens": 381,
+     "cached_tokens": 448,
+     "state_tokens": 166,
+     "scored_tokens": 15
+    },
+    "timings": {
+     "prefill_ms": 286.398,
+     "prefix_ms": 0.329,
+     "scoring_ms": 269.366,
+     "total_ms": 558.036,
+     "rounds": 1,
+     "decodes": 3,
+     "retries": 0
+    },
+    "engine": {
+     "scoring": "tree",
+     "order_debias": 1,
+     "temperature": 0.8992,
+     "phases": 2,
+     "seqs_per_state": 4,
+     "states_per_round": 15,
+     "quote_split_fields": [],
+     "prefix_cache": {
+      "capacity": 8,
+      "entries": 0,
+      "hits": 0,
+      "misses": 0
+     }
+    }
+   }
+  },
+  {
+   "label": "after",
+   "status": 200,
+   "response": {
+    "object": "decide",
+    "results": [
+     {
+      "answers": {
+       "queue": {
+        "value": "feedback",
+        "probabilities": {
+         "billing": 0.00013124990450507398,
+         "technical": 0.13334427842061206,
+         "sales": 0.0010267315947221183,
+         "feedback": 0.8654977400801609
+        },
+        "confidence": 0.8654977400801609
+       },
+       "urgency": {
+        "value": 0,
+        "expected": 9.438392025973823e-05,
+        "probabilities": [
+         0.9999106318355592,
+         8.49036842068038e-05,
+         3.913204648841137e-06,
+         5.512755850840502e-07
+        ],
+        "confidence": 0.9999106318355592,
+        "given": {
+         "queue": "feedback"
+        }
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.00015321040758235524,
+        "confidence": 0.9998467895924177,
+        "given": {
+         "queue": "feedback"
+        }
+       }
+      },
+      "usage": {
+       "state_tokens": 20,
+       "scored_tokens": 3
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "billing",
+        "probabilities": {
+         "billing": 0.9706409041478388,
+         "technical": 0.02935269989774024,
+         "sales": 6.229009829668486e-06,
+         "feedback": 1.6694459128413028e-07
+        },
+        "confidence": 0.9706409041478388
+       },
+       "urgency": {
+        "value": 3,
+        "expected": 2.9830854064918215,
+        "probabilities": [
+         1.7067211709917185e-06,
+         5.537035849996384e-06,
+         0.016898399272965235,
+         0.9830943569700138
+        ],
+        "confidence": 0.9830943569700138,
+        "given": {
+         "queue": "billing"
+        }
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.11389762420089707,
+        "confidence": 0.886102375799103,
+        "given": {
+         "queue": "billing"
+        }
+       }
+      },
+      "usage": {
+       "state_tokens": 63,
+       "scored_tokens": 3
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "technical",
+        "probabilities": {
+         "billing": 4.808966692717332e-06,
+         "technical": 0.9999950561381118,
+         "sales": 1.281106362881664e-07,
+         "feedback": 6.784559264185899e-09
+        },
+        "confidence": 0.9999950561381118
+       },
+       "urgency": {
+        "value": 2,
+        "expected": 2.0334343286706527,
+        "probabilities": [
+         1.8600322877736192e-06,
+         7.662959342671315e-06,
+         0.9665447653137991,
+         0.03344571169457059
+        ],
+        "confidence": 0.9665447653137991,
+        "given": {
+         "queue": "technical"
+        }
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.003263627133676858,
+        "confidence": 0.9967363728663231,
+        "given": {
+         "queue": "technical"
+        }
+       }
+      },
+      "usage": {
+       "state_tokens": 28,
+       "scored_tokens": 3
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "technical",
+        "probabilities": {
+         "billing": 2.5454242474431742e-05,
+         "technical": 0.9999745283420209,
+         "sales": 1.2347910436389456e-08,
+         "feedback": 5.067594212452061e-09
+        },
+        "confidence": 0.9999745283420209
+       },
+       "urgency": {
+        "value": 3,
+        "expected": 2.9991936816550746,
+        "probabilities": [
+         2.8974864244794445e-06,
+         2.3784331638065707e-06,
+         0.0007928690193245184,
+         0.9992018550610872
+        ],
+        "confidence": 0.9992018550610872,
+        "given": {
+         "queue": "technical"
+        }
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.0033824613590764645,
+        "confidence": 0.9966175386409236,
+        "given": {
+         "queue": "technical"
+        }
+       }
+      },
+      "usage": {
+       "state_tokens": 33,
+       "scored_tokens": 3
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "billing",
+        "probabilities": {
+         "billing": 0.9965794029952263,
+         "technical": 0.0034195047745885555,
+         "sales": 1.0035140193937282e-06,
+         "feedback": 8.871616573286258e-08
+        },
+        "confidence": 0.9965794029952263
+       },
+       "urgency": {
+        "value": 3,
+        "expected": 2.770577057820933,
+        "probabilities": [
+         2.1450300846346277e-06,
+         8.622616363597925e-06,
+         0.2293992618560855,
+         0.7705899704974664
+        ],
+        "confidence": 0.7705899704974664,
+        "given": {
+         "queue": "billing"
+        }
+       },
+       "angry": {
+        "value": true,
+        "p_true": 0.9862017832355535,
+        "confidence": 0.9862017832355535,
+        "given": {
+         "queue": "billing"
+        }
+       }
+      },
+      "usage": {
+       "state_tokens": 63,
+       "scored_tokens": 3
+      }
+     }
+    ],
+    "usage": {
+     "prompt_tokens": 422,
+     "cached_tokens": 448,
+     "state_tokens": 207,
+     "scored_tokens": 15
+    },
+    "timings": {
+     "prefill_ms": 327.15,
+     "prefix_ms": 0.317,
+     "scoring_ms": 263.884,
+     "total_ms": 593.467,
+     "rounds": 1,
+     "decodes": 3,
+     "retries": 0
+    },
+    "engine": {
+     "scoring": "tree",
+     "order_debias": 1,
+     "temperature": 0.8992,
+     "phases": 2,
+     "seqs_per_state": 4,
+     "states_per_round": 15,
+     "quote_split_fields": [],
+     "prefix_cache": {
+      "capacity": 8,
+      "entries": 0,
+      "hits": 0,
+      "misses": 0
+     }
+    }
+   }
+  },
+  {
+   "label": "debias2",
+   "status": 200,
+   "response": {
+    "object": "decide",
+    "results": [
+     {
+      "answers": {
+       "queue": {
+        "value": "billing",
+        "probabilities": {
+         "billing": 0.990341230197445,
+         "technical": 4.188574472049035e-05,
+         "sales": 0.0008365708520510502,
+         "feedback": 0.00878031320578327
+        },
+        "confidence": 0.990341230197445,
+        "order_spread": 0.003826629657776713
+       },
+       "urgency": {
+        "value": 0,
+        "expected": 0.07145302519847646,
+        "probabilities": [
+         0.9320244587962196,
+         0.06456807256354281,
+         0.003337453285778854,
+         7.001535445864658e-05
+        ],
+        "confidence": 0.9320244587962196,
+        "order_spread": 0.014595695662305813
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.00028592525956607965,
+        "confidence": 0.9997140747404339,
+        "order_spread": 2.4900149074857936e-06
+       }
+      },
+      "usage": {
+       "state_tokens": 32,
+       "scored_tokens": 6
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "billing",
+        "probabilities": {
+         "billing": 0.9995524018544565,
+         "technical": 8.808383155326821e-05,
+         "sales": 0.00017366110458139007,
+         "feedback": 0.00018585320940877253
+        },
+        "confidence": 0.9995524018544565,
+        "order_spread": 0.00024138968838972023
+       },
+       "urgency": {
+        "value": 1,
+        "expected": 0.8694880293989058,
+        "probabilities": [
+         0.17725873305322212,
+         0.7762322917644586,
+         0.04627118791251064,
+         0.00023778726980862777
+        ],
+        "confidence": 0.7762322917644586,
+        "order_spread": 0.009118185260383826
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.00039529118939284866,
+        "confidence": 0.9996047088106071,
+        "order_spread": 5.649314467748301e-05
+       }
+      },
+      "usage": {
+       "state_tokens": 32,
+       "scored_tokens": 6
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "feedback",
+        "probabilities": {
+         "billing": 0.0006885658322603928,
+         "technical": 4.324997328726083e-06,
+         "sales": 0.006212946574565108,
+         "feedback": 0.9930941625958459
+        },
+        "confidence": 0.9930941625958459,
+        "order_spread": 0.004108775988262647
+       },
+       "urgency": {
+        "value": 0,
+        "expected": 0.23951269631373623,
+        "probabilities": [
+         0.8028751072398072,
+         0.15562211307323878,
+         0.040617755820364414,
+         0.00088502386658954
+        ],
+        "confidence": 0.8028751072398072,
+        "order_spread": 0.055761287601343135
+       },
+       "angry": {
+        "value": true,
+        "p_true": 0.9749194296196552,
+        "confidence": 0.9749194296196552,
+        "order_spread": 0.0034786616988604913
+       }
+      },
+      "usage": {
+       "state_tokens": 35,
+       "scored_tokens": 6
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "billing",
+        "probabilities": {
+         "billing": 0.9974119171584402,
+         "technical": 0.0017938770316560135,
+         "sales": 2.645800641309513e-05,
+         "feedback": 0.0007677478034906456
+        },
+        "confidence": 0.9974119171584402,
+        "order_spread": 0.0012441473800896279
+       },
+       "urgency": {
+        "value": 1,
+        "expected": 1.2326401929695856,
+        "probabilities": [
+         0.00952966868176515,
+         0.7486462796924356,
+         0.24147824160024803,
+         0.0003458100255513045
+        ],
+        "confidence": 0.7486462796924356,
+        "order_spread": 0.017563291416697324
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.0026793729677482567,
+        "confidence": 0.9973206270322517,
+        "order_spread": 0.00022012106430380207
+       }
+      },
+      "usage": {
+       "state_tokens": 31,
+       "scored_tokens": 6
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "feedback",
+        "probabilities": {
+         "billing": 1.8478811674112822e-06,
+         "technical": 1.3790316512213744e-06,
+         "sales": 5.376229835618539e-05,
+         "feedback": 0.9999430107888252
+        },
+        "confidence": 0.9999430107888252,
+        "order_spread": 0.0002603702601477684
+       },
+       "urgency": {
+        "value": 0,
+        "expected": 0.0025437403476365333,
+        "probabilities": [
+         0.998715534394876,
+         0.0005759023691615114,
+         0.0001578517294126472,
+         0.0005507115065499091
+        ],
+        "confidence": 0.998715534394876,
+        "order_spread": 0.0002522662205024452
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.00037394947840345855,
+        "confidence": 0.9996260505215965,
+        "order_spread": 8.127065113582303e-06
+       }
+      },
+      "usage": {
+       "state_tokens": 36,
+       "scored_tokens": 6
+      }
+     }
+    ],
+    "usage": {
+     "prompt_tokens": 1050,
+     "cached_tokens": 448,
+     "state_tokens": 166,
+     "scored_tokens": 30
+    },
+    "timings": {
+     "prefill_ms": 872.972,
+     "prefix_ms": 374.58,
+     "scoring_ms": 280.664,
+     "total_ms": 1159.826,
+     "rounds": 1,
+     "decodes": 3,
+     "retries": 0
+    },
+    "engine": {
+     "scoring": "tree",
+     "order_debias": 2,
+     "temperature": 0.8992,
+     "phases": 1,
+     "seqs_per_state": 8,
+     "states_per_round": 7,
+     "quote_split_fields": [],
+     "prefix_cache": {
+      "capacity": 8,
+      "entries": 1,
+      "hits": 0,
+      "misses": 1
+     }
+    }
+   }
+  },
+  {
+   "label": "debias2",
+   "status": 200,
+   "response": {
+    "object": "decide",
+    "results": [
+     {
+      "answers": {
+       "queue": {
+        "value": "feedback",
+        "probabilities": {
+         "billing": 0.00011468057084970897,
+         "technical": 0.12201674655147328,
+         "sales": 0.001013319398325739,
+         "feedback": 0.8768552534793512
+        },
+        "confidence": 0.8768552534793512,
+        "order_spread": 0.003234303870466748
+       },
+       "urgency": {
+        "value": 0,
+        "expected": 0.03078253470098913,
+        "probabilities": [
+         0.9776950875539874,
+         0.015827704753786552,
+         0.004476793129475868,
+         0.0020004145627502815
+        ],
+        "confidence": 0.9776950875539874,
+        "order_spread": 0.001821518035446776
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.0007725449283400688,
+        "confidence": 0.9992274550716599,
+        "order_spread": 0.00025453106147077346
+       }
+      },
+      "usage": {
+       "state_tokens": 20,
+       "scored_tokens": 6
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "billing",
+        "probabilities": {
+         "billing": 0.9679965414448273,
+         "technical": 0.031995591965025605,
+         "sales": 7.677815223461234e-06,
+         "feedback": 1.8877492349587276e-07
+        },
+        "confidence": 0.9679965414448273,
+        "order_spread": 0.015349619375671364
+       },
+       "urgency": {
+        "value": 3,
+        "expected": 2.964285001127652,
+        "probabilities": [
+         5.320343899980046e-05,
+         9.189705812049262e-05,
+         0.03537159443910736,
+         0.9644833050637722
+        ],
+        "confidence": 0.9644833050637722,
+        "order_spread": 0.009593275916565468
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.30576997058308064,
+        "confidence": 0.6942300294169194,
+        "order_spread": 0.0017058213463926886
+       }
+      },
+      "usage": {
+       "state_tokens": 63,
+       "scored_tokens": 6
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "technical",
+        "probabilities": {
+         "billing": 2.4718358148318244e-06,
+         "technical": 0.9999974143172934,
+         "sales": 1.0968398405395518e-07,
+         "feedback": 4.162907677835794e-09
+        },
+        "confidence": 0.9999974143172934,
+        "order_spread": 1.1184971313915604e-05
+       },
+       "urgency": {
+        "value": 2,
+        "expected": 2.126605517691851,
+        "probabilities": [
+         6.23536304134514e-05,
+         0.0003008696168586814,
+         0.8726056821831916,
+         0.12703109456953626
+        ],
+        "confidence": 0.8726056821831916,
+        "order_spread": 0.018715800240969638
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.01154555792504465,
+        "confidence": 0.9884544420749555,
+        "order_spread": 0.0002589415025653352
+       }
+      },
+      "usage": {
+       "state_tokens": 28,
+       "scored_tokens": 6
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "technical",
+        "probabilities": {
+         "billing": 1.5976609878103078e-05,
+         "technical": 0.9999840017423933,
+         "sales": 1.819644009684991e-08,
+         "feedback": 3.451288470042445e-09
+        },
+        "confidence": 0.9999840017423933,
+        "order_spread": 6.789469916819901e-05
+       },
+       "urgency": {
+        "value": 3,
+        "expected": 2.9970605978972875,
+        "probabilities": [
+         8.332195620348004e-05,
+         7.72223482062426e-05,
+         0.002534991537689812,
+         0.9973044641579005
+        ],
+        "confidence": 0.9973044641579005,
+        "order_spread": 0.00041028210885826755
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.006963109021191892,
+        "confidence": 0.9930368909788081,
+        "order_spread": 0.0009760704505266116
+       }
+      },
+      "usage": {
+       "state_tokens": 33,
+       "scored_tokens": 6
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "billing",
+        "probabilities": {
+         "billing": 0.99296416037893,
+         "technical": 0.007033775709664796,
+         "sales": 1.954387317669702e-06,
+         "feedback": 1.095240876564834e-07
+        },
+        "confidence": 0.99296416037893,
+        "order_spread": 0.008368049909645126
+       },
+       "urgency": {
+        "value": 3,
+        "expected": 2.8782732316340596,
+        "probabilities": [
+         5.982048235056171e-05,
+         6.241467839899566e-05,
+         0.12142247756209083,
+         0.8784552872771596
+        ],
+        "confidence": 0.8784552872771596,
+        "order_spread": 9.451585616243596e-05
+       },
+       "angry": {
+        "value": true,
+        "p_true": 0.9830107613940552,
+        "confidence": 0.9830107613940552,
+        "order_spread": 0.000908518370001065
+       }
+      },
+      "usage": {
+       "state_tokens": 63,
+       "scored_tokens": 6
+      }
+     }
+    ],
+    "usage": {
+     "prompt_tokens": 684,
+     "cached_tokens": 896,
+     "state_tokens": 207,
+     "scored_tokens": 30
+    },
+    "timings": {
+     "prefill_ms": 552.654,
+     "prefix_ms": 17.329,
+     "scoring_ms": 279.991,
+     "total_ms": 836.614,
+     "rounds": 1,
+     "decodes": 2,
+     "retries": 0
+    },
+    "engine": {
+     "scoring": "tree",
+     "order_debias": 2,
+     "temperature": 0.8992,
+     "phases": 1,
+     "seqs_per_state": 8,
+     "states_per_round": 7,
+     "quote_split_fields": [],
+     "prefix_cache": {
+      "capacity": 8,
+      "entries": 1,
+      "hits": 1,
+      "misses": 0
+     }
+    }
+   }
+  },
+  {
+   "label": "t0.5",
+   "status": 200,
+   "response": {
+    "object": "decide",
+    "results": [
+     {
+      "answers": {
+       "queue": {
+        "value": "billing",
+        "probabilities": {
+         "billing": 0.999732985597809,
+         "technical": 4.813395294602591e-09,
+         "sales": 1.2072438770853766e-06,
+         "feedback": 0.0002658023449185339
+        },
+        "confidence": 0.999732985597809
+       },
+       "urgency": {
+        "value": 0,
+        "expected": 0.007097393205279045,
+        "probabilities": [
+         0.9929435765379513,
+         0.007015493398124316,
+         4.0890384618806046e-05,
+         3.967930570567303e-08
+        ],
+        "confidence": 0.9929435765379513
+       },
+       "angry": {
+        "value": false,
+        "p_true": 3.5677745815435713e-07,
+        "confidence": 0.9999996432225419
+       }
+      },
+      "usage": {
+       "state_tokens": 32,
+       "scored_tokens": 3
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "billing",
+        "probabilities": {
+         "billing": 0.9999997062288778,
+         "technical": 1.2034305859867915e-08,
+         "sales": 8.765516188714505e-08,
+         "feedback": 1.9408165467760359e-07
+        },
+        "confidence": 0.9999997062288778
+       },
+       "urgency": {
+        "value": 1,
+        "expected": 0.9435313047912334,
+        "probabilities": [
+         0.061462857961208615,
+         0.9335433579788489,
+         0.004993405367442877,
+         3.786924995962214e-07
+        ],
+        "confidence": 0.9335433579788489
+       },
+       "angry": {
+        "value": false,
+        "p_true": 3.3220702142990917e-07,
+        "confidence": 0.9999996677929786
+       }
+      },
+      "usage": {
+       "state_tokens": 32,
+       "scored_tokens": 3
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "feedback",
+        "probabilities": {
+         "billing": 1.3942831336253164e-06,
+         "technical": 2.373514391473875e-11,
+         "sales": 6.220231267161776e-05,
+         "feedback": 0.9999364033804597
+        },
+        "confidence": 0.9999364033804597
+       },
+       "urgency": {
+        "value": 0,
+        "expected": 0.04250280841244908,
+        "probabilities": [
+         0.9601576048899336,
+         0.037183932265429785,
+         0.00265651238689091,
+         1.9504577458227415e-06
+        ],
+        "confidence": 0.9601576048899336
+       },
+       "angry": {
+        "value": true,
+        "p_true": 0.9989686497105671,
+        "confidence": 0.9989686497105671
+       }
+      },
+      "usage": {
+       "state_tokens": 35,
+       "scored_tokens": 3
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "billing",
+        "probabilities": {
+         "billing": 0.9999884346539776,
+         "technical": 8.000276017983807e-06,
+         "sales": 1.074124727675289e-08,
+         "feedback": 3.554328757173219e-06
+        },
+        "confidence": 0.9999884346539776
+       },
+       "urgency": {
+        "value": 1,
+        "expected": 1.1099850853965778,
+        "probabilities": [
+         0.00035583796983206786,
+         0.889304086870492,
+         0.11033922695294172,
+         8.482067340951016e-07
+        ],
+        "confidence": 0.889304086870492
+       },
+       "angry": {
+        "value": false,
+        "p_true": 1.4287915593777177e-05,
+        "confidence": 0.9999857120844063
+       }
+      },
+      "usage": {
+       "state_tokens": 31,
+       "scored_tokens": 3
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "feedback",
+        "probabilities": {
+         "billing": 1.2679853455121686e-10,
+         "technical": 4.2399343176589457e-11,
+         "sales": 1.3069137008076017e-10,
+         "feedback": 0.9999999997001108
+        },
+        "confidence": 0.9999999997001108
+       },
+       "urgency": {
+        "value": 0,
+        "expected": 5.2430575874398585e-06,
+        "probabilities": [
+         0.9999973646320673,
+         1.2722482774599082e-06,
+         1.1854965613327089e-07,
+         1.2445699992378028e-06
+        ],
+        "confidence": 0.9999973646320673
+       },
+       "angry": {
+        "value": false,
+        "p_true": 6.481879600525627e-07,
+        "confidence": 0.9999993518120398
+       }
+      },
+      "usage": {
+       "state_tokens": 36,
+       "scored_tokens": 3
+      }
+     }
+    ],
+    "usage": {
+     "prompt_tokens": 301,
+     "cached_tokens": 448,
+     "state_tokens": 166,
+     "scored_tokens": 15
+    },
+    "timings": {
+     "prefill_ms": 290.005,
+     "prefix_ms": 0.345,
+     "scoring_ms": 166.518,
+     "total_ms": 458.878,
+     "rounds": 1,
+     "decodes": 2,
+     "retries": 0
+    },
+    "engine": {
+     "scoring": "tree",
+     "order_debias": 1,
+     "temperature": 0.5,
+     "phases": 1,
+     "seqs_per_state": 4,
+     "states_per_round": 15,
+     "quote_split_fields": [],
+     "prefix_cache": {
+      "capacity": 8,
+      "entries": 1,
+      "hits": 0,
+      "misses": 0
+     }
+    }
+   }
+  },
+  {
+   "label": "t0.5",
+   "status": 200,
+   "response": {
+    "object": "decide",
+    "results": [
+     {
+      "answers": {
+       "queue": {
+        "value": "feedback",
+        "probabilities": {
+         "billing": 1.463665860950363e-07,
+         "technical": 0.03233510240965376,
+         "sales": 4.7191716692624744e-06,
+         "feedback": 0.9676600320520908
+        },
+        "confidence": 0.9676600320520908
+       },
+       "urgency": {
+        "value": 0,
+        "expected": 0.0009763467904639663,
+        "probabilities": [
+         0.9991360717218164,
+         0.000763108453851306,
+         8.922113638363525e-05,
+         1.1598687948463271e-05
+        ],
+        "confidence": 0.9991360717218164
+       },
+       "angry": {
+        "value": false,
+        "p_true": 2.3153919505866602e-06,
+        "confidence": 0.9999976846080494
+       }
+      },
+      "usage": {
+       "state_tokens": 20,
+       "scored_tokens": 3
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "billing",
+        "probabilities": {
+         "billing": 0.9982931911285281,
+         "technical": 0.0017068084069602047,
+         "sales": 4.6384017950382444e-10,
+         "feedback": 6.713851108689752e-13
+        },
+        "confidence": 0.9982931911285281
+       },
+       "urgency": {
+        "value": 3,
+        "expected": 2.99752856225337,
+        "probabilities": [
+         3.8457067635716395e-08,
+         8.34436943824192e-08,
+         0.0024711554880381134,
+         0.9975287226112
+        ],
+        "confidence": 0.9975287226112
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.17360977830991794,
+        "confidence": 0.8263902216900821
+       }
+      },
+      "usage": {
+       "state_tokens": 63,
+       "scored_tokens": 3
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "technical",
+        "probabilities": {
+         "billing": 2.5006442756640093e-10,
+         "technical": 0.999999999749666,
+         "sales": 2.6788226079858733e-13,
+         "feedback": 1.6803962257447696e-15
+        },
+        "confidence": 0.999999999749666
+       },
+       "urgency": {
+        "value": 2,
+        "expected": 2.0243261818989815,
+        "probabilities": [
+         3.2469949412579815e-08,
+         4.897243626298401e-07,
+         0.9756727412424453,
+         0.024326736563242732
+        ],
+        "confidence": 0.9756727412424453
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.0002756439083417619,
+        "confidence": 0.9997243560916583
+       }
+      },
+      "usage": {
+       "state_tokens": 28,
+       "scored_tokens": 3
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "technical",
+        "probabilities": {
+         "billing": 5.530386550588568e-09,
+         "technical": 0.9999999944696043,
+         "sales": 7.607573610492634e-15,
+         "feedback": 1.6049323086880407e-15
+        },
+        "confidence": 0.9999999944696043
+       },
+       "urgency": {
+        "value": 3,
+        "expected": 2.999974234209344,
+        "probabilities": [
+         1.104614521607029e-07,
+         8.010325686338749e-08,
+         2.5274199785934638e-05,
+         0.9999745352355051
+        ],
+        "confidence": 0.9999745352355051
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.0001290938735932254,
+        "confidence": 0.9998709061264067
+       }
+      },
+      "usage": {
+       "state_tokens": 33,
+       "scored_tokens": 3
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "billing",
+        "probabilities": {
+         "billing": 0.9999604566131769,
+         "technical": 3.9543370079443325e-05,
+         "sales": 1.646352927286826e-11,
+         "feedback": 2.802167481060208e-13
+        },
+        "confidence": 0.9999604566131769
+       },
+       "urgency": {
+        "value": 3,
+        "expected": 2.967052430290253,
+        "probabilities": [
+         3.951396617490826e-08,
+         3.618039908648814e-08,
+         0.03294737880705048,
+         0.9670525454985843
+        ],
+        "confidence": 0.9670525454985843
+       },
+       "angry": {
+        "value": true,
+        "p_true": 0.999423220607936,
+        "confidence": 0.999423220607936
+       }
+      },
+      "usage": {
+       "state_tokens": 63,
+       "scored_tokens": 3
+      }
+     }
+    ],
+    "usage": {
+     "prompt_tokens": 342,
+     "cached_tokens": 448,
+     "state_tokens": 207,
+     "scored_tokens": 15
+    },
+    "timings": {
+     "prefill_ms": 327.187,
+     "prefix_ms": 0.324,
+     "scoring_ms": 162.863,
+     "total_ms": 492.519,
+     "rounds": 1,
+     "decodes": 2,
+     "retries": 0
+    },
+    "engine": {
+     "scoring": "tree",
+     "order_debias": 1,
+     "temperature": 0.5,
+     "phases": 1,
+     "seqs_per_state": 4,
+     "states_per_round": 15,
+     "quote_split_fields": [],
+     "prefix_cache": {
+      "capacity": 8,
+      "entries": 1,
+      "hits": 0,
+      "misses": 0
+     }
+    }
+   }
+  },
+  {
+   "label": "cache",
+   "status": 200,
+   "response": {
+    "object": "decide",
+    "results": [
+     {
+      "answers": {
+       "queue": {
+        "value": "billing",
+        "probabilities": {
+         "billing": 0.9893012410710648,
+         "technical": 2.34650614774738e-05,
+         "sales": 0.0005064962249616897,
+         "feedback": 0.010168797642495949
+        },
+        "confidence": 0.9893012410710648
+       },
+       "urgency": {
+        "value": 0,
+        "expected": 0.06670362190702525,
+        "probabilities": [
+         0.9368542343124954,
+         0.05965998950167348,
+         0.003413696152141253,
+         7.208003368975811e-05
+        ],
+        "confidence": 0.9368542343124954
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.0002598357784897954,
+        "confidence": 0.9997401642215101
+       }
+      },
+      "usage": {
+       "state_tokens": 32,
+       "scored_tokens": 3
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "billing",
+        "probabilities": {
+         "billing": 0.9996563036219465,
+         "technical": 3.946120212149746e-05,
+         "sales": 0.00011903740817378807,
+         "feedback": 0.00018519776775827819
+        },
+        "confidence": 0.9996563036219465
+       },
+       "urgency": {
+        "value": 1,
+        "expected": 0.8704514484344537,
+        "probabilities": [
+         0.17276689514335242,
+         0.7842336682827851,
+         0.04278052956991923,
+         0.00021890700394338016
+        ],
+        "confidence": 0.7842336682827851
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.0002497308124472465,
+        "confidence": 0.9997502691875528
+       }
+      },
+      "usage": {
+       "state_tokens": 32,
+       "scored_tokens": 3
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "feedback",
+        "probabilities": {
+         "billing": 0.0005517681752602307,
+         "technical": 1.2302058453928639e-06,
+         "sales": 0.004559698400391661,
+         "feedback": 0.9948873032185027
+        },
+        "confidence": 0.9948873032185027
+       },
+       "urgency": {
+        "value": 0,
+        "expected": 0.20098023764347395,
+        "probabilities": [
+         0.8315996943130968,
+         0.13638891788501029,
+         0.031442843647215175,
+         0.0005685441546777746
+        ],
+        "confidence": 0.8315996943130968
+       },
+       "angry": {
+        "value": true,
+        "p_true": 0.978612260433352,
+        "confidence": 0.978612260433352
+       }
+      },
+      "usage": {
+       "state_tokens": 35,
+       "scored_tokens": 3
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "billing",
+        "probabilities": {
+         "billing": 0.9975705801840917,
+         "technical": 0.0014615674134113095,
+         "sales": 3.6967137057219856e-05,
+         "feedback": 0.0009308852654395718
+        },
+        "confidence": 0.9975705801840917
+       },
+       "urgency": {
+        "value": 1,
+        "expected": 1.2271440792902746,
+        "probabilities": [
+         0.009724770801775277,
+         0.7537448328993389,
+         0.23619194250572173,
+         0.0003384537931640179
+        ],
+        "confidence": 0.7537448328993389
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.0020185857790223733,
+        "confidence": 0.9979814142209775
+       }
+      },
+      "usage": {
+       "state_tokens": 31,
+       "scored_tokens": 3
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "feedback",
+        "probabilities": {
+         "billing": 3.1393153221769063e-06,
+         "technical": 1.70722750091322e-06,
+         "sales": 3.1925474601745486e-06,
+         "feedback": 0.9999919609097169
+        },
+        "confidence": 0.9999919609097169
+       },
+       "urgency": {
+        "value": 0,
+        "expected": 0.00236784267301241,
+        "probabilities": [
+         0.998812879044276,
+         0.0005264207605020361,
+         0.00014067867315528383,
+         0.000520021522066602
+        ],
+        "confidence": 0.998812879044276
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.0003621098058778954,
+        "confidence": 0.9996378901941221
+       }
+      },
+      "usage": {
+       "state_tokens": 36,
+       "scored_tokens": 3
+      }
+     }
+    ],
+    "usage": {
+     "prompt_tokens": 301,
+     "cached_tokens": 448,
+     "state_tokens": 166,
+     "scored_tokens": 15
+    },
+    "timings": {
+     "prefill_ms": 289.213,
+     "prefix_ms": 0.312,
+     "scoring_ms": 162.656,
+     "total_ms": 454.114,
+     "rounds": 1,
+     "decodes": 2,
+     "retries": 0
+    },
+    "engine": {
+     "scoring": "tree",
+     "order_debias": 1,
+     "temperature": 0.8992,
+     "phases": 1,
+     "seqs_per_state": 4,
+     "states_per_round": 15,
+     "quote_split_fields": [],
+     "prefix_cache": {
+      "capacity": 8,
+      "entries": 1,
+      "hits": 0,
+      "misses": 0
+     }
+    }
+   }
+  },
+  {
+   "label": "cache",
+   "status": 200,
+   "response": {
+    "object": "decide",
+    "results": [
+     {
+      "answers": {
+       "queue": {
+        "value": "feedback",
+        "probabilities": {
+         "billing": 0.0022678265801251677,
+         "technical": 0.1954387383848429,
+         "sales": 0.0012688452418070852,
+         "feedback": 0.8010245897932248
+        },
+        "confidence": 0.8010245897932248
+       },
+       "urgency": {
+        "value": 0,
+        "expected": 0.05215315998262874,
+        "probabilities": [
+         0.9596893932450532,
+         0.031761231226657305,
+         0.005256197828896609,
+         0.003293177699392739
+        ],
+        "confidence": 0.9596893932450532
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.0025247745237907977,
+        "confidence": 0.9974752254762091
+       }
+      },
+      "usage": {
+       "state_tokens": 20,
+       "scored_tokens": 3
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "billing",
+        "probabilities": {
+         "billing": 0.9651240207731306,
+         "technical": 0.034851877752662165,
+         "sales": 2.4074117237313096e-05,
+         "feedback": 2.735697008917924e-08
+        },
+        "confidence": 0.9651240207731306
+       },
+       "urgency": {
+        "value": 3,
+        "expected": 2.984743141906541,
+        "probabilities": [
+         0.00047503573488814915,
+         0.00018518838810733894,
+         0.013461374112580029,
+         0.9858784017644245
+        ],
+        "confidence": 0.9858784017644245
+       },
+       "angry": {
+        "value": true,
+        "p_true": 0.5005705922592298,
+        "confidence": 0.5005705922592298
+       }
+      },
+      "usage": {
+       "state_tokens": 63,
+       "scored_tokens": 3
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "technical",
+        "probabilities": {
+         "billing": 4.697711088232988e-06,
+         "technical": 0.9999952272391355,
+         "sales": 7.430300821049616e-08,
+         "feedback": 7.467682733087449e-10
+        },
+        "confidence": 0.9999952272391355
+       },
+       "urgency": {
+        "value": 2,
+        "expected": 2.2337574046529687,
+        "probabilities": [
+         0.0018223875891825619,
+         0.0014491684607306117,
+         0.7578770956580223,
+         0.23885134829206456
+        ],
+        "confidence": 0.7578770956580223
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.030996334400366258,
+        "confidence": 0.9690036655996337
+       }
+      },
+      "usage": {
+       "state_tokens": 28,
+       "scored_tokens": 3
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "technical",
+        "probabilities": {
+         "billing": 7.462599503401361e-06,
+         "technical": 0.9999925248247001,
+         "sales": 1.2354407331263548e-08,
+         "feedback": 2.2138925098751977e-10
+        },
+        "confidence": 0.9999925248247001
+       },
+       "urgency": {
+        "value": 3,
+        "expected": 2.9968067910504006,
+        "probabilities": [
+         0.0005333602055365705,
+         0.00020248462329264962,
+         0.0011881590864043939,
+         0.9980759960847664
+        ],
+        "confidence": 0.9980759960847664
+       },
+       "angry": {
+        "value": false,
+        "p_true": 0.026488102231971133,
+        "confidence": 0.9735118977680289
+       }
+      },
+      "usage": {
+       "state_tokens": 33,
+       "scored_tokens": 3
+      }
+     },
+     {
+      "answers": {
+       "queue": {
+        "value": "billing",
+        "probabilities": {
+         "billing": 0.9833630629855631,
+         "technical": 0.016636734506691918,
+         "sales": 1.9859096197903848e-07,
+         "feedback": 3.916782985409462e-09
+        },
+        "confidence": 0.9833630629855631
+       },
+       "urgency": {
+        "value": 3,
+        "expected": 2.9744327609918173,
+        "probabilities": [
+         0.000289153999870777,
+         8.97565082014423e-05,
+         0.02452026399216691,
+         0.9751008254997607
+        ],
+        "confidence": 0.9751008254997607
+       },
+       "angry": {
+        "value": true,
+        "p_true": 0.9936515087397121,
+        "confidence": 0.9936515087397121
+       }
+      },
+      "usage": {
+       "state_tokens": 63,
+       "scored_tokens": 3
+      }
+     }
+    ],
+    "usage": {
+     "prompt_tokens": 596,
+     "cached_tokens": 0,
+     "state_tokens": 207,
+     "scored_tokens": 15
+    },
+    "timings": {
+     "prefill_ms": 561.022,
+     "prefix_ms": 227.585,
+     "scoring_ms": 161.816,
+     "total_ms": 726.967,
+     "rounds": 1,
+     "decodes": 3,
+     "retries": 0
+    },
+    "engine": {
+     "scoring": "tree",
+     "order_debias": 1,
+     "temperature": 0.8992,
+     "phases": 1,
+     "seqs_per_state": 4,
+     "states_per_round": 15,
+     "quote_split_fields": [],
+     "prefix_cache": {
+      "capacity": 8,
+      "entries": 2,
+      "hits": 0,
+      "misses": 1
+     }
+    }
+   }
+  }
+ ],
+ "checks": {
+  "info_reports_no_projector": true,
+  "the server keeps serving (text requests 200)": true
+ },
+ "pass": true
+}

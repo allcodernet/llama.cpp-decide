@@ -1,0 +1,44 @@
+{
+  "req": "results-engine/sp3/checks/task-7/requests-allswitch-t2-qwen2.5-0.5b.jsonl",
+  "resp": "results-engine/sp3/checks/task-7/allswitch-t2-qwen2.5-0.5b.jsonl",
+  "answers": 15,
+  "max_abs_sum_minus_1": 2.220446049250313e-16,
+  "engine": [
+    {
+      "scoring": "full_path",
+      "order_debias": 4,
+      "temperature": 2.0,
+      "phases": 2,
+      "seqs_per_state": 44,
+      "states_per_round": 1,
+      "quote_split_fields": [],
+      "prefix_cache": {
+        "capacity": 8,
+        "entries": 3,
+        "hits": 0,
+        "misses": 4
+      }
+    }
+  ],
+  "timings": [
+    {
+      "prefill_ms": 125.884,
+      "prefix_ms": 64.987,
+      "scoring_ms": 308.768,
+      "total_ms": 450.081,
+      "rounds": 5,
+      "decodes": 19,
+      "retries": 0
+    }
+  ],
+  "usage": [
+    {
+      "prompt_tokens": 3976,
+      "cached_tokens": 0,
+      "state_tokens": 166,
+      "scored_tokens": 340
+    }
+  ],
+  "problems": [],
+  "pass": true
+}

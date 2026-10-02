@@ -1,0 +1,62 @@
+{
+  "split": "results-engine/sp3/checks/task-5/fp-b5-seqs60-qwen2.5-0.5b.jsonl",
+  "whole": "results-engine/sp3/checks/task-5/fp-b5-seqs84-qwen2.5-0.5b.jsonl",
+  "row_cap": 61,
+  "rows_compared": 340,
+  "max_abs_diff_all_rows": 0.0801588713535692,
+  "rows_after_boundary": [
+    {
+      "line": 0,
+      "state": 3,
+      "field": "urgency",
+      "node": 1,
+      "max_abs_diff": 4.2552482759639076e-08,
+      "values_split": {
+        "end:": 0.9999996122035851
+      },
+      "values_whole": {
+        "end:": 0.9999995696511024
+      }
+    },
+    {
+      "line": 1,
+      "state": 3,
+      "field": "urgency",
+      "node": 1,
+      "max_abs_diff": 2.218653238905688e-08,
+      "values_split": {
+        "end:": 0.999999002926003
+      },
+      "values_whole": {
+        "end:": 0.9999989807394706
+      }
+    },
+    {
+      "line": 2,
+      "state": 3,
+      "field": "urgency",
+      "node": 1,
+      "max_abs_diff": 3.231777223611232e-08,
+      "values_split": {
+        "end:": 0.9999995959705038
+      },
+      "values_whole": {
+        "end:": 0.9999995636527316
+      }
+    },
+    {
+      "line": 3,
+      "state": 3,
+      "field": "urgency",
+      "node": 1,
+      "max_abs_diff": 1.6793603618836528e-08,
+      "values_split": {
+        "end:": 0.9999998185002021
+      },
+      "values_whole": {
+        "end:": 0.9999998352938058
+      }
+    }
+  ],
+  "max_abs_diff_after_boundary": 4.2552482759639076e-08
+}

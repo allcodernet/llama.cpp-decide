@@ -1,0 +1,96 @@
+{
+ "model": "gemma-4-e4b-vision",
+ "chat_kind": "text",
+ "chat": {
+  "status": 200,
+  "usage": {
+   "completion_tokens": 1,
+   "prompt_tokens": 16,
+   "total_tokens": 17,
+   "prompt_tokens_details": {
+    "cached_tokens": 0
+   }
+  }
+ },
+ "slots_before": [
+  {
+   "id": 0,
+   "n_ctx": 16384,
+   "is_processing": false,
+   "n_prompt_tokens": 16,
+   "n_prompt_tokens_processed": 0
+  }
+ ],
+ "probe": {
+  "status": 400,
+  "error": {
+   "message": "state 0 needs 20080 cells (held 16, prefix 53, state 20000, tail 7, branches 4), n_ctx - 16 is 16368",
+   "code": "budget"
+  },
+  "usage": null,
+  "state_usage": []
+ },
+ "budget": {
+  "needs": 20080,
+  "held": 16,
+  "prefix": 53,
+  "state": 20000,
+  "tail": 7,
+  "branches": 4,
+  "limit": 16368
+ },
+ "size": 16288,
+ "sized": {
+  "status": 500,
+  "error": {
+   "message": "no KV cell space (rc=1)",
+   "code": "engine"
+  },
+  "usage": null,
+  "state_usage": []
+ },
+ "slots_after": [
+  {
+   "id": 0,
+   "n_ctx": 16384,
+   "is_processing": false,
+   "n_prompt_tokens": 16,
+   "n_prompt_tokens_processed": 0
+  }
+ ],
+ "info": {
+  "n_ctx": 16384,
+  "n_batch": 2048,
+  "decide_seqs": 16,
+  "n_parallel": 1,
+  "kv_unified": true,
+  "memory": {
+   "recurrent": false,
+   "swa": true
+  },
+  "prefixes": [
+   {
+    "slot": 0,
+    "hash": "5deb132f0ff3d890",
+    "tokens": 53,
+    "valid": true
+   }
+  ],
+  "vision": {
+   "available": true,
+   "mrope": false,
+   "non_causal": false,
+   "max_images_per_state": 4,
+   "max_images_per_request": 32,
+   "max_image_bytes": 10485760,
+   "max_image_pixels": 32000000
+  }
+ },
+ "summary": {
+  "chat": "text",
+  "held": 16,
+  "size": 16288,
+  "sized_status": 500,
+  "sized_error": "no KV cell space (rc=1)"
+ }
+}

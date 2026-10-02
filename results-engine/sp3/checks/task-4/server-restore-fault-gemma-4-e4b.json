@@ -1,0 +1,131 @@
+{
+  "status": [
+    200,
+    200,
+    200
+  ],
+  "lines": [
+    {
+      "usage": {
+        "prompt_tokens": 715,
+        "cached_tokens": 0,
+        "state_tokens": 167,
+        "scored_tokens": 15
+      },
+      "timings": {
+        "prefill_ms": 335.952,
+        "prefix_ms": 211.887,
+        "scoring_ms": 94.226,
+        "total_ms": 435.371,
+        "rounds": 3,
+        "decodes": 7,
+        "retries": 0
+      },
+      "engine": {
+        "scoring": "tree",
+        "seqs_per_state": 4,
+        "states_per_round": 2,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 0,
+          "hits": 0,
+          "misses": 1
+        }
+      }
+    },
+    {
+      "usage": {
+        "prompt_tokens": 524,
+        "cached_tokens": 0,
+        "state_tokens": 167,
+        "scored_tokens": 15
+      },
+      "timings": {
+        "prefill_ms": 220.701,
+        "prefix_ms": 97.974,
+        "scoring_ms": 86.516,
+        "total_ms": 310.992,
+        "rounds": 3,
+        "decodes": 7,
+        "retries": 0
+      },
+      "engine": {
+        "scoring": "tree",
+        "seqs_per_state": 4,
+        "states_per_round": 2,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 1,
+          "hits": 0,
+          "misses": 1
+        }
+      }
+    },
+    {
+      "usage": {
+        "prompt_tokens": 715,
+        "cached_tokens": 0,
+        "state_tokens": 167,
+        "scored_tokens": 15
+      },
+      "timings": {
+        "prefill_ms": 287.443,
+        "prefix_ms": 162.892,
+        "scoring_ms": 88.058,
+        "total_ms": 377.832,
+        "rounds": 3,
+        "decodes": 7,
+        "retries": 0
+      },
+      "engine": {
+        "scoring": "tree",
+        "seqs_per_state": 4,
+        "states_per_round": 2,
+        "quote_split_fields": [],
+        "prefix_cache": {
+          "capacity": 8,
+          "entries": 1,
+          "hits": 0,
+          "misses": 1
+        }
+      }
+    }
+  ],
+  "info_after": {
+    "decide_seqs": 9,
+    "n_ctx": 4096,
+    "n_batch": 2048,
+    "kv_unified": true,
+    "n_parallel": 1,
+    "memory": {
+      "recurrent": false,
+      "swa": true
+    },
+    "prefix": {
+      "hash": "122f97cd894f0794",
+      "tokens": 438,
+      "assistant_prefix": "<turn|>\n<|turn>model\n",
+      "valid": true
+    },
+    "prefixes": [
+      {
+        "slot": 0,
+        "hash": "122f97cd894f0794",
+        "tokens": 438,
+        "valid": true
+      }
+    ],
+    "prefix_cache": {
+      "capacity": 8,
+      "entries": 1,
+      "bytes": 7531152
+    },
+    "temperature": 1.0,
+    "scoring_modes": [
+      "tree"
+    ]
+  },
+  "pass": true
+}

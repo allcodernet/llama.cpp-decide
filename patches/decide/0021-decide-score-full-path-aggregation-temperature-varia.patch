@@ -1,0 +1,535 @@
+From 4cbdba0152c2975c3f44ad4233b7bb419cc3181f Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 21:15:11 +0200
+Subject: [PATCH 21/45] decide-score: full-path aggregation, temperature,
+ variant averaging
+
+score_field_full implements spec 4.1 from one node_logp row per trie
+node (child log-probs aligned with the node's children, the END mass on
+leaf rows, the MERGED mass per leaf child): log P(o) sums the child
+log-probs along the option's path and ends with
+log(p(t_k) * END(r_k) + MERGED(r_k-1)); the answer is P / sum P with
+coverage = sum P, all in log space. A missing, duplicate or unaligned
+row, a node out of range, NaN or +inf, a path that does not match the
+trie nodes, or P = 0 for every option is a 500 engine error naming the
+field.
+
+rebuild_answer recomputes argmax (ties -> first) and expected from the
+given probabilities and copies coverage, order_spread and given.
+apply_temperature gives p_T proportional to exp(log p / T); T = 1
+returns the input unchanged, T <= 0 or NaN is a 500 (0 is the options
+struct's "not given"). average_variants takes the arithmetic mean of the
+variants' probabilities and coverage, order_spread = max over options
+of (max - min) over variants when there are 2 or more variants, and the
+given of variant 0.
+
+field_answer gains coverage and order_spread (NAN = not reported) and
+given (null = not reported); answer_json adds them after the existing
+keys only when set, so tree answers keep today's text (goldens checked
+on the build before this change). score_field is unchanged.
+
+test-decide-score: full-path P, P-hat and coverage to 1e-9 on hand-built
+tries (a two-token and a one-token option with and without merged mass,
+a branch below the root), the 500 cases, temperature at T = 1, 2, 0.5,
+rebuild after T = 2 (score expected and confidence, bool p_true), debias
+averaging and order_spread, answer_json goldens with and without the
+new keys.
+---
+ tests/test-decide-score.cpp   | 216 ++++++++++++++++++++++++++++++++++
+ tools/decide/decide-score.cpp | 185 ++++++++++++++++++++++++++++-
+ tools/decide/decide-score.h   |  22 ++++
+ 3 files changed, 422 insertions(+), 1 deletion(-)
+
+diff --git a/tests/test-decide-score.cpp b/tests/test-decide-score.cpp
+index 0520c3fd3..033102e75 100644
+--- a/tests/test-decide-score.cpp
++++ b/tests/test-decide-score.cpp
+@@ -23,6 +23,47 @@ static decide::field choice4() {
+     for (const char * k : {"a", "b", "c", "d"}) f.options.push_back({k, "", decide::json_string(k)});
+     return f;
+ }
++static decide::field score4() {
++    decide::field f; f.name = "u"; f.type = decide::field_type::SCORE;
++    for (int i = 0; i < 4; ++i) f.options.push_back({std::to_string(i), "L", std::to_string(i)});
++    return f;
++}
++static decide::field bool2() {
++    decide::field f; f.name = "b"; f.type = decide::field_type::BOOL;
++    f.options = {{"true", "", "true"}, {"false", "", "false"}};
++    return f;
++}
++static decide::field choice2(const char * a, const char * b) {
++    decide::field f; f.name = "c"; f.type = decide::field_type::CHOICE;
++    for (const char * k : {a, b}) f.options.push_back({k, "", decide::json_string(k)});
++    return f;
++}
++// root -> 1 (tok 10) -> 3 (tok 20): option 0, two tokens; root -> 2 (tok 11): option 1, one token
++static decide::field_trie two_one() {
++    decide::field_trie t; t.nodes.resize(4);
++    t.nodes[0].children = {1, 2}; t.nodes[0].options_through = {0, 1};
++    t.nodes[1].tok = 10; t.nodes[1].children = {3}; t.nodes[1].options_through = {0};
++    t.nodes[2].tok = 11; t.nodes[2].options_through = {1};
++    t.nodes[3].tok = 20; t.nodes[3].options_through = {0};
++    t.branch_nodes = {0};
++    t.paths = {{10, 20}, {11}};
++    return t;
++}
++// full-path rows for two_one(), not in node order; the log-probs are exact in float
++static std::vector<decide::node_logp> two_one_rows(float merged_a, float merged_b) {
++    std::vector<decide::node_logp> rows(4);
++    rows[0].node = 3; rows[0].end_logp = -0.125f;
++    rows[1].node = 0; rows[1].child_logp = {-0.5f, -1.5f}; rows[1].merged_logp = {NEG_INF, merged_b};
++    rows[2].node = 2; rows[2].end_logp = -0.0625f;
++    rows[3].node = 1; rows[3].child_logp = {-0.25f}; rows[3].merged_logp = {merged_a};
++    return rows;
++}
++template <typename F>
++static bool engine_500(F fn, const char * text) {
++    try { fn(); }
++    catch (const decide::error & e) { return e.code == "engine" && e.http == 500 && std::string(e.what()).find(text) != std::string::npos; }
++    return false;
++}
+ 
+ int main() {
+     // 1. flat softmax
+@@ -123,6 +164,181 @@ int main() {
+         catch (const decide::error & e) { threw = (e.code == "engine" && e.http == 500); msg = e.what(); }
+         CHECK(threw && msg.find("non-finite logits") != std::string::npos);
+     }
++    // 12. answer_json goldens without the sub-project 3 keys (tree answers keep today's text, key order included)
++    {
++        decide::field_answer a; a.argmax = 0; a.probs = {0.5, 0.25, 0.125, 0.125}; a.expected = 0.0;
++        CHECK(decide::answer_json(choice4(), a).dump() ==
++              R"({"value":"a","probabilities":{"a":0.5,"b":0.25,"c":0.125,"d":0.125},"confidence":0.5})");
++        a.expected = 0.875;   // 0.25 + 2 * 0.125 + 3 * 0.125
++        CHECK(decide::answer_json(score4(), a).dump() ==
++              R"({"value":0,"expected":0.875,"probabilities":[0.5,0.25,0.125,0.125],"confidence":0.5})");
++        decide::field_answer b; b.argmax = 0; b.probs = {0.75, 0.25}; b.expected = 0.0;
++        CHECK(decide::answer_json(bool2(), b).dump() == R"({"value":true,"p_true":0.75,"confidence":0.75})");
++    }
++    // 13. full-path (spec 4.1): option A has two tokens, option B one token, no merged mass
++    {
++        auto f = choice2("A", "B");
++        auto a = decide::score_field_full(f, two_one(), two_one_rows(NEG_INF, NEG_INF));
++        const double pa = std::exp(-0.5 - 0.25 - 0.125);   // p(10|r0) p(20|r1) END(r3) = 0.41686...
++        const double pb = std::exp(-1.5 - 0.0625);         // p(11|r0) END(r2) = 0.20961...
++        CHECK(near(a.coverage, pa + pb, 1e-9));
++        CHECK(near(a.probs[0] * a.coverage, pa, 1e-9) && near(a.probs[1] * a.coverage, pb, 1e-9));
++        CHECK(near(a.probs[0], pa / (pa + pb), 1e-9) && near(a.probs[1], pb / (pa + pb), 1e-9));
++        CHECK(a.argmax == 0 && a.expected == 0.0 && std::isnan(a.order_spread) && a.given.is_null());
++        auto j = decide::answer_json(f, a);
++        CHECK(j.at("value").get<std::string>() == "A" && near(j.at("coverage").get<double>(), pa + pb, 1e-9));
++        CHECK(!j.contains("order_spread") && !j.contains("given"));
++    }
++    // 14. full-path with merged mass: last factor p(t_k|r_k-1) END(r_k) + MERGED(r_k-1), times the path prefix
++    {
++        auto a = decide::score_field_full(choice2("A", "B"), two_one(), two_one_rows(-2.0f, -3.0f));
++        const double pa = std::exp(-0.5) * (std::exp(-0.25 - 0.125) + std::exp(-2.0));   // e^-0.875 + e^-2.5 = 0.49894...
++        const double pb = std::exp(-1.5 - 0.0625) + std::exp(-3.0);                     // 0.25939...
++        CHECK(near(a.coverage, pa + pb, 1e-9));
++        CHECK(near(a.probs[0] * a.coverage, pa, 1e-9) && near(a.probs[1] * a.coverage, pb, 1e-9));
++        CHECK(near(a.probs[0], pa / (pa + pb), 1e-9) && near(a.probs[1], pb / (pa + pb), 1e-9));
++    }
++    // 15. full-path, branch below the root: root -> 1 (tok 10) -> {3 (tok 20), 4 (tok 21)}; root -> 2 (tok 11)
++    {
++        decide::field f = choice4(); f.options.resize(3);   // a = [10 20], b = [10 21], c = [11]
++        decide::field_trie t; t.nodes.resize(5);
++        t.nodes[0].children = {1, 2}; t.nodes[0].options_through = {0, 1, 2};
++        t.nodes[1].tok = 10; t.nodes[1].children = {3, 4}; t.nodes[1].options_through = {0, 1};
++        t.nodes[2].tok = 11; t.nodes[2].options_through = {2};
++        t.nodes[3].tok = 20; t.nodes[3].options_through = {0};
++        t.nodes[4].tok = 21; t.nodes[4].options_through = {1};
++        t.branch_nodes = {0, 1}; t.paths = {{10, 20}, {10, 21}, {11}};
++        std::vector<decide::node_logp> rows(5);
++        rows[0].node = 0; rows[0].child_logp = {-0.5f, -1.5f}; rows[0].merged_logp = {NEG_INF, -3.0f};
++        rows[1].node = 1; rows[1].child_logp = {-1.0f, -2.0f}; rows[1].merged_logp = {-4.0f, -2.5f};
++        rows[2].node = 2; rows[2].end_logp = -0.0625f;
++        rows[3].node = 3; rows[3].end_logp = -0.125f;
++        rows[4].node = 4; rows[4].end_logp = -0.25f;
++        auto a = decide::score_field_full(f, t, rows);
++        const double p0 = std::exp(-0.5) * (std::exp(-1.0 - 0.125) + std::exp(-4.0));   // 0.20802...
++        const double p1 = std::exp(-0.5) * (std::exp(-2.0 - 0.25) + std::exp(-2.5));    // 0.11371...
++        const double p2 = std::exp(-1.5 - 0.0625) + std::exp(-3.0);                      // 0.25939...
++        CHECK(near(a.coverage, p0 + p1 + p2, 1e-9));
++        CHECK(near(a.probs[0] * a.coverage, p0, 1e-9) && near(a.probs[1] * a.coverage, p1, 1e-9) && near(a.probs[2] * a.coverage, p2, 1e-9));
++        CHECK(a.argmax == 2);
++    }
++    // 16. full-path: P = 0 for one option is fine; P = 0 for all, a missing row, NaN or +inf, a bad row set -> 500
++    {
++        auto f = choice2("A", "B");
++        auto rows = two_one_rows(NEG_INF, NEG_INF);
++        rows[1].child_logp[1] = NEG_INF;   // p(11|r0) = 0 and no merged mass: P(B) = 0
++        auto a = decide::score_field_full(f, two_one(), rows);
++        CHECK(a.probs[0] == 1.0 && a.probs[1] == 0.0 && near(a.coverage, std::exp(-0.875), 1e-9));
++        rows[0].end_logp = NEG_INF;        // A cannot end its value either
++        CHECK(engine_500([&] { decide::score_field_full(f, two_one(), rows); }, "all options"));
++        for (size_t drop = 0; drop < 4; ++drop) {
++            auto missing = two_one_rows(NEG_INF, NEG_INF);
++            missing.erase(missing.begin() + drop);
++            CHECK(engine_500([&] { decide::score_field_full(f, two_one(), missing); }, "missing full-path row"));
++        }
++        for (float bad : {std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::infinity()}) {
++            for (int where = 0; where < 3; ++where) {
++                auto broken = two_one_rows(-2.0f, -3.0f);
++                if (where == 0) broken[3].child_logp[0] = bad;
++                if (where == 1) broken[0].end_logp = bad;
++                if (where == 2) broken[1].merged_logp[1] = bad;
++                CHECK(engine_500([&] { decide::score_field_full(f, two_one(), broken); }, "non-finite"));
++            }
++        }
++        for (int defect = 0; defect < 4; ++defect) {   // duplicate row, child_logp / merged_logp not aligned, node out of range
++            auto bad_rows = two_one_rows(NEG_INF, NEG_INF);
++            if (defect == 0) bad_rows.push_back(bad_rows[1]);
++            if (defect == 1) bad_rows[1].child_logp.pop_back();
++            if (defect == 2) bad_rows[1].merged_logp.clear();
++            if (defect == 3) bad_rows[0].node = 4;
++            CHECK(engine_500([&] { decide::score_field_full(f, two_one(), bad_rows); }, "inconsistent full-path rows"));
++        }
++        auto t = two_one();
++        t.paths[1] = {12};   // no child of the root has token 12
++        CHECK(engine_500([&] { decide::score_field_full(f, t, two_one_rows(NEG_INF, NEG_INF)); }, "inconsistent trie"));
++        t.paths.pop_back();
++        CHECK(engine_500([&] { decide::score_field_full(f, t, two_one_rows(NEG_INF, NEG_INF)); }, "inconsistent trie"));
++    }
++    // 17. temperature (spec 8): p_T proportional to exp(log p / T)
++    {
++        const std::vector<double> p = {0.8, 0.2};
++        CHECK(decide::apply_temperature(p, 1.0) == p);
++        auto t2 = decide::apply_temperature(p, 2.0);   // sqrt(.8) : sqrt(.2) = 2 : 1
++        CHECK(near(t2[0], 2.0 / 3, 1e-12) && near(t2[1], 1.0 / 3, 1e-12));
++        auto th = decide::apply_temperature(p, 0.5);   // .64 : .04 = 16 : 1
++        CHECK(near(th[0], 16.0 / 17, 1e-12) && near(th[1], 1.0 / 17, 1e-12));
++        auto z = decide::apply_temperature({0.8, 0.0, 0.2}, 2.0);
++        CHECK(near(z[0], 2.0 / 3, 1e-12) && z[1] == 0.0 && near(z[2], 1.0 / 3, 1e-12));
++        for (double bad : {0.0, -1.0, std::nan("")}) {
++            CHECK(engine_500([&] { decide::apply_temperature(p, bad); }, "temperature"));
++        }
++    }
++    // 18. rebuild_answer after temperature: same value; expected, confidence, p_true from the new probabilities; extras copied
++    {
++        decide::field s = score4();
++        decide::field_answer extras; extras.coverage = 0.9; extras.order_spread = 0.05; extras.given = common_json::object({{"queue", "billing"}});
++        auto a = decide::rebuild_answer(s, {0.1, 0.2, 0.3, 0.4}, extras);
++        CHECK(a.argmax == 3 && near(a.expected, 2.0, 1e-12));   // 0.2 + 2 * 0.3 + 3 * 0.4
++        auto t = decide::rebuild_answer(s, decide::apply_temperature(a.probs, 2.0), a);
++        const double z = std::sqrt(0.1) + std::sqrt(0.2) + std::sqrt(0.3) + std::sqrt(0.4);   // p_T(i) = sqrt(p_i) / z
++        CHECK(t.argmax == 3 && near(t.probs[0], std::sqrt(0.1) / z, 1e-12));
++        CHECK(near(t.expected, (std::sqrt(0.2) + 2 * std::sqrt(0.3) + 3 * std::sqrt(0.4)) / z, 1e-12));   // 1.76990...
++        auto j = decide::answer_json(s, t);
++        CHECK(j.at("value").get<int>() == 3 && near(j.at("confidence").get<double>(), std::sqrt(0.4) / z, 1e-12));   // 0.32540...
++        CHECK(j.at("coverage").get<double>() == 0.9 && j.at("order_spread").get<double>() == 0.05 && j.at("given").dump() == R"({"queue":"billing"})");
++        decide::field b = bool2();
++        auto tb = decide::rebuild_answer(b, decide::apply_temperature({0.3, 0.7}, 2.0), decide::field_answer{});
++        auto jb = decide::answer_json(b, tb);
++        const double zb = std::sqrt(0.3) + std::sqrt(0.7);
++        CHECK(jb.at("value").get<bool>() == false && near(jb.at("p_true").get<double>(), std::sqrt(0.3) / zb, 1e-12));   // 0.39564...
++        CHECK(near(jb.at("confidence").get<double>(), std::sqrt(0.7) / zb, 1e-12));
++        CHECK(!jb.contains("coverage") && !jb.contains("order_spread") && !jb.contains("given"));
++        CHECK(engine_500([&] { decide::rebuild_answer(s, {0.5, 0.5}, decide::field_answer{}); }, "2 probabilities for 4 options"));
++    }
++    // 19. debias averaging (spec 7.2): mean probabilities, order_spread = max over options of (max - min) over variants, mean coverage
++    {
++        decide::field f = choice2("x", "y");
++        decide::field_answer v0 = decide::rebuild_answer(f, {0.6, 0.4}, decide::field_answer{});
++        decide::field_answer v1 = decide::rebuild_answer(f, {0.2, 0.8}, decide::field_answer{});
++        v0.coverage = 0.9; v1.coverage = 0.7;
++        v0.given = common_json::object({{"queue", "billing"}}); v1.given = v0.given;
++        auto a = decide::average_variants(f, {v0, v1});
++        CHECK(near(a.probs[0], 0.4, 1e-12) && near(a.probs[1], 0.6, 1e-12) && a.argmax == 1);
++        CHECK(near(a.order_spread, 0.4, 1e-12) && near(a.coverage, 0.8, 1e-12) && a.given.dump() == R"({"queue":"billing"})");
++        auto j = decide::answer_json(f, a);
++        CHECK(j.at("value").get<std::string>() == "y" && near(j.at("order_spread").get<double>(), 0.4, 1e-12));
++        // three variants: the widest option (1) is neither the first nor the argmax
++        decide::field g = choice4(); g.options.resize(3);
++        auto b = decide::average_variants(g, {decide::rebuild_answer(g, {0.5, 0.3, 0.2}, {}),
++                                              decide::rebuild_answer(g, {0.4, 0.5, 0.1}, {}),
++                                              decide::rebuild_answer(g, {0.45, 0.1, 0.45}, {})});
++        CHECK(near(b.probs[0], 0.45, 1e-12) && near(b.probs[1], 0.3, 1e-12) && near(b.probs[2], 0.25, 1e-12));
++        CHECK(near(b.order_spread, 0.4, 1e-12) && b.argmax == 0 && std::isnan(b.coverage) && b.given.is_null());
++        // one variant: the same answer, no order_spread
++        auto one = decide::average_variants(f, {v0});
++        CHECK(one.probs == v0.probs && one.argmax == 0 && std::isnan(one.order_spread) && one.coverage == 0.9);
++        CHECK(engine_500([&] { decide::average_variants(f, {}); }, "variant"));
++        CHECK(engine_500([&] { decide::average_variants(f, {v0, b}); }, "variant"));
++    }
++    // 20. answer_json adds coverage / order_spread / given only when set, after the existing keys
++    {
++        decide::field_answer a; a.argmax = 0; a.probs = {0.5, 0.25, 0.125, 0.125}; a.expected = 0.0;
++        a.coverage = 0.75;
++        CHECK(decide::answer_json(choice4(), a).dump() ==
++              R"({"value":"a","probabilities":{"a":0.5,"b":0.25,"c":0.125,"d":0.125},"confidence":0.5,"coverage":0.75})");
++        a.coverage = NAN; a.order_spread = 0.25;
++        CHECK(decide::answer_json(choice4(), a).dump() ==
++              R"({"value":"a","probabilities":{"a":0.5,"b":0.25,"c":0.125,"d":0.125},"confidence":0.5,"order_spread":0.25})");
++        a.order_spread = NAN; a.given = common_json::object({{"queue", "billing"}});
++        CHECK(decide::answer_json(choice4(), a).dump() ==
++              R"({"value":"a","probabilities":{"a":0.5,"b":0.25,"c":0.125,"d":0.125},"confidence":0.5,"given":{"queue":"billing"}})");
++        a.coverage = 0.75; a.order_spread = 0.25; a.expected = 0.875;
++        CHECK(decide::answer_json(score4(), a).dump() ==
++              R"({"value":0,"expected":0.875,"probabilities":[0.5,0.25,0.125,0.125],"confidence":0.5,"coverage":0.75,"order_spread":0.25,"given":{"queue":"billing"}})");
++        decide::field_answer b; b.argmax = 0; b.probs = {0.75, 0.25}; b.expected = 0.0; b.coverage = 0.5; b.order_spread = 0.125; b.given = a.given;
++        CHECK(decide::answer_json(bool2(), b).dump() ==
++              R"({"value":true,"p_true":0.75,"confidence":0.75,"coverage":0.5,"order_spread":0.125,"given":{"queue":"billing"}})");
++    }
+     if (failures) { std::fprintf(stderr, "%d failure(s)\n", failures); return 1; }
+     std::printf("test-decide-score: OK\n");
+     return 0;
+diff --git a/tools/decide/decide-score.cpp b/tools/decide/decide-score.cpp
+index 90fdd48ae..3a4fa1027 100644
+--- a/tools/decide/decide-score.cpp
++++ b/tools/decide/decide-score.cpp
+@@ -38,6 +38,13 @@ static std::vector<double> log_softmax(const std::vector<T> & x) {
+     return lsm;
+ }
+ 
++// log(exp(a) + exp(b)); -inf when both are -inf
++static double log_add(double a, double b) {
++    const double hi = std::max(a, b);
++    const double lo = std::min(a, b);
++    return std::isinf(hi) ? hi : hi + std::log1p(std::exp(lo - hi));
++}
++
+ field_answer score_field(const field & f, const field_trie & t, const std::vector<node_scores> & scores) {
+     // Validate that `scores` exactly covers t.branch_nodes: this layer is the normalisation
+     // boundary, so a missing/duplicate/mis-shaped entry must be a hard error, not a silent
+@@ -137,7 +144,169 @@ field_answer score_field(const field & f, const field_trie & t, const std::vecto
+     return a;
+ }
+ 
+-common_json answer_json(const field & f, const field_answer & a) {
++field_answer score_field_full(const field & f, const field_trie & t, const std::vector<node_logp> & rows) {
++    const std::string who = "field \"" + f.name + "\": ";
++    const float       inf = std::numeric_limits<float>::infinity();
++    std::vector<const node_logp *> row_of(t.nodes.size(), nullptr);
++    for (const node_logp & r : rows) {
++        const std::string at = "node " + std::to_string(r.node);
++        if (r.node < 0 || r.node >= (int) t.nodes.size()) {
++            throw error("engine", 500, who + "inconsistent full-path rows (" + at + " out of range)");
++        }
++        if (row_of[r.node] != nullptr) {
++            throw error("engine", 500, who + "inconsistent full-path rows (duplicate row for " + at + ")");
++        }
++        const size_t n_children = t.nodes[r.node].children.size();
++        if (r.child_logp.size() != n_children || r.merged_logp.size() != n_children) {
++            throw error("engine", 500, who + "inconsistent full-path rows (" + at + " has " + std::to_string(n_children) + " children, the row has " +
++                                            std::to_string(r.child_logp.size()) + " child and " + std::to_string(r.merged_logp.size()) + " merged values)");
++        }
++        // -inf is a masked token or an empty sum; NaN or +inf is a broken forward pass
++        bool finite = !std::isnan(r.end_logp) && r.end_logp != inf;
++        for (float v : r.child_logp) {
++            finite = finite && !std::isnan(v) && v != inf;
++        }
++        for (float v : r.merged_logp) {
++            finite = finite && !std::isnan(v) && v != inf;
++        }
++        if (!finite) {
++            throw error("engine", 500, who + "non-finite log-probabilities at " + at);
++        }
++        row_of[r.node] = &r;
++    }
++    const auto row = [&](int node) -> const node_logp & {
++        if (row_of[node] == nullptr) {
++            throw error("engine", 500, who + "missing full-path row for node " + std::to_string(node));
++        }
++        return *row_of[node];
++    };
++
++    // spec 4.1: log P(o) = sum_{i<k} log p(t_i | r_i-1) + log(p(t_k | r_k-1) * END(r_k) + MERGED[piece(t_k)](r_k-1))
++    std::vector<double> logp(f.options.size(), 0.0);
++    for (size_t o = 0; o < f.options.size(); ++o) {
++        if (o >= t.paths.size() || t.paths[o].empty()) {
++            throw error("engine", 500, who + "inconsistent trie (no path for option \"" + f.options[o].key + "\")");
++        }
++        const std::vector<llama_token> & path = t.paths[o];
++        int cur = 0;
++        for (size_t i = 0; i < path.size(); ++i) {
++            const node_logp &        r        = row(cur);
++            const std::vector<int> & children = t.nodes[cur].children;
++            size_t k = 0;
++            while (k < children.size() && t.nodes[children[k]].tok != path[i]) {
++                ++k;
++            }
++            if (k == children.size()) {
++                throw error("engine", 500, who + "inconsistent trie (path of option \"" + f.options[o].key + "\" leaves the trie at node " + std::to_string(cur) + ")");
++            }
++            cur = children[k];
++            if (i + 1 < path.size()) {
++                logp[o] += r.child_logp[k];
++            } else {
++                logp[o] += log_add((double) r.child_logp[k] + row(cur).end_logp, r.merged_logp[k]);
++            }
++        }
++    }
++
++    double log_z = -std::numeric_limits<double>::infinity();
++    for (double v : logp) {
++        log_z = log_add(log_z, v);
++    }
++    if (std::isinf(log_z)) {
++        throw error("engine", 500, who + "all options scored -inf");
++    }
++    std::vector<double> probs(logp.size());
++    for (size_t o = 0; o < logp.size(); ++o) {
++        probs[o] = std::exp(logp[o] - log_z);
++    }
++    field_answer extras;
++    extras.coverage = std::exp(log_z);
++    return rebuild_answer(f, probs, extras);
++}
++
++field_answer rebuild_answer(const field & f, const std::vector<double> & probs, const field_answer & extras) {
++    if (probs.size() != f.options.size()) {
++        throw error("engine", 500, "field \"" + f.name + "\": " + std::to_string(probs.size()) + " probabilities for " +
++                                        std::to_string(f.options.size()) + " options");
++    }
++    field_answer a;
++    a.probs  = probs;
++    a.argmax = 0;
++    for (size_t i = 1; i < probs.size(); ++i) {
++        if (probs[i] > probs[a.argmax]) {
++            a.argmax = (int) i;
++        }
++    }
++    a.expected = 0.0;
++    if (f.type == field_type::SCORE) {
++        for (size_t i = 0; i < probs.size(); ++i) {
++            a.expected += (double) i * probs[i];
++        }
++    }
++    a.coverage     = extras.coverage;
++    a.order_spread = extras.order_spread;
++    a.given        = extras.given;
++    return a;
++}
++
++std::vector<double> apply_temperature(const std::vector<double> & p, double T) {
++    if (!(T > 0)) {
++        throw error("engine", 500, "temperature must be > 0, got " + std::to_string(T));
++    }
++    if (T == 1.0) {
++        return p;
++    }
++    std::vector<double> scaled(p.size());
++    for (size_t i = 0; i < p.size(); ++i) {
++        scaled[i] = std::log(p[i]) / T;
++    }
++    const std::vector<double> lsm = log_softmax(scaled);
++    std::vector<double>       out(p.size());
++    for (size_t i = 0; i < p.size(); ++i) {
++        out[i] = std::exp(lsm[i]);
++    }
++    return out;
++}
++
++field_answer average_variants(const field & f, const std::vector<field_answer> & per_variant) {
++    const size_t n = f.options.size();
++    if (per_variant.empty()) {
++        throw error("engine", 500, "field \"" + f.name + "\": no variant answers");
++    }
++    for (const field_answer & v : per_variant) {
++        if (v.probs.size() != n) {
++            throw error("engine", 500, "field \"" + f.name + "\": inconsistent variant answers (" + std::to_string(v.probs.size()) +
++                                            " probabilities for " + std::to_string(n) + " options)");
++        }
++    }
++    const double        k = (double) per_variant.size();
++    std::vector<double> mean(n, 0.0);
++    double              spread = 0.0;
++    for (size_t o = 0; o < n; ++o) {
++        double lo = per_variant[0].probs[o];
++        double hi = lo;
++        for (const field_answer & v : per_variant) {
++            mean[o] += v.probs[o];
++            lo = std::min(lo, v.probs[o]);
++            hi = std::max(hi, v.probs[o]);
++        }
++        mean[o] /= k;
++        spread = std::max(spread, hi - lo);
++    }
++    field_answer extras;
++    extras.coverage = 0.0;
++    for (const field_answer & v : per_variant) {
++        extras.coverage += v.coverage;
++    }
++    extras.coverage /= k;
++    if (per_variant.size() >= 2) {
++        extras.order_spread = spread;
++    }
++    extras.given = per_variant[0].given;
++    return rebuild_answer(f, mean, extras);
++}
++
++static common_json answer_json_base(const field & f, const field_answer & a) {
+     double confidence = a.probs[a.argmax];
+ 
+     if (f.type == field_type::CHOICE) {
+@@ -173,4 +342,18 @@ common_json answer_json(const field & f, const field_answer & a) {
+     return j;
+ }
+ 
++common_json answer_json(const field & f, const field_answer & a) {
++    common_json j = answer_json_base(f, a);
++    if (!std::isnan(a.coverage)) {
++        j["coverage"] = a.coverage;
++    }
++    if (!std::isnan(a.order_spread)) {
++        j["order_spread"] = a.order_spread;
++    }
++    if (!a.given.is_null()) {
++        j["given"] = a.given;
++    }
++    return j;
++}
++
+ } // namespace decide
+diff --git a/tools/decide/decide-score.h b/tools/decide/decide-score.h
+index 93d140c11..a5145dd4c 100644
+--- a/tools/decide/decide-score.h
++++ b/tools/decide/decide-score.h
+@@ -1,6 +1,7 @@
+ #pragma once
+ #include "decide-schema.h"
+ #include "llama.h"
++#include <cmath>
+ #include <vector>
+ 
+ namespace decide {
+@@ -25,14 +26,35 @@ struct node_scores {
+     std::vector<float> child_logits;  // logits of nodes[node].children[k].tok, same order as children
+ };
+ 
++// One full-path row (spec 4.4): full-vocabulary log-probabilities read after node `node`.
++struct node_logp {
++    int                node;
++    std::vector<float> child_logp;             // aligned with trie_node.children
++    float              end_logp = -INFINITY;   // leaf rows: log of the END mass
++    std::vector<float> merged_logp;            // aligned with children: log of the MERGED[piece(child)] mass for leaf children, -inf otherwise
++};
++
+ struct field_answer {
+     int                 argmax;       // option index; ties -> first
+     std::vector<double> probs;        // per option, sums to 1
+     double              expected;     // score fields: sum i * p_i; others 0
++    double              coverage     = NAN;   // full-path: sum of P(o) (spec 4.1); NAN = not reported
++    double              order_spread = NAN;   // debiasing (spec 3.2); NAN = not reported
++    common_json         given;                // after: {ancestor name: value}; null = not reported
+ };
+ 
+ // Throws error{"engine", 500, ...} when every option ends with -inf.
+ field_answer score_field(const field & f, const field_trie & t, const std::vector<node_scores> & scores);
++// Spec 4.1. Every node on every option path needs exactly one row, with child_logp and merged_logp aligned with its children.
++// Throws error{"engine", 500, ...} for a missing, duplicate or unaligned row, NaN or +inf values, or P = 0 for every option.
++field_answer score_field_full(const field & f, const field_trie & t, const std::vector<node_logp> & rows);
++// argmax (ties -> first) and expected from `probs` (answer_json takes confidence and p_true from probs); coverage, order_spread and given from `extras`.
++field_answer rebuild_answer(const field & f, const std::vector<double> & probs, const field_answer & extras);
++// Spec 8: p_T(o) proportional to exp(log p(o) / T); T = 1 returns `p` unchanged. Throws error{"engine", 500, ...} unless T > 0.
++std::vector<double> apply_temperature(const std::vector<double> & p, double T);
++// Spec 7.2: mean probabilities and coverage over the variants, order_spread when there are 2 or more, given of variant 0.
++field_answer average_variants(const field & f, const std::vector<field_answer> & per_variant);
++// Adds coverage, order_spread and given only when they are set.
+ common_json  answer_json(const field & f, const field_answer & a);
+ 
+ } // namespace decide
+-- 
+2.55.0
+

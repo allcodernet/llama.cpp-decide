@@ -1,0 +1,37 @@
+{
+  "req": "results-engine/sp3/checks/task-6/requests-after-fp-b5-qwen3.5-4b.jsonl",
+  "after": "results-engine/sp3/checks/task-6/after-fp-b5-qwen3.5-4b.jsonl",
+  "plain": "results-engine/sp3/checks/task-6/plain-fp-b5-qwen3.5-4b.jsonl",
+  "mode": "full_path",
+  "dependent_entries": 120,
+  "lines_free_tokens_kept": true,
+  "not_kept": [],
+  "lines_token_counts": {
+    "8": 120
+  },
+  "tokens_after_the_value": {
+    "[487, 198]": 120
+  },
+  "split_mismatch": 0,
+  "prompt_tokens_after_minus_plain_vs_lines_tokens": [
+    [
+      240,
+      240
+    ],
+    [
+      240,
+      240
+    ],
+    [
+      240,
+      240
+    ],
+    [
+      240,
+      240
+    ]
+  ],
+  "prompt_tokens_extra_equal": true,
+  "budget": null,
+  "pass": true
+}

@@ -1,0 +1,32 @@
+{
+  "full_path": {
+    "answer": {
+      "value": "sale",
+      "probabilities": {
+        "sale": 0.7600541722754112,
+        "sales": 0.23994582772458878
+      },
+      "confidence": 0.7600541722754112,
+      "coverage": 0.9996577400732701
+    },
+    "sum": 1.0,
+    "engine": {
+      "scoring": "full_path",
+      "seqs_per_state": 3,
+      "states_per_round": 21,
+      "quote_split_fields": [],
+      "prefix_cache": {
+        "capacity": 8,
+        "entries": 0,
+        "hits": 0,
+        "misses": 1
+      }
+    }
+  },
+  "tree_error": {
+    "message": "field \"q\": options \"sale\" and \"sales\" share a token prefix (\"sale\" vs \"sales\"); rename one of them",
+    "code": "invalid_schema",
+    "field": "q"
+  },
+  "pass": true
+}

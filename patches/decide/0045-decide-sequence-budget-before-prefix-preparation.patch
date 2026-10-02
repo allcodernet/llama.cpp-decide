@@ -1,0 +1,47 @@
+From d5cdf773affbe337236279f1124f6349c86c6de2 Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 2 Oct 2026 18:42:18 +0200
+Subject: [PATCH 45/45] decide: sequence budget before prefix preparation
+
+run_request checks the sequence budget (it needs only K and the branches per state) before it prepares the prefixes and before any image is loaded, so a text request with too few decide sequences and a chat template or join failure gets the 400 budget it got before patch 0044 instead of the 500. The image early-budget check, which needs the prefix numbers, is unchanged; an image request with too few sequences is now rejected before its images are decoded.
+---
+ tools/decide/decide-engine.cpp | 16 +++++++++-------
+ 1 file changed, 9 insertions(+), 7 deletions(-)
+
+diff --git a/tools/decide/decide-engine.cpp b/tools/decide/decide-engine.cpp
+index e001b821e..e626ced6a 100644
+--- a/tools/decide/decide-engine.cpp
++++ b/tools/decide/decide-engine.cpp
+@@ -801,6 +801,15 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+     }
+     request_state rs;
+     const int     K = effective_variants(cs);   // spec 7.1: catalogue variants = prefix slots of this request
++    // needs only K and the branches per state, so it comes before the prefixes are prepared (a template or join 500 there) and
++    // before any image is loaded
++    const int        B              = ts.branches_per_state;
++    const seq_budget budget         = sequence_budget(cfg.decide_seqs, K, B);
++    const int        seqs_per_state = budget.seqs_per_state;
++    int              spr            = budget.states_per_round;
++    if (spr == 0) {
++        throw error("budget", 400, sequence_budget_message(cfg.decide_seqs, K, B, mode_name(ts.mode)));
++    }
+ 
+     // spec 5.4: per field its branch cells with the worst-case lines
+     rs.reserved          = reserved_branch_tokens(ts, worst_lines_tokens(cs, line_tokens_max(cs, vocab)));
+@@ -849,13 +858,6 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+             }
+         }
+     }
+-    const int        B              = ts.branches_per_state;
+-    const seq_budget budget         = sequence_budget(cfg.decide_seqs, K, B);
+-    const int        seqs_per_state = budget.seqs_per_state;
+-    int              spr            = budget.states_per_round;
+-    if (spr == 0) {
+-        throw error("budget", 400, sequence_budget_message(cfg.decide_seqs, K, B, mode_name(ts.mode)));
+-    }
+ 
+     // spec 4.5: logit rows per state of the scoring mode
+     const branch_counts counts = count_branches(ts);
+-- 
+2.55.0
+

@@ -1,0 +1,33 @@
+{
+  "req": "results-engine/sp3/checks/task-6/requests-after-tree-b5-qwen3.5-4b.jsonl",
+  "resp": "results-engine/sp3/checks/task-6/after-tree-b5-qwen3.5-4b.jsonl",
+  "entries_checked": 40,
+  "lines_tokens_kept_as_prefix": {
+    "urgency: '  \"queue\": \"billing\",\\n'": [
+      true
+    ],
+    "angry: '  \"queue\": \"billing\",\\n'": [
+      true
+    ],
+    "urgency: '  \"queue\": \"sales\",\\n'": [
+      true
+    ],
+    "angry: '  \"queue\": \"sales\",\\n'": [
+      true
+    ],
+    "urgency: '  \"queue\": \"feedback\",\\n'": [
+      true
+    ],
+    "angry: '  \"queue\": \"feedback\",\\n'": [
+      true
+    ],
+    "urgency: '  \"queue\": \"technical\",\\n'": [
+      true
+    ],
+    "angry: '  \"queue\": \"technical\",\\n'": [
+      true
+    ]
+  },
+  "problems": [],
+  "pass": true
+}

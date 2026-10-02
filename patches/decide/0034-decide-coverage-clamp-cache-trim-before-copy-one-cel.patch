@@ -1,0 +1,337 @@
+From c854c839c9995e726a603b027aad5bfda66c116c Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 2 Oct 2026 08:19:00 +0200
+Subject: [PATCH 34/45] decide: coverage clamp, cache trim before copy, one
+ cell formula, info slots
+
+- A coverage in (1, 1 + 1e-6] (float log-probs) is reported as exactly 1,
+  in score_field_full and in the debias mean; larger values stay.
+- plan_cache_store decides before a snapshot is copied whether it is
+  stored and which entries go; the victims are erased first, then the
+  snapshot is copied. When it would not be stored nothing is erased and
+  nothing is copied off the GPU; a failed copy stores nothing.
+- need_for in run_request calls state_cells with the round's sums.
+- /v1/decide/info also lists a slot whose seq_pos_min >= 0 (cells in
+  one part of hybrid memory).
+---
+ tests/test-decide-cache.cpp    | 42 ++++++++++++++++++-
+ tests/test-decide-score.cpp    | 23 +++++++++++
+ tools/decide/decide-debias.h   |  3 +-
+ tools/decide/decide-engine.cpp | 73 ++++++++++++++++++++++++++--------
+ tools/decide/decide-engine.h   | 14 ++++++-
+ tools/decide/decide-score.cpp  |  9 ++++-
+ tools/decide/decide-score.h    |  4 +-
+ 7 files changed, 146 insertions(+), 22 deletions(-)
+
+diff --git a/tests/test-decide-cache.cpp b/tests/test-decide-cache.cpp
+index 73c8cc5aa..13bc16eed 100644
+--- a/tests/test-decide-cache.cpp
++++ b/tests/test-decide-cache.cpp
+@@ -1,6 +1,8 @@
+-// spec 6.2 prefix cache trim: cache_victim picks the entry to drop while the cache is over its limits
++// spec 6.2 prefix cache trim: cache_victim picks the entry to drop while the cache is over its limits; plan_cache_store decides
++// before a snapshot is copied whether it is stored and which entries go first
+ #include "decide-engine.h"
+ #include <cstdio>
++#include <vector>
+ 
+ static int failures = 0;
+ #define CHECK(cond) do { if (!(cond)) { std::fprintf(stderr, "FAIL %s:%d: %s\n", __FILE__, __LINE__, #cond); failures++; } } while (0)
+@@ -24,6 +26,44 @@ int main() {
+     CHECK(cache_victim({7}, {false}) == 0);
+     CHECK(cache_victim({7}, {true}) == 0);
+ 
++    // plan_cache_store(used, wanted, bytes, cached, capacity, byte_limit, new_bytes)
++    using decide::plan_cache_store;
++    using idx = std::vector<size_t>;
++    const auto none = [](const decide::cache_plan & p) { return !p.store && p.erase.empty(); };
++    // no-ops: cache off, hash already cached, no state, the snapshot alone over the byte limit
++    CHECK(none(plan_cache_store({1, 2}, {false, false}, {10, 10}, false, 0, 100, 10)));
++    CHECK(none(plan_cache_store({1, 2}, {false, false}, {10, 10}, true, 8, 100, 10)));
++    CHECK(none(plan_cache_store({}, {}, {}, false, 8, 100, 0)));
++    CHECK(none(plan_cache_store({}, {}, {}, false, 8, 100, 101)));
++    // room left: stored, nothing erased; exactly at both limits is within them
++    {
++        const auto p = plan_cache_store({1, 2}, {false, false}, {10, 10}, false, 3, 100, 80);
++        CHECK(p.store && p.erase.empty());
++    }
++    // capacity 2 after A, B, the request for A snapshots C: B goes before the copy, not the wanted A
++    {
++        const auto p = plan_cache_store({1, 2}, {true, false}, {10, 10}, false, 2, 100, 10);
++        CHECK(p.store && p.erase == (idx{1}));
++    }
++    // every older entry wanted: the snapshot is not stored and nothing is erased
++    CHECK(none(plan_cache_store({1, 2}, {true, true}, {10, 10}, false, 2, 100, 10)));
++    // byte limit: the least recently used entries go until the snapshot fits (ascending indices)
++    {
++        const auto p = plan_cache_store({1, 2, 3}, {false, false, false}, {40, 30, 20}, false, 8, 100, 50);
++        CHECK(p.store && p.erase == (idx{0}));
++        const auto q = plan_cache_store({3, 1, 2}, {false, false, false}, {40, 30, 20}, false, 8, 100, 90);
++        CHECK(q.store && q.erase == (idx{0, 1, 2}));
++        const auto r = plan_cache_store({3, 1, 2}, {false, false, false}, {40, 30, 20}, false, 8, 100, 60);
++        CHECK(r.store && r.erase == (idx{1, 2}));
++    }
++    // only wanted entries would remain over the byte limit: nothing erased, not even the unwanted entry that would go first
++    CHECK(none(plan_cache_store({1, 2, 3}, {false, true, true}, {40, 30, 20}, false, 8, 100, 61)));
++    // both limits: capacity forces one out, the byte limit a second
++    {
++        const auto p = plan_cache_store({1, 2, 3}, {false, false, true}, {40, 30, 20}, false, 3, 100, 70);
++        CHECK(p.store && p.erase == (idx{0, 1}));
++    }
++
+     if (failures == 0) {
+         std::printf("test-decide-cache: OK\n");
+     }
+diff --git a/tests/test-decide-score.cpp b/tests/test-decide-score.cpp
+index 489b6b060..379c14ffd 100644
+--- a/tests/test-decide-score.cpp
++++ b/tests/test-decide-score.cpp
+@@ -360,6 +360,29 @@ int main() {
+             CHECK(decide::answer_json(f, a).at("value").dump() == decide::option_value(f, decide::answer_option(f, a)).dump());
+         }
+     }
++    // 22. coverage clamp (spec 4.1): float rounding can put the sum of P(o) just above 1; (1, 1 + 1e-6] is reported as exactly
++    //     1, in a single answer and in the debias mean; larger values are left alone
++    {
++        const auto f = choice2("A", "B");
++        // P(A) = 1 (every log-prob 0), P(B) = e^lb
++        const auto rows = [](float lb) {
++            std::vector<decide::node_logp> r(4);
++            r[0].node = 0; r[0].child_logp = {0.0f, lb}; r[0].merged_logp = {NEG_INF, NEG_INF};
++            r[1].node = 1; r[1].child_logp = {0.0f}; r[1].merged_logp = {NEG_INF};
++            r[2].node = 2; r[2].end_logp = 0.0f;
++            r[3].node = 3; r[3].end_logp = 0.0f;
++            return r;
++        };
++        const auto just = decide::score_field_full(f, two_one(), rows(-15.0f));   // 1 + 3.1e-7
++        CHECK(just.coverage == 1.0 && near(just.probs[1], std::exp(-15.0) / (1.0 + std::exp(-15.0)), 1e-15));
++        const auto over = decide::score_field_full(f, two_one(), rows(-10.0f));   // 1 + 4.5e-5
++        CHECK(near(over.coverage, 1.0 + std::exp(-10.0), 1e-12) && over.coverage > 1.0 + 1e-6);
++        const auto with = [&](double c) { decide::field_answer a; a.probs = {0.5, 0.5}; a.argmax = 0; a.expected = 0.0; a.coverage = c; return a; };
++        CHECK(decide::average_variants(f, {with(1.0000015), with(1.0)}).coverage == 1.0);
++        CHECK(decide::average_variants(f, {with(1.00001), with(1.00001)}).coverage == 1.00001);
++        CHECK(decide::average_variants(f, {with(0.9), with(0.8)}).coverage == (0.9 + 0.8) / 2);
++        CHECK(std::isnan(decide::average_variants(f, {with(NAN), with(NAN)}).coverage));
++    }
+     if (failures) { std::fprintf(stderr, "%d failure(s)\n", failures); return 1; }
+     std::printf("test-decide-score: OK\n");
+     return 0;
+diff --git a/tools/decide/decide-debias.h b/tools/decide/decide-debias.h
+index fba4816ba..85a63a7d2 100644
+--- a/tools/decide/decide-debias.h
++++ b/tools/decide/decide-debias.h
+@@ -24,7 +24,8 @@ seq_budget  sequence_budget(int decide_seqs, int K, int B);
+ // spec 7.3: the 400 budget message when no state fits (the sequences left after the K prefix slots: at least 0); mode "tree" or "full_path"
+ std::string sequence_budget_message(int decide_seqs, int K, int B, const std::string & mode);
+ 
+-// spec 7.3: the cells one state needs alone: held + the K prefixes + K x (state + tail + branch tokens)
++// spec 7.3: the cells one state needs alone: held + the K prefixes + K x (state + tail + branch tokens); for a round of n states
++// (need_for) the state, tail and branch arguments are the sums over its states
+ int64_t     state_cells(int64_t held, int64_t prefix, int K, int64_t state, int64_t tail, int64_t branches);
+ // spec 7.3: the 400 budget message when state i needs more than `limit` (n_ctx - 16) cells; K = 1 is the text without debiasing
+ std::string state_cells_message(size_t i, int64_t held, int64_t prefix, int K, int64_t state, int64_t tail, int64_t branches, int64_t limit);
+diff --git a/tools/decide/decide-engine.cpp b/tools/decide/decide-engine.cpp
+index c8ab25de6..a723587ee 100644
+--- a/tools/decide/decide-engine.cpp
++++ b/tools/decide/decide-engine.cpp
+@@ -137,6 +137,41 @@ size_t cache_victim(const std::vector<uint64_t> & used, const std::vector<bool>
+     return victim;
+ }
+ 
++cache_plan plan_cache_store(const std::vector<uint64_t> & used, const std::vector<bool> & wanted, const std::vector<size_t> & bytes,
++                            bool cached, size_t capacity, size_t byte_limit, size_t new_bytes) {
++    cache_plan plan;
++    if (capacity == 0 || cached || new_bytes == 0 || new_bytes > byte_limit) {
++        return plan;
++    }
++    // the entries left, the new snapshot last (cache_victim's fallback)
++    std::vector<size_t>   left;
++    std::vector<uint64_t> u;
++    std::vector<bool>     w;
++    size_t                total = new_bytes;
++    for (size_t i = 0; i < used.size(); ++i) {
++        left.push_back(i);
++        u.push_back(used[i]);
++        w.push_back(wanted[i]);
++        total += bytes[i];
++    }
++    u.push_back(0);
++    w.push_back(false);
++    while (left.size() + 1 > capacity || total > byte_limit) {
++        const size_t v = cache_victim(u, w);
++        if (v == left.size()) {
++            return cache_plan();
++        }
++        total -= bytes[left[v]];
++        plan.erase.push_back(left[v]);
++        left.erase(left.begin() + v);
++        u.erase(u.begin() + v);
++        w.erase(w.begin() + v);
++    }
++    std::sort(plan.erase.begin(), plan.erase.end());
++    plan.store = true;
++    return plan;
++}
++
+ std::vector<std::pair<size_t, size_t>> decode_chunks(const std::vector<decode_entry> & entries, int n_batch, int row_cap) {
+     std::vector<std::pair<size_t, size_t>> out;
+     size_t begin  = 0;
+@@ -266,23 +301,27 @@ void engine::evict_slot(int v, const std::vector<std::string> & wanted) {
+         const std::string & hash   = slots[v].hash;
+         const bool          cached = std::any_of(cache.begin(), cache.end(), [&](const cache_entry & e) { return e.ps.hash == hash; });
+         try {
+-            const size_t n = cached ? 0 : llama_state_seq_get_size(ctx, S);
+-            if (n > 0 && n <= CACHE_MAX_BYTES) {
++            const size_t          n = cached ? 0 : llama_state_seq_get_size(ctx, S);
++            std::vector<uint64_t> used;
++            std::vector<bool>     keep;
++            std::vector<size_t>   bytes;
++            for (const cache_entry & c : cache) {
++                used.push_back(c.used);
++                keep.push_back(std::find(wanted.begin(), wanted.end(), c.ps.hash) != wanted.end());
++                bytes.push_back(c.bytes.size());
++            }
++            const cache_plan plan = plan_cache_store(used, keep, bytes, cached, (size_t) cfg.prefix_cache, CACHE_MAX_BYTES, n);
++            if (plan.store) {
++                // trim first, then copy: host memory stays within the limits; a failed copy stores nothing (the victims stay erased)
++                for (auto it = plan.erase.rbegin(); it != plan.erase.rend(); ++it) {
++                    cache.erase(cache.begin() + (std::ptrdiff_t) *it);
++                }
+                 cache_entry e;
+                 e.bytes.resize(n);
+                 if (llama_state_seq_get_data(ctx, e.bytes.data(), n, S) == n) {
+                     e.ps   = slots[v];
+                     e.used = ++cache_tick;
+                     cache.push_back(std::move(e));
+-                    while (cache.size() > (size_t) cfg.prefix_cache || cache_bytes() > CACHE_MAX_BYTES) {
+-                        std::vector<uint64_t> used;
+-                        std::vector<bool>     keep;
+-                        for (const cache_entry & c : cache) {
+-                            used.push_back(c.used);
+-                            keep.push_back(std::find(wanted.begin(), wanted.end(), c.ps.hash) != wanted.end());
+-                        }
+-                        cache.erase(cache.begin() + cache_victim(used, keep));
+-                    }
+                 }
+             }
+         } catch (...) {
+@@ -678,11 +717,11 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+         size_t count = std::min<size_t>((size_t) spr, states.size() - next);
+ 
+         auto need_for = [&](size_t n) {
+-            int64_t need = held + prefix_total;
++            int64_t state_sum = 0;
+             for (size_t c = 0; c < n; ++c) {
+-                need += K * ((int64_t) state_tokens[next + c].size() + tail + branch_total);
++                state_sum += (int64_t) state_tokens[next + c].size();
+             }
+-            return need;
++            return state_cells(held, prefix_total, K, state_sum, (int64_t) n * tail, (int64_t) n * branch_total);
+         };
+         while (count > 1 && need_for(count) > n_ctx - 16) {
+             count--;
+@@ -912,11 +951,13 @@ common_json engine::info(const compiled_schema * cs, const trie_set * ts) {
+         prefix["valid"]            = live;
+     }
+ 
+-    // every slot whose sequence holds cells; tokens = its highest position + 1
++    // every slot whose sequence holds cells; tokens = its highest position + 1. seq_pos_min >= 0 also lists a slot with cells in only
++    // one part of hybrid memory (its seq_pos_max is the min of the parts, its seq_pos_min the max); iSWA reports only its SWA part,
++    // so base-only cells stay invisible here. Trunk and branch ids are not listed.
+     common_json prefixes = common_json::array();
+     for (int v = 0; v < n_slots(); ++v) {
+         const llama_pos pos_max = llama_memory_seq_pos_max(mem, cfg.seq_base + v);
+-        if (pos_max < 0 && !slots[v].valid) {
++        if (pos_max < 0 && llama_memory_seq_pos_min(mem, cfg.seq_base + v) < 0 && !slots[v].valid) {
+             continue;
+         }
+         common_json s = common_json::object();
+diff --git a/tools/decide/decide-engine.h b/tools/decide/decide-engine.h
+index a19d64c3f..b4303b88f 100644
+--- a/tools/decide/decide-engine.h
++++ b/tools/decide/decide-engine.h
+@@ -31,6 +31,17 @@ struct prefix_state {
+ 
+ // spec 6.2 LRU trim, one entry per call: the least recently used entry the running request does not want, else the last one (the new snapshot)
+ size_t cache_victim(const std::vector<uint64_t> & used, const std::vector<bool> & wanted);
++// spec 6.2 store decision, made before a snapshot is copied: per cache entry its LRU tick, whether the running request wants it and
++// its bytes; whether the evicted slot's hash is cached already, the entry and byte limits and the new snapshot's size. store: the
++// snapshot fits once `erase` (ascending entry indices; the least recently used entries the request does not want) is gone. No store
++// (cache off, hash cached, no bytes, the snapshot alone over the byte limit, or only wanted entries would remain over a limit):
++// nothing is erased.
++struct cache_plan {
++    bool                store = false;
++    std::vector<size_t> erase;
++};
++cache_plan plan_cache_store(const std::vector<uint64_t> & used, const std::vector<bool> & wanted, const std::vector<size_t> & bytes,
++                            bool cached, size_t capacity, size_t byte_limit, size_t new_bytes);
+ 
+ // one token of a decode phase; `tag` >= 0 requests the token's logit row and names the reader's reference, -1: no row
+ struct decode_entry {
+@@ -143,7 +154,8 @@ private:
+     prefix_state prepare_prefix(const compiled_schema & cs, int variant, int variants) const;
+     // spec 6.2: slot v holds ps afterwards (resident, restored from the cache or decoded); throws when decoding fails. wanted: hashes of every slot the request fills
+     void     fill_slot(int v, const prefix_state & ps, const std::vector<std::string> & wanted, stats & st);
+-    // spec 6.2: snapshot slot v into the cache (cache on, slot valid, hash not cached; the trim keeps entries in `wanted`), then clear its sequence. Never throws.
++    // spec 6.2: snapshot slot v into the cache (cache on, slot valid, hash not cached; plan_cache_store decides and trims first, keeping entries in
++    // `wanted`), then clear its sequence. Never throws.
+     void     evict_slot(int v, const std::vector<std::string> & wanted);
+     // spec 6.1 end of request: evict slots >= 1, clear every decide sequence above slot 0. Never throws.
+     void     end_request();
+diff --git a/tools/decide/decide-score.cpp b/tools/decide/decide-score.cpp
+index 7ada0b336..3da4d5293 100644
+--- a/tools/decide/decide-score.cpp
++++ b/tools/decide/decide-score.cpp
+@@ -144,6 +144,11 @@ field_answer score_field(const field & f, const field_trie & t, const std::vecto
+     return a;
+ }
+ 
++// spec 4.1: float log-probs can put the sum of P(o) just above 1; (1, 1 + 1e-6] is reported as exactly 1, larger values are left alone
++static double clamp_coverage(double c) {
++    return c > 1.0 && c <= 1.0 + 1e-6 ? 1.0 : c;
++}
++
+ field_answer score_field_full(const field & f, const field_trie & t, const std::vector<node_logp> & rows) {
+     const std::string who = "field \"" + f.name + "\": ";
+     const float       inf = std::numeric_limits<float>::infinity();
+@@ -220,7 +225,7 @@ field_answer score_field_full(const field & f, const field_trie & t, const std::
+         probs[o] = std::exp(logp[o] - log_z);
+     }
+     field_answer extras;
+-    extras.coverage = std::exp(log_z);
++    extras.coverage = clamp_coverage(std::exp(log_z));
+     return rebuild_answer(f, probs, extras);
+ }
+ 
+@@ -298,7 +303,7 @@ field_answer average_variants(const field & f, const std::vector<field_answer> &
+     for (const field_answer & v : per_variant) {
+         extras.coverage += v.coverage;
+     }
+-    extras.coverage /= k;
++    extras.coverage = clamp_coverage(extras.coverage / k);
+     if (per_variant.size() >= 2) {
+         extras.order_spread = spread;
+     }
+diff --git a/tools/decide/decide-score.h b/tools/decide/decide-score.h
+index 5cb619ce3..30f4781f3 100644
+--- a/tools/decide/decide-score.h
++++ b/tools/decide/decide-score.h
+@@ -49,12 +49,14 @@ struct field_answer {
+ field_answer score_field(const field & f, const field_trie & t, const std::vector<node_scores> & scores);
+ // Spec 4.1. Every node on every option path needs exactly one row, with child_logp and merged_logp aligned with its children.
+ // Throws error{"engine", 500, ...} for a missing, duplicate or unaligned row, NaN or +inf values, or P = 0 for every option.
++// A coverage in (1, 1 + 1e-6] (float rounding) is reported as 1.
+ field_answer score_field_full(const field & f, const field_trie & t, const std::vector<node_logp> & rows);
+ // argmax (ties -> first) and expected from `probs` (answer_json takes confidence and p_true from probs); coverage, order_spread and given from `extras`.
+ field_answer rebuild_answer(const field & f, const std::vector<double> & probs, const field_answer & extras);
+ // Spec 8: p_T(o) proportional to exp(log p(o) / T); T = 1 returns `p` unchanged. Throws error{"engine", 500, ...} unless T > 0.
+ std::vector<double> apply_temperature(const std::vector<double> & p, double T);
+-// Spec 7.2: mean probabilities and coverage over the variants, order_spread when there are 2 or more, given of variant 0.
++// Spec 7.2: mean probabilities and coverage over the variants (a mean coverage in (1, 1 + 1e-6] is reported as 1), order_spread
++// when there are 2 or more, given of variant 0.
+ field_answer average_variants(const field & f, const std::vector<field_answer> & per_variant);
+ // The option an answer reports as its "value": bool "true" (option 0) when p_true >= 0.5, else the argmax.
+ // answer_json and the lines and given of dependent fields (spec 5.2) use it.
+-- 
+2.55.0
+

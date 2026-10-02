@@ -1,0 +1,83 @@
+{
+ "model": "qwen3.8-27b-vision",
+ "states": 8,
+ "together": {
+  "n_tickets": 8,
+  "max_abs_diff": 0.026122391632009134,
+  "fields": {
+   "cat": {
+    "median_abs_diff": 3.332489560745717e-05,
+    "max_abs_diff": 0.001442294176355774,
+    "argmax_agreement": 1,
+    "argmax_disagreements": 0,
+    "disagreements_over_margin": 0,
+    "pass": true
+   },
+   "dog": {
+    "median_abs_diff": 0.0011067647403857999,
+    "max_abs_diff": 0.004716782425317145,
+    "argmax_agreement": 1,
+    "argmax_disagreements": 0,
+    "disagreements_over_margin": 0,
+    "pass": true
+   },
+   "animal": {
+    "median_abs_diff": 0.0002023623651021193,
+    "max_abs_diff": 0.026122391632009134,
+    "argmax_agreement": 1,
+    "argmax_disagreements": 0,
+    "disagreements_over_margin": 0,
+    "pass": true
+   },
+   "indoors": {
+    "median_abs_diff": 0.0004828879075076675,
+    "max_abs_diff": 0.0026362530487176183,
+    "argmax_agreement": 1,
+    "argmax_disagreements": 0,
+    "disagreements_over_margin": 0,
+    "pass": true
+   }
+  },
+  "pass": true
+ },
+ "mixed": {
+  "n_tickets": 8,
+  "max_abs_diff": 0.0112264233086386,
+  "fields": {
+   "cat": {
+    "median_abs_diff": 4.188447133740558e-05,
+    "max_abs_diff": 0.003499123457309225,
+    "argmax_agreement": 1,
+    "argmax_disagreements": 0,
+    "disagreements_over_margin": 0,
+    "pass": true
+   },
+   "dog": {
+    "median_abs_diff": 0.0012117161986638795,
+    "max_abs_diff": 0.007805330583609438,
+    "argmax_agreement": 1,
+    "argmax_disagreements": 0,
+    "disagreements_over_margin": 0,
+    "pass": true
+   },
+   "animal": {
+    "median_abs_diff": 0.00024219097868128465,
+    "max_abs_diff": 0.0112264233086386,
+    "argmax_agreement": 1,
+    "argmax_disagreements": 0,
+    "disagreements_over_margin": 0,
+    "pass": true
+   },
+   "indoors": {
+    "median_abs_diff": 0.00039110054706287256,
+    "max_abs_diff": 0.0017169649145732935,
+    "argmax_agreement": 1,
+    "argmax_disagreements": 0,
+    "disagreements_over_margin": 0,
+    "pass": true
+   }
+  },
+  "pass": true
+ },
+ "pass": true
+}

@@ -1,0 +1,450 @@
+From 12f4b149eef7f7da4dc7650e915f6bd38ce421bc Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 13:30:06 +0200
+Subject: [PATCH 01/45] decide: schema compilation, validation, catalogue
+ rendering, hash
+
+Adds tools/decide/decide-schema.{h,cpp}: JSON request compilation into a compiled_schema (choice/score/bool fields), full 400-level validation, the exact system-prompt catalogue renderer, stem/branch text helpers, and FNV-1a hashing. Covered by tests/test-decide-schema.cpp.
+---
+ tests/CMakeLists.txt           |   3 +
+ tests/test-decide-schema.cpp   | 130 +++++++++++++++++++++++
+ tools/CMakeLists.txt           |   1 +
+ tools/decide/CMakeLists.txt    |   6 ++
+ tools/decide/decide-schema.cpp | 186 +++++++++++++++++++++++++++++++++
+ tools/decide/decide-schema.h   |  58 ++++++++++
+ 6 files changed, 384 insertions(+)
+ create mode 100644 tests/test-decide-schema.cpp
+ create mode 100644 tools/decide/CMakeLists.txt
+ create mode 100644 tools/decide/decide-schema.cpp
+ create mode 100644 tools/decide/decide-schema.h
+
+diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
+index 9b3a4fcc4..7ebb9bd16 100644
+--- a/tests/CMakeLists.txt
++++ b/tests/CMakeLists.txt
+@@ -379,3 +379,6 @@ if (TARGET gguf-model-data)
+     target_link_libraries(test-export-graph-ops PRIVATE gguf-model-data)
+     target_compile_definitions(test-export-graph-ops PRIVATE LLAMA_HF_FETCH)
+ endif()
++
++llama_build_and_test(test-decide-schema.cpp)
++target_link_libraries(test-decide-schema PRIVATE llama-decide)
+diff --git a/tests/test-decide-schema.cpp b/tests/test-decide-schema.cpp
+new file mode 100644
+index 000000000..f06368cc1
+--- /dev/null
++++ b/tests/test-decide-schema.cpp
+@@ -0,0 +1,130 @@
++#include "decide-schema.h"
++#include "json.h"
++
++#include <cstdio>
++#include <cstdlib>
++#include <string>
++
++static int failures = 0;
++#define CHECK(cond) do { if (!(cond)) { std::fprintf(stderr, "FAIL %s:%d: %s\n", __FILE__, __LINE__, #cond); failures++; } } while (0)
++
++static const char * TRIAGE = R"({
++  "instructions": "Answer each question about this support ticket.",
++  "fields": {
++    "queue":   {"type": "choice", "description": "Which team must act first?",
++                "options": {"billing": "Payments, refunds, invoices, charges",
++                            "technical": "Bugs, crashes, outages, errors, performance, login problems"}},
++    "urgency": {"type": "score", "description": "How urgent is this support ticket?",
++                "levels": ["Can wait: praise, feature requests, idle questions, no problem",
++                           "Normal: a real problem for one user without time pressure"]},
++    "angry":   {"type": "bool", "description": "The text itself shows anger."}
++  },
++  "states": ["hello"]
++})";
++
++static const char * GOLDEN =
++"Answer each question about this support ticket.\n\n"
++"Answer with one JSON object. Read the input, then fill every field below.\n\n"
++"Fields:\n"
++"- \"queue\": Which team must act first?\n"
++"  Allowed values:\n"
++"    \"billing\": Payments, refunds, invoices, charges\n"
++"    \"technical\": Bugs, crashes, outages, errors, performance, login problems\n"
++"- \"urgency\": How urgent is this support ticket? Integer level:\n"
++"    0: Can wait: praise, feature requests, idle questions, no problem\n"
++"    1: Normal: a real problem for one user without time pressure\n"
++"- \"angry\": The text itself shows anger. true or false.\n";
++
++static std::string expect_error(const std::string & body, const std::string & code) {
++    try {
++        auto cs = decide::compile_request(common_json::parse(body));
++        (void) decide::states_of(common_json::parse(body));
++        (void) cs;
++    } catch (const decide::error & e) {
++        if (e.code != code || e.http != 400) {
++            std::fprintf(stderr, "FAIL wrong error: code=%s http=%d msg=%s (wanted %s)\n", e.code.c_str(), e.http, e.what(), code.c_str());
++            failures++;
++        }
++        return e.what();
++    }
++    std::fprintf(stderr, "FAIL no error for %s (wanted %s)\n", body.c_str(), code.c_str());
++    failures++;
++    return "";
++}
++
++int main() {
++    // compile the triage schema
++    auto cs = decide::compile_request(common_json::parse(TRIAGE));
++    CHECK(cs.fields.size() == 3);
++    CHECK(cs.fields[0].name == "queue" && cs.fields[0].type == decide::field_type::CHOICE);
++    CHECK(cs.fields[0].options.size() == 2 && cs.fields[0].options[0].key == "billing");
++    CHECK(cs.fields[0].options[0].encoded == "\"billing\"");
++    CHECK(cs.fields[1].type == decide::field_type::SCORE && cs.fields[1].options.size() == 2);
++    CHECK(cs.fields[1].options[1].key == "1" && cs.fields[1].options[1].encoded == "1");
++    CHECK(cs.fields[1].options[1].description.rfind("Normal", 0) == 0);
++    CHECK(cs.fields[2].type == decide::field_type::BOOL && cs.fields[2].options.size() == 2);
++    CHECK(cs.fields[2].options[0].encoded == "true" && cs.fields[2].options[1].encoded == "false");
++    CHECK(cs.opts.scoring == "tree" && cs.opts.order_debias == 0);
++
++    // golden catalogue
++    const std::string cat = decide::render_catalogue(cs, 0);
++    if (cat != GOLDEN) { std::fprintf(stderr, "FAIL catalogue mismatch:\n---got---\n%s\n---want---\n%s\n", cat.c_str(), GOLDEN); failures++; }
++
++    // stem / branch text
++    CHECK(decide::stem_text(cs.fields[0]) == "  \"queue\": ");
++    CHECK(decide::branch_text(cs.fields[0], cs.fields[0].options[0]) == "  \"queue\": \"billing\"");
++    CHECK(decide::branch_text(cs.fields[2], cs.fields[2].options[1]) == "  \"angry\": false");
++
++    // states
++    auto st = decide::states_of(common_json::parse(TRIAGE));
++    CHECK(st.size() == 1 && st[0] == "hello");
++
++    // hash
++    CHECK(decide::fnv1a64("") == 0xcbf29ce484222325ULL);
++    CHECK(decide::fnv1a64("a") == 0xaf63dc4c8601ec8cULL);
++    CHECK(decide::hex64(0xaf63dc4c8601ec8cULL) == "af63dc4c8601ec8c");
++
++    // errors: one per rule
++    expect_error(R"([])", "invalid_schema");
++    expect_error(R"({"fields": {}, "states": ["x"]})", "invalid_schema");
++    expect_error(R"({"fields": {"q": {"type": "enum", "description": "d", "options": ["a","b"]}}, "states": ["x"]})", "invalid_schema");
++    expect_error(R"({"fields": {"q": {"type": "choice", "description": "", "options": ["a","b"]}}, "states": ["x"]})", "invalid_schema");
++    expect_error(R"({"fields": {"q": {"type": "choice", "description": "d", "options": ["a"]}}, "states": ["x"]})", "invalid_schema");
++    expect_error(R"({"fields": {"q": {"type": "choice", "description": "d", "options": ["a","a"]}}, "states": ["x"]})", "invalid_schema");
++    expect_error(R"({"fields": {"q": {"type": "choice", "description": "d", "options": {"a": 1, "b": "x"}}}, "states": ["x"]})", "invalid_schema");
++    expect_error(R"({"fields": {"s": {"type": "score", "description": "d", "levels": ["only one"]}}, "states": ["x"]})", "invalid_schema");
++    expect_error(R"({"fields": {"s": {"type": "score", "description": "d", "levels": ["0","1","2","3","4","5","6","7","8","9","10"]}}, "states": ["x"]})", "invalid_schema");
++    expect_error(R"({"fields": {"b": {"type": "bool", "description": "d", "options": ["a","b"]}}, "states": ["x"]})", "invalid_schema");
++    const std::string after_msg = expect_error(R"({"fields": {"b": {"type": "bool", "description": "d", "after": ["q"]}}, "states": ["x"]})", "invalid_schema");
++    CHECK(after_msg.find("not supported yet") != std::string::npos);
++    expect_error(R"({"fields": {"b": {"type": "bool", "description": "d"}}, "states": ["x"], "extra": 1})", "invalid_schema");
++    expect_error(R"({"fields": {"b": {"type": "bool", "description": "d"}}, "states": ["x"], "options": {"scoring": "full_path"}})", "invalid_options");
++    expect_error(R"({"fields": {"b": {"type": "bool", "description": "d"}}, "states": ["x"], "options": {"order_debias": 2}})", "invalid_options");
++    expect_error(R"({"fields": {"b": {"type": "bool", "description": "d"}}, "states": ["x"], "options": {"mode": "tree"}})", "invalid_options");
++    expect_error(R"({"fields": {"b": {"type": "bool", "description": "d"}}})", "invalid_states");
++    expect_error(R"({"fields": {"b": {"type": "bool", "description": "d"}}, "states": []})", "invalid_states");
++    expect_error(R"({"fields": {"b": {"type": "bool", "description": "d"}}, "states": [""]})", "invalid_states");
++    expect_error(R"({"fields": {"b": {"type": "bool", "description": "d"}}, "states": [1]})", "invalid_states");
++
++    // limits that must pass: 255 options, 10 levels, model key ignored
++    {
++        std::string opts = "[";
++        for (int i = 0; i < 255; ++i) { opts += (i ? ",\"k" : "\"k") + std::to_string(i) + "\""; }
++        opts += "]";
++        std::string body = R"({"model": "m", "fields": {"c": {"type": "choice", "description": "d", "options": )" + opts +
++                           R"(}, "s": {"type": "score", "description": "d", "levels": ["0","1","2","3","4","5","6","7","8","9"]}}, "states": ["x"]})";
++        auto ok = decide::compile_request(common_json::parse(body));
++        CHECK(ok.fields[0].options.size() == 255 && ok.fields[1].options.size() == 10);
++        CHECK(decide::render_catalogue(ok, 0).find("    \"k254\"\n") != std::string::npos);
++    }
++    {
++        std::string many = "[";
++        for (int i = 0; i < 257; ++i) { many += (i ? ",\"x\"" : "\"x\""); }
++        many += "]";
++        expect_error(R"({"fields": {"b": {"type": "bool", "description": "d"}}, "states": )" + many + "}", "invalid_states");
++    }
++
++    if (failures) { std::fprintf(stderr, "%d failure(s)\n", failures); return 1; }
++    std::printf("test-decide-schema: OK\n");
++    return 0;
++}
+diff --git a/tools/CMakeLists.txt b/tools/CMakeLists.txt
+index c8ad1db43..f5c3a0be0 100644
+--- a/tools/CMakeLists.txt
++++ b/tools/CMakeLists.txt
+@@ -15,6 +15,7 @@ llama_add_compile_flags()
+ if (EMSCRIPTEN)
+ else()
+     add_subdirectory(batched-bench)
++    add_subdirectory(decide)
+     add_subdirectory(gguf-split)
+     add_subdirectory(imatrix)
+     add_subdirectory(llama-bench)
+diff --git a/tools/decide/CMakeLists.txt b/tools/decide/CMakeLists.txt
+new file mode 100644
+index 000000000..507b7b565
+--- /dev/null
++++ b/tools/decide/CMakeLists.txt
+@@ -0,0 +1,6 @@
++add_library(llama-decide STATIC
++    decide-schema.cpp decide-schema.h)
++target_include_directories(llama-decide PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
++target_link_libraries(llama-decide PUBLIC llama-common llama)
++target_compile_features(llama-decide PUBLIC cxx_std_17)
++set_target_properties(llama-decide PROPERTIES POSITION_INDEPENDENT_CODE ON)
+diff --git a/tools/decide/decide-schema.cpp b/tools/decide/decide-schema.cpp
+new file mode 100644
+index 000000000..c7cb97bff
+--- /dev/null
++++ b/tools/decide/decide-schema.cpp
+@@ -0,0 +1,186 @@
++#include "decide-schema.h"
++
++namespace decide {
++
++std::string json_string(const std::string & s) {
++    return common_json(s).dump();   // json-escaped, quoted
++}
++
++static void require_object(const common_json & j, const char * what) {
++    if (!j.is_object()) throw error("invalid_schema", 400, std::string(what) + " must be an object");
++}
++
++static std::string require_string(const common_json & j, const char * what) {
++    if (!j.is_string()) throw error("invalid_schema", 400, std::string(what) + " must be a string");
++    std::string s = j.get<std::string>();
++    if (s.empty()) throw error("invalid_schema", 400, std::string(what) + " must not be empty");
++    return s;
++}
++
++static field compile_field(const std::string & name, const common_json & fj) {
++    require_object(fj, ("field \"" + name + "\"").c_str());
++    field f; f.name = name;
++    for (const auto & [key, val] : fj.items()) {
++        if (key == "type" || key == "description" || key == "options" || key == "levels") continue;
++        if (key == "after") throw error("invalid_schema", 400, "field \"" + name + "\": \"after\" is not supported yet");
++        throw error("invalid_schema", 400, "field \"" + name + "\": unknown key \"" + key + "\"");
++    }
++    if (!fj.contains("type")) throw error("invalid_schema", 400, "field \"" + name + "\": missing type");
++    const std::string type = require_string(fj.at("type"), ("field \"" + name + "\" type").c_str());
++    if      (type == "choice") f.type = field_type::CHOICE;
++    else if (type == "score")  f.type = field_type::SCORE;
++    else if (type == "bool")   f.type = field_type::BOOL;
++    else throw error("invalid_schema", 400, "field \"" + name + "\": type must be choice, score or bool");
++    if (!fj.contains("description")) throw error("invalid_schema", 400, "field \"" + name + "\": missing description");
++    f.description = require_string(fj.at("description"), ("field \"" + name + "\" description").c_str());
++
++    if (f.type == field_type::CHOICE) {
++        if (fj.contains("levels")) throw error("invalid_schema", 400, "field \"" + name + "\": choice has no levels");
++        if (!fj.contains("options")) throw error("invalid_schema", 400, "field \"" + name + "\": missing options");
++        const auto & oj = fj.at("options");
++        if (oj.is_array()) {
++            for (size_t i = 0; i < oj.size(); ++i) f.options.push_back({require_string(oj.at(i), "option key"), "", ""});
++        } else if (oj.is_object()) {
++            for (const auto & [k, v] : oj.items()) {
++                if (k.empty()) throw error("invalid_schema", 400, "field \"" + name + "\": empty option key");
++                if (!v.is_string()) throw error("invalid_schema", 400, "field \"" + name + "\": option \"" + k + "\" description must be a string");
++                f.options.push_back({k, v.get<std::string>(), ""});
++            }
++        } else throw error("invalid_schema", 400, "field \"" + name + "\": options must be an array or an object");
++        if (f.options.size() < 2 || f.options.size() > 255) throw error("invalid_schema", 400, "field \"" + name + "\": choice needs 2 to 255 options");
++        for (size_t i = 0; i < f.options.size(); ++i)
++            for (size_t j = i + 1; j < f.options.size(); ++j)
++                if (f.options[i].key == f.options[j].key) throw error("invalid_schema", 400, "field \"" + name + "\": duplicate option \"" + f.options[i].key + "\"");
++        for (auto & o : f.options) o.encoded = json_string(o.key);
++    } else if (f.type == field_type::SCORE) {
++        if (fj.contains("options")) throw error("invalid_schema", 400, "field \"" + name + "\": score has no options");
++        if (!fj.contains("levels") || !fj.at("levels").is_array()) throw error("invalid_schema", 400, "field \"" + name + "\": missing levels array");
++        const auto & lj = fj.at("levels");
++        if (lj.size() < 2 || lj.size() > 10) throw error("invalid_schema", 400, "field \"" + name + "\": score needs 2 to 10 levels");
++        for (size_t i = 0; i < lj.size(); ++i) f.options.push_back({std::to_string(i), require_string(lj.at(i), "level text"), std::to_string(i)});
++    } else {
++        if (fj.contains("options") || fj.contains("levels")) throw error("invalid_schema", 400, "field \"" + name + "\": bool has no options or levels");
++        f.options = {{"true", "", "true"}, {"false", "", "false"}};
++    }
++    return f;
++}
++
++compiled_schema compile(const common_json & fields_j, const std::string & instructions, const common_json & opts_j) {
++    require_object(fields_j, "fields");
++    if (fields_j.size() < 1 || fields_j.size() > 64) throw error("invalid_schema", 400, "fields must have 1 to 64 entries");
++
++    compiled_schema cs;
++    cs.instructions = instructions;
++    for (const auto & [key, val] : fields_j.items()) {
++        cs.fields.push_back(compile_field(key, val));
++    }
++
++    if (!opts_j.is_object()) throw error("invalid_options", 400, "options must be an object");
++    options opts;
++    for (const auto & [key, val] : opts_j.items()) {
++        if (key == "scoring") {
++            if (!val.is_string() || val.get<std::string>() != "tree") throw error("invalid_options", 400, "options.scoring must be \"tree\"");
++            opts.scoring = "tree";
++        } else if (key == "order_debias") {
++            if (!val.is_number_integer() || val.get<int>() != 0) throw error("invalid_options", 400, "options.order_debias must be 0");
++            opts.order_debias = 0;
++        } else {
++            throw error("invalid_options", 400, "unknown option \"" + key + "\"");
++        }
++    }
++    cs.opts = opts;
++    return cs;
++}
++
++compiled_schema compile_request(const common_json & body) {
++    if (!body.is_object()) throw error("invalid_schema", 400, "body must be an object");
++    for (const auto & [key, val] : body.items()) {
++        if (key == "model" || key == "instructions" || key == "fields" || key == "states" || key == "options") continue;
++        throw error("invalid_schema", 400, "unknown key \"" + key + "\"");
++    }
++    if (!body.contains("fields")) throw error("invalid_schema", 400, "missing fields");
++
++    std::string instructions;
++    if (body.contains("instructions")) {
++        const auto & ij = body.at("instructions");
++        if (!ij.is_string()) throw error("invalid_schema", 400, "instructions must be a string");
++        instructions = ij.get<std::string>();
++    }
++
++    common_json opts_j = body.contains("options") ? body.at("options") : common_json::object();
++    return compile(body.at("fields"), instructions, opts_j);
++}
++
++std::vector<std::string> states_of(const common_json & body) {
++    if (!body.is_object() || !body.contains("states")) throw error("invalid_states", 400, "states is required");
++    const auto & sj = body.at("states");
++    if (!sj.is_array()) throw error("invalid_states", 400, "states must be an array");
++    if (sj.size() < 1 || sj.size() > 256) throw error("invalid_states", 400, "states must have 1 to 256 entries");
++    std::vector<std::string> out;
++    for (size_t i = 0; i < sj.size(); ++i) {
++        const auto & ej = sj.at(i);
++        if (!ej.is_string()) throw error("invalid_states", 400, "states entries must be strings");
++        std::string s = ej.get<std::string>();
++        if (s.empty()) throw error("invalid_states", 400, "states entries must not be empty");
++        out.push_back(std::move(s));
++    }
++    return out;
++}
++
++std::string stem_text(const field & f) {
++    return "  " + json_string(f.name) + ": ";
++}
++
++std::string branch_text(const field & f, const option & o) {
++    return stem_text(f) + o.encoded;
++}
++
++std::string render_catalogue(const compiled_schema & cs, int /*variant*/) {
++    std::string out;
++    if (!cs.instructions.empty()) {
++        out += cs.instructions;
++        out += "\n\n";
++    }
++    out += "Answer with one JSON object. Read the input, then fill every field below.\n\n";
++    out += "Fields:\n";
++    for (const auto & f : cs.fields) {
++        out += "- " + json_string(f.name) + ": " + f.description;
++        if (f.type == field_type::CHOICE) {
++            out += "\n  Allowed values:\n";
++            for (const auto & o : f.options) {
++                out += "    " + json_string(o.key);
++                if (!o.description.empty()) out += ": " + o.description;
++                out += "\n";
++            }
++        } else if (f.type == field_type::SCORE) {
++            out += " Integer level:\n";
++            for (const auto & o : f.options) {
++                out += "    " + o.key + ": " + o.description + "\n";
++            }
++        } else {
++            out += " true or false.\n";
++        }
++    }
++    return out;
++}
++
++uint64_t fnv1a64(const std::string & s) {
++    uint64_t h = 0xcbf29ce484222325ULL;
++    for (unsigned char c : s) {
++        h ^= c;
++        h *= 0x100000001b3ULL;
++    }
++    return h;
++}
++
++std::string hex64(uint64_t v) {
++    static const char digits[] = "0123456789abcdef";
++    std::string s(16, '0');
++    for (int i = 15; i >= 0; --i) {
++        s[i] = digits[v & 0xF];
++        v >>= 4;
++    }
++    return s;
++}
++
++} // namespace decide
+diff --git a/tools/decide/decide-schema.h b/tools/decide/decide-schema.h
+new file mode 100644
+index 000000000..84935d9ca
+--- /dev/null
++++ b/tools/decide/decide-schema.h
+@@ -0,0 +1,58 @@
++#pragma once
++#include "json.h"          // common_json
++#include <cstdint>
++#include <stdexcept>
++#include <string>
++#include <vector>
++
++namespace decide {
++
++struct error : std::runtime_error {
++    std::string code;   // invalid_schema | invalid_options | invalid_states | budget | engine
++    int         http;   // 400 or 500
++    error(std::string code_, int http_, const std::string & msg)
++        : std::runtime_error(msg), code(std::move(code_)), http(http_) {}
++};
++
++enum class field_type { CHOICE, SCORE, BOOL };
++
++struct option {
++    std::string key;          // choice: the key; score: "0".."n-1"; bool: "true"/"false"
++    std::string description;  // choice: text or empty; score: level text; bool: empty
++    std::string encoded;      // JSON text placed after the stem: "\"billing\"", "2", "true"
++};
++
++struct field {
++    std::string          name;
++    field_type            type;
++    std::string          description;
++    std::vector<option>  options;   // declaration order; ties resolve to the first
++};
++
++struct options {
++    std::string scoring      = "tree";
++    int         order_debias = 0;
++};
++
++struct compiled_schema {
++    std::string        instructions;
++    std::vector<field> fields;
++    options            opts;
++};
++
++// JSON-level validation. Throws error{"invalid_schema"|"invalid_options", 400, msg}.
++compiled_schema compile(const common_json & fields, const std::string & instructions, const common_json & opts);
++// Full request body: instructions (optional string), fields (object), options (optional object).
++compiled_schema compile_request(const common_json & body);
++// states: 1..256 non-empty strings. Throws error{"invalid_states", 400, msg}.
++std::vector<std::string> states_of(const common_json & body);
++
++std::string render_catalogue(const compiled_schema & cs, int variant);   // variant 0 only for now
++std::string stem_text(const field & f);                                    // "  \"<name>\": "  (the trunk already ends with "{\n")
++std::string branch_text(const field & f, const option & o);                // stem_text + o.encoded
++std::string json_string(const std::string & s);                            // JSON-encode with quotes
++
++uint64_t    fnv1a64(const std::string & s);
++std::string hex64(uint64_t v);
++
++} // namespace decide
+-- 
+2.55.0
+

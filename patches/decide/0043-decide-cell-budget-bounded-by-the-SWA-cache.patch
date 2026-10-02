@@ -1,0 +1,286 @@
+From d35d46d3bbc123166364617e03ac009cff8b7e6a Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 2 Oct 2026 15:22:01 +0200
+Subject: [PATCH 43/45] decide: cell budget bounded by the SWA cache
+
+On a model with sliding-window attention layers the context has a second, smaller KV cache (src/llama-kv-cache-iswa.cpp:73). Every cell limit of the engine is now min(n_ctx, SWA cells) - 16, so a state over the SWA cache gets 400 budget naming it and --swa-full instead of a 500 (spec 5.3 rev 5). engine_config gains swa_full; info reports memory.swa_cells for such models.
+---
+ tests/test-decide-debias.cpp    | 55 +++++++++++++++++++++++++++++----
+ tools/decide/decide-cli.cpp     |  1 +
+ tools/decide/decide-debias.cpp  | 26 ++++++++++++++--
+ tools/decide/decide-debias.h    | 15 +++++++--
+ tools/decide/decide-engine.cpp  | 21 +++++++++----
+ tools/decide/decide-engine.h    |  3 ++
+ tools/server/server-context.cpp |  1 +
+ 7 files changed, 104 insertions(+), 18 deletions(-)
+
+diff --git a/tests/test-decide-debias.cpp b/tests/test-decide-debias.cpp
+index de8c65159..8a5c903ee 100644
+--- a/tests/test-decide-debias.cpp
++++ b/tests/test-decide-debias.cpp
+@@ -109,14 +109,14 @@ int main() {
+     //     K = 1 is the text without debiasing (a live case); K = 2 is the live 0.5B case: 496 + 2 x (3183 + 6 + 16) = 6906
+     {
+         CHECK(decide::state_cells(0, 248, 1, 3176, 6, 16) == 3446);
+-        CHECK(decide::state_cells_message(0, 0, 248, 1, 3176, 6, 16, 2032) ==
++        CHECK(decide::state_cells_message(0, 0, 248, 1, 3176, 6, 16, 2048, 2048) ==
+               "state 0 needs 3446 cells (held 0, prefix 248, state 3176, tail 6, branches 16), n_ctx - 16 is 2032");
+         CHECK(decide::state_cells(0, 496, 2, 3183, 6, 16) == 6906);
+-        CHECK(decide::state_cells_message(0, 0, 496, 2, 3183, 6, 16, 4080) ==
++        CHECK(decide::state_cells_message(0, 0, 496, 2, 3183, 6, 16, 4096, 4096) ==
+               "state 0 needs 6906 cells (held 0, prefix 496, K_eff 2 \u00d7 (state 3183, tail 6, branches 16)), n_ctx - 16 is 4080");
+         // cells held by server slots and a later state: 100 + 900 + 4 x (50 + 6 + 40) = 1384
+         CHECK(decide::state_cells(100, 900, 4, 50, 6, 40) == 1384);
+-        CHECK(decide::state_cells_message(3, 100, 900, 4, 50, 6, 40, 1000) ==
++        CHECK(decide::state_cells_message(3, 100, 900, 4, 50, 6, 40, 1016, 1016) ==
+               "state 3 needs 1384 cells (held 100, prefix 900, K_eff 4 \u00d7 (state 50, tail 6, branches 40)), n_ctx - 16 is 1000");
+     }
+ 
+@@ -124,11 +124,11 @@ int main() {
+     //     non-causal projectors
+     {
+         CHECK(decide::state_cells(0, 248, 1, 1100, 6, 16) == 1370);
+-        CHECK(decide::state_cells_message(0, 0, 248, 1, 1100, 6, 16, 1000, 1082) ==
++        CHECK(decide::state_cells_message(0, 0, 248, 1, 1100, 6, 16, 1016, 1016, 1082) ==
+               "state 0 needs 1370 cells (held 0, prefix 248, state 1100 (image cells 1082), tail 6, branches 16), n_ctx - 16 is 1000");
+-        CHECK(decide::state_cells_message(1, 50, 496, 2, 1100, 6, 16, 1000, 1082) ==
++        CHECK(decide::state_cells_message(1, 50, 496, 2, 1100, 6, 16, 1016, 1016, 1082) ==
+               "state 1 needs 2790 cells (held 50, prefix 496, K_eff 2 \u00d7 (state 1100 (image cells 1082), tail 6, branches 16)), n_ctx - 16 is 1000");
+-        CHECK(decide::state_cells_message(0, 0, 248, 1, 3176, 6, 16, 2032, 0) == decide::state_cells_message(0, 0, 248, 1, 3176, 6, 16, 2032));
++        CHECK(decide::state_cells_message(0, 0, 248, 1, 3176, 6, 16, 2048, 2048, 0) == decide::state_cells_message(0, 0, 248, 1, 3176, 6, 16, 2048, 2048));
+         decide::check_image_ubatch(0, false, 4096, 512);   // causal: any size
+         decide::check_image_ubatch(0, true, 512, 512);     // non-causal and fits
+         bool thrown = false;
+@@ -142,6 +142,49 @@ int main() {
+         CHECK(thrown);
+     }
+ 
++    // 2d. spec 5.3 rev 5: the SWA cache's cells as src/llama-kv-cache-iswa.cpp:73-81 sizes them, the cell limit
++    //     min(n_ctx, SWA cells) - 16 and the two forms of the 400 text
++    {
++        using decide::swa_cache_cells;
++        using decide::cell_limit;
++        using decide::cell_limit_text;
++        // no SWA layers: the SWA cache is the base cache, the limit is today's n_ctx - 16
++        CHECK(swa_cache_cells(16384, 0, 17, 512, true, false) == 16384);
++        CHECK(cell_limit(16384, swa_cache_cells(16384, 0, 17, 512, true, false)) == 16368);
++        // SWA smaller than n_ctx: Gemma 4 E4B, n_swa 512, 17 sequences, n_ubatch 512: 512 x 17 + 512 = 9216 (live log)
++        CHECK(swa_cache_cells(16384, 512, 17, 512, true, false) == 9216);
++        CHECK(cell_limit(16384, 9216) == 9200);
++        // SWA at n_ctx: gemma-3-4b (n_swa 1024: 17920 capped at 16384) and the gemma-4-e4b text preset (512 x 22 + 512 capped at 4096)
++        CHECK(swa_cache_cells(16384, 1024, 17, 512, true, false) == 16384);
++        CHECK(swa_cache_cells(4096, 512, 22, 512, true, false) == 4096);
++        CHECK(cell_limit(4096, 4096) == 4080);
++        // swa_full: the SWA cache has the base cache's cells
++        CHECK(swa_cache_cells(16384, 512, 17, 512, true, true) == 16384);
++        CHECK(cell_limit(16384, swa_cache_cells(16384, 512, 17, 512, true, true)) == 16368);
++        // not unified: one sequence's window, 512 + 512
++        CHECK(swa_cache_cells(16384, 512, 17, 512, false, false) == 1024);
++        CHECK(swa_cache_cells(4096, 1000, 4, 100, false, false) == 1280);    // 1100 padded to 256
++        // padding to 256 after the cap: 512 x 16 + 500 = 8692 -> 8704; 1000 x 3 + 100 = 3100 -> 3328
++        CHECK(swa_cache_cells(16384, 512, 16, 500, true, false) == 8704);
++        CHECK(swa_cache_cells(16384, 1000, 3, 100, true, false) == 3328);
++        // a base cache that is no multiple of 256 pads past n_ctx; n_ctx stays the bound
++        CHECK(swa_cache_cells(4000, 4096, 1, 512, true, false) == 4096);
++        CHECK(cell_limit(4000, 4096) == 3984);
++
++        // the 400 text: today's when n_ctx is the bound (SWA at or above n_ctx), else it names the SWA cache and --swa-full
++        CHECK(cell_limit_text(2048, 2048) == "n_ctx - 16 is 2032");
++        CHECK(cell_limit_text(4000, 4096) == "n_ctx - 16 is 3984");
++        CHECK(cell_limit_text(16384, 9216) == "the sliding-window cache holds 9216 cells (limit 9200); start with --swa-full to use n_ctx");
++        CHECK(decide::state_cells_message(0, 0, 53, 1, 9148, 7, 4, 16384, 16384) ==
++              "state 0 needs 9212 cells (held 0, prefix 53, state 9148, tail 7, branches 4), n_ctx - 16 is 16368");
++        CHECK(decide::state_cells_message(0, 0, 53, 1, 9154, 7, 4, 16384, 9216) ==
++              "state 0 needs 9218 cells (held 0, prefix 53, state 9154, tail 7, branches 4), the sliding-window cache holds 9216 cells "
++              "(limit 9200); start with --swa-full to use n_ctx");
++        CHECK(decide::state_cells_message(2, 148, 106, 2, 9000, 7, 4, 16384, 9216, 1082) ==
++              "state 2 needs 18276 cells (held 148, prefix 106, K_eff 2 × (state 9000 (image cells 1082), tail 7, branches 4)), "
++              "the sliding-window cache holds 9216 cells (limit 9200); start with --swa-full to use n_ctx");
++    }
++
+     // 3. spec 8: options.temperature when given (0 = not given), else the server default
+     {
+         CHECK(decide::resolve_temperature(0.0, 1.0) == 1.0);
+diff --git a/tools/decide/decide-cli.cpp b/tools/decide/decide-cli.cpp
+index 4f6f44c53..108cc47a0 100644
+--- a/tools/decide/decide-cli.cpp
++++ b/tools/decide/decide-cli.cpp
+@@ -126,6 +126,7 @@ int main(int argc, char ** argv) {
+         cfg.prefix_cache = params.decide_prefix_cache;
+         cfg.temperature  = params.decide_temperature;
+         cfg.mctx         = mctx;
++        cfg.swa_full     = params.swa_full;
+         decide::engine eng(ctx, model, tmpls.get(), cfg);
+ 
+         std::string line;
+diff --git a/tools/decide/decide-debias.cpp b/tools/decide/decide-debias.cpp
+index eb41df82e..cdac72c31 100644
+--- a/tools/decide/decide-debias.cpp
++++ b/tools/decide/decide-debias.cpp
+@@ -25,13 +25,33 @@ int64_t state_cells(int64_t held, int64_t prefix, int K, int64_t state, int64_t
+     return held + prefix + K * (state + tail + branches);
+ }
+ 
+-std::string state_cells_message(size_t i, int64_t held, int64_t prefix, int K, int64_t state, int64_t tail, int64_t branches, int64_t limit,
+-                                int64_t image_cells) {
++int64_t swa_cache_cells(int64_t kv_size, int64_t n_swa, int64_t n_seq_max, int64_t n_ubatch, bool unified, bool swa_full) {
++    if (n_swa <= 0 || swa_full) {
++        return kv_size;
++    }
++    const int64_t cells = std::min(kv_size, n_swa * (unified ? n_seq_max : 1) + n_ubatch);
++    return (cells + 255) / 256 * 256;   // GGML_PAD(cells, 256)
++}
++
++int64_t cell_limit(int64_t n_ctx, int64_t swa_cells) {
++    return std::min(n_ctx, swa_cells) - 16;
++}
++
++std::string cell_limit_text(int64_t n_ctx, int64_t swa_cells) {
++    if (swa_cells >= n_ctx) {
++        return "n_ctx - 16 is " + std::to_string(n_ctx - 16);
++    }
++    return "the sliding-window cache holds " + std::to_string(swa_cells) + " cells (limit " + std::to_string(cell_limit(n_ctx, swa_cells)) +
++           "); start with --swa-full to use n_ctx";
++}
++
++std::string state_cells_message(size_t i, int64_t held, int64_t prefix, int K, int64_t state, int64_t tail, int64_t branches, int64_t n_ctx,
++                                int64_t swa_cells, int64_t image_cells) {
+     const std::string state_text  = "state " + std::to_string(state) + (image_cells > 0 ? " (image cells " + std::to_string(image_cells) + ")" : "");
+     const std::string per_variant = state_text + ", tail " + std::to_string(tail) + ", branches " + std::to_string(branches);
+     return "state " + std::to_string(i) + " needs " + std::to_string(state_cells(held, prefix, K, state, tail, branches)) + " cells (held " +
+            std::to_string(held) + ", prefix " + std::to_string(prefix) + ", " +
+-           (K == 1 ? per_variant : "K_eff " + std::to_string(K) + " \u00d7 (" + per_variant + ")") + "), n_ctx - 16 is " + std::to_string(limit);
++           (K == 1 ? per_variant : "K_eff " + std::to_string(K) + " \u00d7 (" + per_variant + ")") + "), " + cell_limit_text(n_ctx, swa_cells);
+ }
+ 
+ void check_image_ubatch(size_t state, bool non_causal, int64_t chunk_cells, int64_t n_ubatch) {
+diff --git a/tools/decide/decide-debias.h b/tools/decide/decide-debias.h
+index 35d8f43a5..991459fdb 100644
+--- a/tools/decide/decide-debias.h
++++ b/tools/decide/decide-debias.h
+@@ -27,10 +27,19 @@ std::string sequence_budget_message(int decide_seqs, int K, int B, const std::st
+ // spec 7.3: the cells one state needs alone: held + the K prefixes + K x (state + tail + branch tokens); for a round of n states
+ // (need_for) the state, tail and branch arguments are the sums over its states
+ int64_t     state_cells(int64_t held, int64_t prefix, int K, int64_t state, int64_t tail, int64_t branches);
+-// spec 7.3: the 400 budget message when state i needs more than `limit` (n_ctx - 16) cells; K = 1 is the text without debiasing.
++// spec 5.3 rev 5: the cells of the sliding-window (SWA) KV cache, as src/llama-kv-cache-iswa.cpp:73-81 sizes it:
++// PAD(min(kv_size, n_swa * (unified ? n_seq_max : 1) + n_ubatch), 256), or kv_size with swa_full. kv_size is the base cache's
++// cells per stream (n_ctx when unified); kv_size for a model without SWA layers (n_swa 0). llama.h does not expose the size.
++int64_t     swa_cache_cells(int64_t kv_size, int64_t n_swa, int64_t n_seq_max, int64_t n_ubatch, bool unified, bool swa_full);
++// spec 5.3 rev 5: the cells a request may use, min(n_ctx, swa_cells) - 16; n_ctx - 16 for a model without SWA layers
++int64_t     cell_limit(int64_t n_ctx, int64_t swa_cells);
++// spec 5.3 rev 5: the end of a 400 budget text: "n_ctx - 16 is L" when n_ctx is the bound, else the SWA cache's cells, the limit
++// and the remedy --swa-full
++std::string cell_limit_text(int64_t n_ctx, int64_t swa_cells);
++// spec 7.3: the 400 budget message when state i needs more than cell_limit(n_ctx, swa_cells) cells; K = 1 is the text without debiasing.
+ // Sub-project 4 (spec 3.2, 5.3): `state` counts text tokens and image cells; with image_cells > 0 the text names them
+-std::string state_cells_message(size_t i, int64_t held, int64_t prefix, int K, int64_t state, int64_t tail, int64_t branches, int64_t limit,
+-                                int64_t image_cells = 0);
++std::string state_cells_message(size_t i, int64_t held, int64_t prefix, int K, int64_t state, int64_t tail, int64_t branches, int64_t n_ctx,
++                                int64_t swa_cells, int64_t image_cells = 0);
+ // spec 5.3: a non-causal projector decodes an image chunk in one micro-batch; a chunk over n_ubatch is error{"budget", 400}
+ void        check_image_ubatch(size_t state, bool non_causal, int64_t chunk_cells, int64_t n_ubatch);
+ 
+diff --git a/tools/decide/decide-engine.cpp b/tools/decide/decide-engine.cpp
+index 2ac5db954..1227d06f9 100644
+--- a/tools/decide/decide-engine.cpp
++++ b/tools/decide/decide-engine.cpp
+@@ -32,7 +32,10 @@ static const char * mode_name(scoring_mode m) {
+ engine::engine(llama_context * ctx_, const llama_model * model_, const common_chat_templates * tmpls_, engine_config cfg_)
+     : ctx(ctx_), model(model_), vocab(llama_model_get_vocab(model_)), tmpls(tmpls_), cfg(std::move(cfg_)),
+       mem(llama_get_memory(ctx_)), batch(), n_batch((int) llama_n_batch(ctx_)), row_cap((int) llama_n_seq_max(ctx_)),
+-      n_vocab(llama_vocab_n_tokens(vocab)) {
++      n_vocab(llama_vocab_n_tokens(vocab)),
++      // the decide engine always runs on a unified KV cache (common_context_params_to_llama forces kv_unified with decide_seqs)
++      swa_cells(swa_cache_cells(llama_n_ctx(ctx_), llama_model_n_swa(model_), llama_n_seq_max(ctx_), llama_n_ubatch(ctx_), true,
++                                cfg.swa_full)) {
+     if (tmpls == nullptr || !common_chat_templates_was_explicit(tmpls)) {
+         throw error("engine", 500, "no chat template; pass --chat-template");
+     }
+@@ -864,14 +867,17 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+     }
+ 
+     // every state must fit alone before anything is decoded; slots cannot change `held` during this call
++    // spec 5.3 rev 5: the limit is min(n_ctx, SWA cells) - 16. Conservative on iSWA models: the cells of resident server slots
++    // count in full in the SWA cache although their cells outside the window could be reused
+     const int64_t n_ctx = llama_n_ctx(ctx);
++    const int64_t limit = cell_limit(n_ctx, swa_cells);
+     const int64_t tail  = (int64_t) ps[0].tail_tokens.size();
+     const int64_t held  = held_cells();
+     for (size_t i = 0; i < states.size(); ++i) {
+         // spec 5.3: a state's cells are its text tokens plus its images' cells
+         const int64_t n = inputs[i].text_tokens + inputs[i].image_cells;
+-        if (state_cells(held, prefix_total, K, n, tail, branch_total) > n_ctx - 16) {
+-            throw error("budget", 400, state_cells_message(i, held, prefix_total, K, n, tail, branch_total, n_ctx - 16, inputs[i].image_cells));
++        if (state_cells(held, prefix_total, K, n, tail, branch_total) > limit) {
++            throw error("budget", 400, state_cells_message(i, held, prefix_total, K, n, tail, branch_total, n_ctx, swa_cells, inputs[i].image_cells));
+         }
+     }
+ 
+@@ -902,7 +908,7 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+             }
+             return state_cells(held, prefix_total, K, state_sum, (int64_t) n * tail, (int64_t) n * branch_total);
+         };
+-        while (count > 1 && need_for(count) > n_ctx - 16) {
++        while (count > 1 && need_for(count) > limit) {
+             count--;
+         }
+ 
+@@ -1202,9 +1208,9 @@ common_json engine::info(const compiled_schema * cs, const trie_set * ts) {
+         // spec 6.2: check the budget before slot 0 is evicted
+         const int64_t n_ctx = llama_n_ctx(ctx);
+         const int64_t held  = held_cells();
+-        if (!(slots[0].hash == ps.hash && slot_live(0)) && held + (int64_t) ps.tokens.size() > n_ctx - 16) {
++        if (!(slots[0].hash == ps.hash && slot_live(0)) && held + (int64_t) ps.tokens.size() > cell_limit(n_ctx, swa_cells)) {
+             throw error("budget", 400, "prefix needs " + std::to_string(ps.tokens.size()) + " cells with " +
+-                                           std::to_string(held) + " held by slots, n_ctx - 16 is " + std::to_string(n_ctx - 16));
++                                           std::to_string(held) + " held by slots, " + cell_limit_text(n_ctx, swa_cells));
+         }
+         fill_slot(0, ps, {ps.hash}, st);
+         prefix["hash"]             = slots[0].hash;
+@@ -1245,6 +1251,9 @@ common_json engine::info(const compiled_schema * cs, const trie_set * ts) {
+     common_json memory = common_json::object();
+     memory["recurrent"] = llama_model_is_recurrent(model) || llama_model_is_hybrid(model);
+     memory["swa"]       = llama_model_n_swa(model) > 0;
++    if (llama_model_n_swa(model) > 0) {
++        memory["swa_cells"] = swa_cells;   // spec 5.3 rev 5
++    }
+ 
+     common_json j = common_json::object();
+     j["decide_seqs"]   = cfg.decide_seqs;
+diff --git a/tools/decide/decide-engine.h b/tools/decide/decide-engine.h
+index e8f9694ef..65283cff0 100644
+--- a/tools/decide/decide-engine.h
++++ b/tools/decide/decide-engine.h
+@@ -26,6 +26,8 @@ struct engine_config {
+     // spec 5.3: the cells server slots hold (the server: the sum of slot.prompt.n_tokens(), media included); empty (the CLI):
+     // seq_pos_max + 1 of every slot_seqs sequence, as before
+     std::function<int64_t()>  held_cells;
++    // spec 5.3 rev 5: the context was created with --swa-full (its SWA cache has n_ctx cells); llama.h does not expose it
++    bool                      swa_full     = false;
+ };
+ 
+ // spec 4.1: the vision status of a projector context: no_projector without one, then mtmd_support_vision, then the gate
+@@ -255,6 +257,7 @@ private:
+     fault_mode                    fault       = fault_mode::NONE;
+     mutable bool                  fault_armed = false;   // the one-shot modes (rc1-twice, restore, cell-estimate, lines-join, tail-mismatch): not yet fired
+     vision_status                 vis;   // spec 4.1
++    int64_t                       swa_cells;   // spec 5.3 rev 5: cells of the SWA cache; n_ctx without SWA layers or with swa_full
+ };
+ 
+ } // namespace decide
+diff --git a/tools/server/server-context.cpp b/tools/server/server-context.cpp
+index 66a3bd329..4b818f12c 100644
+--- a/tools/server/server-context.cpp
++++ b/tools/server/server-context.cpp
+@@ -1431,6 +1431,7 @@ private:
+         cfg.prefix_cache = params_base.decide_prefix_cache;
+         cfg.temperature  = params_base.decide_temperature;
+         cfg.mctx         = mctx;   // spec 4.1: null without --mmproj
++        cfg.swa_full     = params_base.swa_full;
+         // spec 5.3: the slots' true cells, media included (seq_pos_max + 1 counts an image's positions, not its cells)
+         cfg.held_cells   = [this]() {
+             int64_t n = 0;
+-- 
+2.55.0
+

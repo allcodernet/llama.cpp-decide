@@ -1,0 +1,92 @@
+{
+  "ours": "results-engine/preds/decide-qwen3.5-9b-b1.jsonl",
+  "baseline": "results/preds/decision-qwen3.5-9b-b1.jsonl",
+  "fields": {
+    "queue": {
+      "disagreements": 3,
+      "tickets": [
+        {
+          "ticket": 42,
+          "label": "feedback",
+          "baseline": "feedback",
+          "ours": "technical",
+          "baseline_margin": 0.5109,
+          "ours_margin": 0.4578
+        },
+        {
+          "ticket": 61,
+          "label": "billing",
+          "baseline": "feedback",
+          "ours": "billing",
+          "baseline_margin": 0.4514,
+          "ours_margin": 0.6395
+        },
+        {
+          "ticket": 79,
+          "label": "billing",
+          "baseline": "billing",
+          "ours": "technical",
+          "baseline_margin": 0.5268,
+          "ours_margin": 0.0232
+        }
+      ]
+    },
+    "urgency": {
+      "disagreements": 6,
+      "tickets": [
+        {
+          "ticket": 2,
+          "label": 0,
+          "baseline": 0,
+          "ours": 1,
+          "baseline_margin": 0.2755,
+          "ours_margin": 0.0625
+        },
+        {
+          "ticket": 19,
+          "label": 1,
+          "baseline": 0,
+          "ours": 1,
+          "baseline_margin": 0.0917,
+          "ours_margin": 0.2083
+        },
+        {
+          "ticket": 46,
+          "label": 0,
+          "baseline": 0,
+          "ours": 2,
+          "baseline_margin": 0.2796,
+          "ours_margin": 0.0509
+        },
+        {
+          "ticket": 64,
+          "label": 0,
+          "baseline": 0,
+          "ours": 1,
+          "baseline_margin": 0.1173,
+          "ours_margin": 0.3308
+        },
+        {
+          "ticket": 68,
+          "label": 1,
+          "baseline": 0,
+          "ours": 1,
+          "baseline_margin": 0.6117,
+          "ours_margin": 0.0683
+        },
+        {
+          "ticket": 79,
+          "label": 1,
+          "baseline": 2,
+          "ours": 1,
+          "baseline_margin": 0.2103,
+          "ours_margin": 0.0019
+        }
+      ]
+    },
+    "angry": {
+      "disagreements": 0,
+      "tickets": []
+    }
+  }
+}

@@ -1,0 +1,472 @@
+From e9cb8d9c2a9dcdf2962aa6e999099a2f72f88121 Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 2 Oct 2026 08:10:50 +0200
+Subject: [PATCH 33/45] decide: faster full-vocabulary log-sum-exp for
+ full-path rows
+
+full_path_row's normaliser moves to full_vocab_lse: the scalar code of
+before as the portable fallback; on x86-64 (GCC/Clang) an SSE2 path and
+an AVX2+FMA path chosen at run time, both a Cephes-style float exp with
+every term added in double. NaN, +inf or only -inf in a row give the
+scalar result (NaN); -inf entries add 0. No build flag changes.
+
+Test: every implementation within 2e-7 of an all-double reference
+(measured <= 7.5e-9), full_path_row values within 1e-6 * max(1, |v|),
+the special-value pins, and timings at 262144 tokens (3950X: scalar
+0.79 ms, SSE2 0.35 ms, AVX2 0.175 ms).
+---
+ tests/test-decide-fullpath.cpp   | 200 ++++++++++++++++++++++++++++++-
+ tools/decide/decide-fullpath.cpp | 175 +++++++++++++++++++++++++--
+ tools/decide/decide-fullpath.h   |  12 ++
+ 3 files changed, 377 insertions(+), 10 deletions(-)
+
+diff --git a/tests/test-decide-fullpath.cpp b/tests/test-decide-fullpath.cpp
+index fbda24139..f47edf252 100644
+--- a/tests/test-decide-fullpath.cpp
++++ b/tests/test-decide-fullpath.cpp
+@@ -1,11 +1,15 @@
+ // spec 4.3-4.5 full-path engine helpers without a model: decode chunks (n_batch and the row cap), the row -> node mapping of
+-// full-path branch sequences across a chunk split, the values of one row, and the branch token / row counts of the budget
++// full-path branch sequences across a chunk split, the values of one row, the branch token / row counts of the budget, and the
++// full-vocabulary log-sum-exp per implementation (accuracy, special values, timing)
+ #include "decide-engine.h"
+ #include "decide-fullpath.h"
+ 
++#include <algorithm>
++#include <chrono>
+ #include <cmath>
+ #include <cstdio>
+ #include <limits>
++#include <random>
+ #include <string>
+ #include <utility>
+ #include <vector>
+@@ -49,6 +53,39 @@ static decide::field_trie two_leaves() {
+     return t;
+ }
+ 
++// all-double log-sum-exp: the reference for decide::full_vocab_lse
++static double ref_lse(const std::vector<float> & l) {
++    double m = -std::numeric_limits<double>::infinity();
++    for (float x : l) {
++        m = std::max(m, (double) x);
++    }
++    double s = 0.0;
++    for (float x : l) {
++        s += std::exp((double) x - m);
++    }
++    return m + std::log(s);
++}
++
++struct lse_impl {
++    const char * name;
++    double (*fn)(const float *, int);
++};
++
++// the implementations this CPU can run: scalar (the code before the SIMD paths), SSE2 and AVX2+FMA on x86-64, the dispatcher
++static std::vector<lse_impl> lse_impls() {
++    std::vector<lse_impl> v = {{"scalar", decide::full_vocab_lse_scalar}};
++#ifdef DECIDE_LSE_X86
++    v.push_back({"sse2", decide::full_vocab_lse_sse2});
++    if (decide::full_vocab_lse_avx2_supported()) {
++        v.push_back({"avx2", decide::full_vocab_lse_avx2});
++    } else {
++        std::printf("full_vocab_lse: no AVX2+FMA on this CPU, avx2 path skipped\n");
++    }
++#endif
++    v.push_back({"dispatch", decide::full_vocab_lse});
++    return v;
++}
++
+ static std::vector<decide::decode_entry> plain(size_t n, int row_every = 0) {
+     std::vector<decide::decode_entry> e;
+     for (size_t i = 0; i < n; ++i) {
+@@ -247,6 +284,167 @@ int main() {
+         CHECK(full.tokens == 11 + 4 && full.rows == 5 + 3);
+     }
+ 
++    // 5. full_vocab_lse, every implementation this CPU runs: within 2e-7 of the all-double reference on random rows, and
++    //    full_path_row's values within 1e-6 * max(1, |v|) of the reference's; NaN / +inf / only -inf give NaN, -inf adds 0
++    {
++        const std::vector<lse_impl> impls = lse_impls();
++        // the trie of section 3: root -> 1 (tok 1) -> 3 (tok 3, leaf); root -> 2 (tok 2, leaf); END {4, 5}, MERGED {6} and {6, 7}
++        decide::field_trie t;
++        t.stem = {9};
++        t.paths = {{1, 3}, {2}};
++        t.nodes.resize(4);
++        t.nodes[0].children = {1, 2};
++        t.nodes[1].tok = 1; t.nodes[1].children = {3};
++        t.nodes[2].tok = 2;
++        t.nodes[3].tok = 3;
++        t.option_nodes = {{0, 1, 3}, {0, 2}};
++        const std::vector<llama_token> end_tokens = {4, 5};
++        const std::vector<llama_token> merged_2   = {6};
++        const std::vector<llama_token> merged_3   = {6, 7};
++        const std::vector<const std::vector<llama_token> *> merged = {nullptr, nullptr, &merged_2, &merged_3};
++
++        struct lse_case {
++            std::string        name;
++            std::vector<float> l;
++        };
++        std::mt19937          rng(20261002);
++        std::vector<lse_case> cases;
++        const auto uniform = [&](int n, float r) {
++            std::uniform_real_distribution<float> u(-r, r);
++            std::vector<float>                    l((size_t) n);
++            for (float & x : l) {
++                x = u(rng);
++            }
++            return l;
++        };
++        for (int n : {1000, 151936, 262144}) {
++            const std::string at = std::to_string(n) + " tokens";
++            cases.push_back({at + ", +-5", uniform(n, 5.0f)});
++            cases.push_back({at + ", +-40", uniform(n, 40.0f)});
++            std::vector<float> dom = uniform(n, 5.0f);
++            dom[(size_t) n / 3] = 40.0f;
++            cases.push_back({at + ", one dominant token", dom});
++            // 10 % of the entries -inf; tokens 0..7 (read by the row checks) stay finite
++            std::vector<float>          holes = uniform(n, 5.0f);
++            std::bernoulli_distribution hole(0.1);
++            for (size_t i = 8; i < holes.size(); ++i) {
++                if (hole(rng)) {
++                    holes[i] = NEG_INF;
++                }
++            }
++            cases.push_back({at + ", 10 % -inf", holes});
++        }
++        // a few huge and many tiny terms: each tiny one is about 4e-8 of a huge one, so a float running sum next to a huge
++        // term would drop all of them (about 0.4 % of the mass)
++        {
++            std::vector<float> l = uniform(262144, 0.5f);
++            for (float & x : l) {
++                x -= 7.0f;
++            }
++            l[3] = l[100003] = l[262141] = 10.0f;
++            cases.push_back({"262144 tokens, 3 huge and many tiny", l});
++        }
++        // a length that is no multiple of any vector width
++        cases.push_back({"1003 tokens, +-5", uniform(1003, 5.0f)});
++
++        const auto close = [](float v, double ref) {
++            return ref == -std::numeric_limits<double>::infinity() ? v == NEG_INF : std::fabs((double) v - ref) <= 1e-6 * std::max(1.0, std::fabs(ref));
++        };
++        std::vector<double> worst(impls.size(), 0.0);
++        for (const lse_case & c : cases) {
++            const int    n   = (int) c.l.size();
++            const double ref = ref_lse(c.l);
++            for (size_t k = 0; k < impls.size(); ++k) {
++                const double err = std::fabs(impls[k].fn(c.l.data(), n) - ref);
++                if (!(err <= 2e-7)) {
++                    std::fprintf(stderr, "FAIL full_vocab_lse %s on %s: %.3g off the reference\n", impls[k].name, c.name.c_str(), err);
++                    failures++;
++                }
++                worst[k] = std::max(worst[k], err);
++            }
++            // full_path_row against the values computed from the reference normaliser
++            const auto ref_mass = [&](const std::vector<llama_token> & toks) {
++                double m = 0.0;
++                for (llama_token u : toks) {
++                    m += std::exp((double) c.l[u] - ref);
++                }
++                return std::log(m);
++            };
++            for (int node : {0, 1, 3}) {
++                const decide::node_logp r  = decide::full_path_row(c.l.data(), n, t, node, end_tokens, merged);
++                const auto &            ch = t.nodes[node].children;
++                bool ok = r.child_logp.size() == ch.size() && r.merged_logp.size() == ch.size();
++                for (size_t k = 0; ok && k < ch.size(); ++k) {
++                    const bool leaf = t.nodes[ch[k]].children.empty();
++                    ok = close(r.child_logp[k], (double) c.l[t.nodes[ch[k]].tok] - ref) &&
++                         (leaf ? close(r.merged_logp[k], ref_mass(*merged[ch[k]])) : r.merged_logp[k] == NEG_INF);
++                }
++                ok = ok && (ch.empty() ? close(r.end_logp, ref_mass(end_tokens)) : r.end_logp == NEG_INF);
++                if (!ok) {
++                    std::fprintf(stderr, "FAIL full_path_row node %d on %s: off the reference values\n", node, c.name.c_str());
++                    failures++;
++                }
++            }
++        }
++        std::printf("full_vocab_lse max abs error vs the all-double reference:");
++        for (size_t k = 0; k < impls.size(); ++k) {
++            std::printf(" %s %.2e", impls[k].name, worst[k]);
++        }
++        std::printf("\n");
++
++        // pins on 1003 tokens: NaN or +inf at the start, in the vector part, last (the scalar tail); a row of only -inf;
++        // -inf entries add exactly 0 next to one finite entry
++        const auto pin = [](bool ok, const char * what, const char * impl, int pos) {
++            if (!ok) {
++                std::fprintf(stderr, "FAIL full_vocab_lse %s: %s (position %d)\n", impl, what, pos);
++                failures++;
++            }
++        };
++        const float              nan  = std::numeric_limits<float>::quiet_NaN();
++        const float              inf  = std::numeric_limits<float>::infinity();
++        const std::vector<float> base = uniform(1003, 5.0f);
++        for (const lse_impl & im : impls) {
++            for (int pos : {0, 517, 1002}) {
++                std::vector<float> l = base;
++                l[(size_t) pos] = nan;
++                pin(std::isnan(im.fn(l.data(), 1003)), "NaN in the row must give NaN", im.name, pos);
++                l[(size_t) pos] = inf;
++                pin(std::isnan(im.fn(l.data(), 1003)), "+inf in the row must give NaN", im.name, pos);
++            }
++            std::vector<float> none(1003, NEG_INF);
++            pin(std::isnan(im.fn(none.data(), 1003)), "a row of only -inf must give NaN", im.name, -1);
++            for (int pos : {517, 1001}) {
++                std::vector<float> one(1003, NEG_INF);
++                one[(size_t) pos] = 3.25f;
++                pin(im.fn(one.data(), 1003) == 3.25, "-inf entries must add 0", im.name, pos);
++            }
++        }
++
++        // timing at 262144 tokens (printed, not asserted); scalar = the code before the SIMD paths
++        const std::vector<float> & row = std::find_if(cases.begin(), cases.end(), [](const lse_case & c) { return c.name == "262144 tokens, +-40"; })->l;
++        std::printf("full_vocab_lse timing, %zu tokens, median of 41:", row.size());
++        double scalar_ms = 0.0;
++        for (const lse_impl & im : impls) {
++            std::vector<double> ms;
++            volatile double     sink = 0.0;
++            for (int rep = 0; rep < 46; ++rep) {
++                const auto t0 = std::chrono::steady_clock::now();
++                sink          = sink + im.fn(row.data(), (int) row.size());
++                const auto t1 = std::chrono::steady_clock::now();
++                if (rep >= 5) {
++                    ms.push_back(std::chrono::duration<double, std::milli>(t1 - t0).count());
++                }
++            }
++            std::sort(ms.begin(), ms.end());
++            const double med = ms[ms.size() / 2];
++            if (scalar_ms == 0.0) {
++                scalar_ms = med;
++            }
++            std::printf(" %s %.3f ms (%.2fx)", im.name, med, scalar_ms / med);
++        }
++        std::printf("\n");
++    }
++
+     if (failures == 0) {
+         std::printf("test-decide-fullpath: OK\n");
+     }
+diff --git a/tools/decide/decide-fullpath.cpp b/tools/decide/decide-fullpath.cpp
+index 2011d6ff1..ba03bed61 100644
+--- a/tools/decide/decide-fullpath.cpp
++++ b/tools/decide/decide-fullpath.cpp
+@@ -6,8 +6,173 @@
+ #include <limits>
+ #include <string>
+ 
++#ifdef DECIDE_LSE_X86
++#include <immintrin.h>
++#endif
++
+ namespace decide {
+ 
++double full_vocab_lse_scalar(const float * logits, int n_vocab) {
++    float max = -std::numeric_limits<float>::infinity();
++    for (int i = 0; i < n_vocab; ++i) {
++        max = logits[i] > max ? logits[i] : max;
++    }
++    double sum = 0.0;
++    for (int i = 0; i < n_vocab; ++i) {
++        sum += (double) std::exp(logits[i] - max);
++    }
++    return (double) max + std::log(sum);
++}
++
++#ifdef DECIDE_LSE_X86
++// The SIMD paths: a max pass that also notes NaN, then exp(logits[i] - max) by a Cephes-style float polynomial with every term
++// added in double (a float running sum next to a huge term would drop the tiny ones). Rows with NaN, +inf, only -inf or no
++// values return the scalar result (NaN; -inf for no values). Terms below exp(-87.34) (FLT_MIN), -inf among them, add 0, so 2^n
++// stays a normal float. n = round(x / ln 2) uses the current rounding mode (round to nearest by default).
++namespace {
++constexpr float EXP_LO = -87.33654f;  // log(FLT_MIN)
++constexpr float LOG2E  = 1.44269504088896341f;
++constexpr float LN2_HI = 0.693359375f;  // ln 2 = LN2_HI + LN2_LO, LN2_HI with few mantissa bits so n * LN2_HI is exact
++constexpr float LN2_LO = -2.12194440e-4f;
++constexpr float P0     = 1.9875691500e-4f;
++constexpr float P1     = 1.3981999507e-3f;
++constexpr float P2     = 8.3334519073e-3f;
++constexpr float P3     = 4.1665795894e-2f;
++constexpr float P4     = 1.6666665459e-1f;
++constexpr float P5     = 5.0000001201e-1f;
++
++// exp(x) for x <= 0 or -inf (not NaN), 0 below EXP_LO; the polynomial P0..P5 in r is evaluated in pairs (shorter dependency chains)
++inline __m128 exp_sse2(__m128 x) {
++    const __m128 lo   = _mm_set1_ps(EXP_LO);
++    const __m128 keep = _mm_cmpge_ps(x, lo);
++    x                 = _mm_max_ps(x, lo);
++    const __m128i n   = _mm_cvtps_epi32(_mm_mul_ps(x, _mm_set1_ps(LOG2E)));
++    const __m128  nf  = _mm_cvtepi32_ps(n);
++    __m128 r = _mm_sub_ps(_mm_sub_ps(x, _mm_mul_ps(nf, _mm_set1_ps(LN2_HI))), _mm_mul_ps(nf, _mm_set1_ps(LN2_LO)));
++    const __m128 r2 = _mm_mul_ps(r, r);
++    const __m128 a  = _mm_add_ps(_mm_mul_ps(_mm_set1_ps(P0), r), _mm_set1_ps(P1));
++    const __m128 b  = _mm_add_ps(_mm_mul_ps(_mm_set1_ps(P2), r), _mm_set1_ps(P3));
++    const __m128 c  = _mm_add_ps(_mm_mul_ps(_mm_set1_ps(P4), r), _mm_set1_ps(P5));
++    __m128       y  = _mm_add_ps(_mm_mul_ps(_mm_add_ps(_mm_mul_ps(a, r2), b), r2), c);
++    y               = _mm_add_ps(_mm_add_ps(_mm_mul_ps(y, r2), r), _mm_set1_ps(1.0f));
++    const __m128 scale = _mm_castsi128_ps(_mm_slli_epi32(_mm_add_epi32(n, _mm_set1_epi32(127)), 23));
++    return _mm_and_ps(_mm_mul_ps(y, scale), keep);
++}
++
++__attribute__((target("avx2,fma"))) inline __m256 exp_avx2(__m256 x) {
++    const __m256 lo   = _mm256_set1_ps(EXP_LO);
++    const __m256 keep = _mm256_cmp_ps(x, lo, _CMP_GE_OQ);
++    x                 = _mm256_max_ps(x, lo);
++    const __m256i n   = _mm256_cvtps_epi32(_mm256_mul_ps(x, _mm256_set1_ps(LOG2E)));
++    const __m256  nf  = _mm256_cvtepi32_ps(n);
++    __m256 r = _mm256_fnmadd_ps(nf, _mm256_set1_ps(LN2_HI), x);
++    r        = _mm256_fnmadd_ps(nf, _mm256_set1_ps(LN2_LO), r);
++    const __m256 r2 = _mm256_mul_ps(r, r);
++    const __m256 a  = _mm256_fmadd_ps(_mm256_set1_ps(P0), r, _mm256_set1_ps(P1));
++    const __m256 b  = _mm256_fmadd_ps(_mm256_set1_ps(P2), r, _mm256_set1_ps(P3));
++    const __m256 c  = _mm256_fmadd_ps(_mm256_set1_ps(P4), r, _mm256_set1_ps(P5));
++    __m256       y  = _mm256_fmadd_ps(_mm256_fmadd_ps(a, r2, b), r2, c);
++    y               = _mm256_add_ps(_mm256_fmadd_ps(y, r2, r), _mm256_set1_ps(1.0f));
++    const __m256 scale = _mm256_castsi256_ps(_mm256_slli_epi32(_mm256_add_epi32(n, _mm256_set1_epi32(127)), 23));
++    return _mm256_and_ps(_mm256_mul_ps(y, scale), keep);
++}
++
++// the scalar part of the max pass (the tail); false when the row needs the scalar result (NaN, +inf, only -inf, no values)
++bool finish_max(const float * logits, int from, int n_vocab, const float * lanes, int n_lanes, bool nan, float & max) {
++    max = -std::numeric_limits<float>::infinity();
++    for (int k = 0; k < n_lanes; ++k) {
++        max = lanes[k] > max ? lanes[k] : max;
++    }
++    for (int i = from; i < n_vocab; ++i) {
++        nan = nan || std::isnan(logits[i]);
++        max = logits[i] > max ? logits[i] : max;
++    }
++    return !nan && max > -std::numeric_limits<float>::infinity() && max < std::numeric_limits<float>::infinity();
++}
++} // namespace
++
++double full_vocab_lse_sse2(const float * logits, int n_vocab) {
++    __m128 vmax = _mm_set1_ps(-std::numeric_limits<float>::infinity());
++    __m128 bad  = _mm_setzero_ps();
++    int    i    = 0;
++    for (; i + 4 <= n_vocab; i += 4) {
++        const __m128 v = _mm_loadu_ps(logits + i);
++        bad            = _mm_or_ps(bad, _mm_cmpunord_ps(v, v));
++        vmax           = _mm_max_ps(vmax, v);
++    }
++    float lanes[4];
++    _mm_storeu_ps(lanes, vmax);
++    float max;
++    if (!finish_max(logits, i, n_vocab, lanes, 4, _mm_movemask_ps(bad) != 0, max)) {
++        return full_vocab_lse_scalar(logits, n_vocab);
++    }
++    const __m128 vm = _mm_set1_ps(max);
++    __m128d      s0 = _mm_setzero_pd(), s1 = _mm_setzero_pd(), s2 = _mm_setzero_pd(), s3 = _mm_setzero_pd();
++    for (i = 0; i + 8 <= n_vocab; i += 8) {
++        const __m128 e0 = exp_sse2(_mm_sub_ps(_mm_loadu_ps(logits + i), vm));
++        const __m128 e1 = exp_sse2(_mm_sub_ps(_mm_loadu_ps(logits + i + 4), vm));
++        s0              = _mm_add_pd(s0, _mm_cvtps_pd(e0));
++        s1              = _mm_add_pd(s1, _mm_cvtps_pd(_mm_movehl_ps(e0, e0)));
++        s2              = _mm_add_pd(s2, _mm_cvtps_pd(e1));
++        s3              = _mm_add_pd(s3, _mm_cvtps_pd(_mm_movehl_ps(e1, e1)));
++    }
++    double parts[2];
++    _mm_storeu_pd(parts, _mm_add_pd(_mm_add_pd(s0, s1), _mm_add_pd(s2, s3)));
++    double sum = parts[0] + parts[1];
++    for (; i < n_vocab; ++i) {
++        sum += (double) std::exp(logits[i] - max);
++    }
++    return (double) max + std::log(sum);
++}
++
++__attribute__((target("avx2,fma"))) double full_vocab_lse_avx2(const float * logits, int n_vocab) {
++    __m256 vmax = _mm256_set1_ps(-std::numeric_limits<float>::infinity());
++    __m256 bad  = _mm256_setzero_ps();
++    int    i    = 0;
++    for (; i + 8 <= n_vocab; i += 8) {
++        const __m256 v = _mm256_loadu_ps(logits + i);
++        bad            = _mm256_or_ps(bad, _mm256_cmp_ps(v, v, _CMP_UNORD_Q));
++        vmax           = _mm256_max_ps(vmax, v);
++    }
++    float lanes[8];
++    _mm256_storeu_ps(lanes, vmax);
++    float max;
++    if (!finish_max(logits, i, n_vocab, lanes, 8, _mm256_movemask_ps(bad) != 0, max)) {
++        return full_vocab_lse_scalar(logits, n_vocab);
++    }
++    const __m256 vm = _mm256_set1_ps(max);
++    __m256d      s0 = _mm256_setzero_pd(), s1 = _mm256_setzero_pd(), s2 = _mm256_setzero_pd(), s3 = _mm256_setzero_pd();
++    for (i = 0; i + 16 <= n_vocab; i += 16) {
++        const __m256 e0 = exp_avx2(_mm256_sub_ps(_mm256_loadu_ps(logits + i), vm));
++        const __m256 e1 = exp_avx2(_mm256_sub_ps(_mm256_loadu_ps(logits + i + 8), vm));
++        s0              = _mm256_add_pd(s0, _mm256_cvtps_pd(_mm256_castps256_ps128(e0)));
++        s1              = _mm256_add_pd(s1, _mm256_cvtps_pd(_mm256_extractf128_ps(e0, 1)));
++        s2              = _mm256_add_pd(s2, _mm256_cvtps_pd(_mm256_castps256_ps128(e1)));
++        s3              = _mm256_add_pd(s3, _mm256_cvtps_pd(_mm256_extractf128_ps(e1, 1)));
++    }
++    double parts[4];
++    _mm256_storeu_pd(parts, _mm256_add_pd(_mm256_add_pd(s0, s1), _mm256_add_pd(s2, s3)));
++    double sum = parts[0] + parts[1] + parts[2] + parts[3];
++    for (; i < n_vocab; ++i) {
++        sum += (double) std::exp(logits[i] - max);
++    }
++    return (double) max + std::log(sum);
++}
++
++bool full_vocab_lse_avx2_supported() {
++    static const bool ok = __builtin_cpu_supports("avx2") && __builtin_cpu_supports("fma");
++    return ok;
++}
++#endif
++
++double full_vocab_lse(const float * logits, int n_vocab) {
++#ifdef DECIDE_LSE_X86
++    return full_vocab_lse_avx2_supported() ? full_vocab_lse_avx2(logits, n_vocab) : full_vocab_lse_sse2(logits, n_vocab);
++#else
++    return full_vocab_lse_scalar(logits, n_vocab);
++#endif
++}
++
+ std::vector<const std::vector<llama_token> *> leaf_merged_sets(const field_trie & t, const vocab_index & vi, const llama_vocab * vocab) {
+     std::vector<const std::vector<llama_token> *> out(t.nodes.size(), nullptr);
+     for (size_t n = 1; n < t.nodes.size(); ++n) {
+@@ -25,15 +190,7 @@ std::vector<const std::vector<llama_token> *> leaf_merged_sets(const field_trie
+ node_logp full_path_row(const float * logits, int n_vocab, const field_trie & t, int node,
+                         const std::vector<llama_token> & end_tokens, const std::vector<const std::vector<llama_token> *> & merged) {
+     // full-vocabulary log-sum-exp; NaN or +inf in the row makes it NaN, which score_field_full rejects
+-    float max = -std::numeric_limits<float>::infinity();
+-    for (int i = 0; i < n_vocab; ++i) {
+-        max = logits[i] > max ? logits[i] : max;
+-    }
+-    double sum = 0.0;
+-    for (int i = 0; i < n_vocab; ++i) {
+-        sum += (double) std::exp(logits[i] - max);
+-    }
+-    const double lse = (double) max + std::log(sum);
++    const double lse = full_vocab_lse(logits, n_vocab);
+     // log of the probability mass of `toks` (-inf when empty)
+     const auto log_mass = [&](const std::vector<llama_token> & toks) {
+         double m = 0.0;
+diff --git a/tools/decide/decide-fullpath.h b/tools/decide/decide-fullpath.h
+index 5423083ca..5869ba9e1 100644
+--- a/tools/decide/decide-fullpath.h
++++ b/tools/decide/decide-fullpath.h
+@@ -12,6 +12,18 @@ namespace decide {
+ 
+ // spec 4.1: per node of t, the MERGED set of a leaf's edge-token piece; nullptr for the root, inner nodes and pieces without MERGED tokens
+ std::vector<const std::vector<llama_token> *> leaf_merged_sets(const field_trie & t, const vocab_index & vi, const llama_vocab * vocab);
++// spec 4.4: log(sum exp(logits[i])) over the n_vocab values of a row, the normaliser of full_path_row; NaN or +inf anywhere gives
++// NaN, -inf entries add 0, a row of only -inf gives NaN. Runs the fastest implementation below that this CPU supports.
++double full_vocab_lse(const float * logits, int n_vocab);
++// the implementations, callable from tests: portable scalar code (float exp, double sum); on x86-64 with GCC or Clang an SSE2
++// and an AVX2+FMA path (float exp polynomial, double sums), the latter only where full_vocab_lse_avx2_supported()
++double full_vocab_lse_scalar(const float * logits, int n_vocab);
++#if defined(__x86_64__) && (defined(__GNUC__) || defined(__clang__))
++#define DECIDE_LSE_X86 1
++double full_vocab_lse_sse2(const float * logits, int n_vocab);
++double full_vocab_lse_avx2(const float * logits, int n_vocab);
++bool   full_vocab_lse_avx2_supported();
++#endif
+ // spec 4.4: the values of the row read after `node`, from the full-vocabulary softmax of `logits` (n_vocab values): the log-probs
+ // of the children's tokens, the END mass on a leaf, per leaf child the MERGED mass of merged[child] (-inf otherwise)
+ node_logp full_path_row(const float * logits, int n_vocab, const field_trie & t, int node,
+-- 
+2.55.0
+

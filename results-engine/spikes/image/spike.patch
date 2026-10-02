@@ -1,0 +1,281 @@
+diff --git a/tools/decide/CMakeLists.txt b/tools/decide/CMakeLists.txt
+index eed472cb5..1b71fb7ec 100644
+--- a/tools/decide/CMakeLists.txt
++++ b/tools/decide/CMakeLists.txt
+@@ -10,7 +10,7 @@ add_library(llama-decide STATIC
+     decide-api.cpp decide-api.h
+     decide-compat.cpp decide-compat.h)
+ target_include_directories(llama-decide PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+-target_link_libraries(llama-decide PUBLIC llama-common llama)
++target_link_libraries(llama-decide PUBLIC llama-common llama mtmd)   # SPIKE: mtmd for image states
+ target_compile_features(llama-decide PUBLIC cxx_std_17)
+ set_target_properties(llama-decide PROPERTIES POSITION_INDEPENDENT_CODE ON)
+ 
+diff --git a/tools/decide/decide-engine.cpp b/tools/decide/decide-engine.cpp
+index cfd4c6818..31187ec20 100644
+--- a/tools/decide/decide-engine.cpp
++++ b/tools/decide/decide-engine.cpp
+@@ -3,6 +3,8 @@
+ #include "decide-fullpath.h"
+ #include "common.h"
+ #include "ggml.h"
++#include "mtmd.h"          // SPIKE
++#include "mtmd-helper.h"   // SPIKE
+ 
+ #include <algorithm>
+ #include <cstdlib>
+@@ -581,6 +583,50 @@ int engine::run_round(const compiled_schema & cs, const trie_set & ts, int K,
+             const llama_seq_id   T = trunk_seq(cfg.seq_base, K, n_branch, c, v);
+             llama_memory_seq_cp(mem, cfg.seq_base + v, T, -1, -1);
+             llama_pos pos = (llama_pos) p.tokens.size();
++            // SPIKE: an image state decodes its media chunks into T first (one decode per chunk, separate from the batched
++            // trunk decode below); the image is encoded once per state, at v == 0, and its embeddings reused for every variant
++            const image_part & im = rs.images[first + c];
++            if (im.chunks != nullptr) {
++                float * embd = nullptr;
++                for (size_t j = 0; j < mtmd_input_chunks_size(im.chunks); ++j) {
++                    const mtmd_input_chunk * ch = mtmd_input_chunks_get(im.chunks, j);
++                    if (mtmd_input_chunk_get_type(ch) == MTMD_INPUT_CHUNK_TYPE_TEXT) {
++                        size_t n = 0;
++                        const llama_token * toks = mtmd_input_chunk_get_tokens_text(ch, &n);
++                        std::vector<entry> te;
++                        for (size_t k = 0; k < n; ++k) {
++                            te.push_back({toks[k], pos++, T, -1});
++                        }
++                        const int64_t ti = ggml_time_us();
++                        const int     r  = decode_chunked(te, nullptr, st);
++                        st.image_us += ggml_time_us() - ti;
++                        if (r != 0) {
++                            return r;
++                        }
++                        continue;
++                    }
++                    if (v == 0 || embd == nullptr) {
++                        const int64_t te = ggml_time_us();
++                        if (mtmd_encode_chunk((mtmd_context *) cfg.mctx, ch) != 0) {
++                            throw error("engine", 500, "SPIKE: image encode failed");
++                        }
++                        embd = mtmd_get_output_embd((mtmd_context *) cfg.mctx);
++                        st.encode_us += ggml_time_us() - te;
++                    }
++                    const int64_t ti      = ggml_time_us();
++                    llama_pos     new_pos = pos;
++                    const int     r = mtmd_helper_decode_image_chunk((mtmd_context *) cfg.mctx, ctx, ch, embd, pos, T, n_batch, &new_pos,
++                                                                     nullptr, nullptr);
++                    llama_synchronize(ctx);
++                    st.image_us += ggml_time_us() - ti;
++                    if (r != 0) {
++                        return 1;
++                    }
++                    st.decodes++;
++                    st.prompt_tokens += (int64_t) mtmd_input_chunk_get_n_tokens(ch);
++                    pos = new_pos;
++                }
++            }
+             for (llama_token tok : state_tokens[first + c]) {
+                 entries.push_back({tok, pos++, T, -1});
+             }
+@@ -653,10 +699,47 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+         throw error("budget", 400, sequence_budget_message(cfg.decide_seqs, K, B, mode_name(ts.mode)));
+     }
+ 
++    // SPIKE: "\x1d<path>\x1d<text>" is an image state: media chunks (mtmd, the marker alone) + the plain tokens of <text>
++    std::vector<image_part> images(states.size());
++    struct chunks_guard {
++        std::vector<image_part> & v;
++        ~chunks_guard() {
++            for (image_part & p : v) {
++                if (p.chunks) mtmd_input_chunks_free(p.chunks);
++            }
++        }
++    } guard{images};
+     std::vector<std::vector<llama_token>> state_tokens;
+     state_tokens.reserve(states.size());
+-    for (const auto & s : states) {
+-        state_tokens.push_back(tokenize_plain(vocab, s));
++    for (size_t i = 0; i < states.size(); ++i) {
++        const std::string & s = states[i];
++        if (s.empty() || s[0] != '\x1d') {
++            state_tokens.push_back(tokenize_plain(vocab, s));
++            continue;
++        }
++        if (cfg.mctx == nullptr) {
++            throw error("invalid_states", 400, "SPIKE: image states need --mmproj");
++        }
++        const size_t      sep  = s.find('\x1d', 1);
++        const std::string path = s.substr(1, sep - 1);
++        const std::string text = s.substr(sep + 1);
++        mtmd_helper_bitmap_wrapper bw = mtmd_helper_bitmap_init_from_file((mtmd_context *) cfg.mctx, path.c_str(), false,
++                                                                          mtmd_helper_init_opt_default());
++        if (bw.bitmap == nullptr) {
++            throw error("invalid_states", 400, "SPIKE: cannot load image " + path);
++        }
++        images[i].chunks = mtmd_input_chunks_init();
++        const std::string marker = mtmd_get_marker((mtmd_context *) cfg.mctx);
++        mtmd_input_text   in{marker.c_str(), marker.size(), false, true};
++        const mtmd_bitmap * bms[] = {bw.bitmap};
++        const int32_t rc = mtmd_tokenize((mtmd_context *) cfg.mctx, images[i].chunks, &in, bms, 1);
++        mtmd_bitmap_free(bw.bitmap);
++        if (rc != 0) {
++            throw error("invalid_states", 400, "SPIKE: mtmd_tokenize failed: " + std::to_string(rc));
++        }
++        images[i].n_tokens = (int64_t) mtmd_helper_get_n_tokens(images[i].chunks);
++        images[i].n_pos    = mtmd_helper_get_n_pos(images[i].chunks);
++        state_tokens.push_back(tokenize_plain(vocab, text));
+     }
+     // spec 4.5: logit rows per state of the scoring mode
+     const branch_counts counts = count_branches(ts);
+@@ -664,6 +747,7 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+     // spec 5: the phases; per field its branch sequence ids and its branch cells with the worst-case lines of spec 5.4
+     request_state rs;
+     rs.temperature = resolve_temperature(cs.opts.temperature, cfg.temperature);
++    rs.images      = images;   // SPIKE (the guard above frees the chunks)
+     rs.phases      = phase_fields(cs);
+     rs.reserved    = reserved_branch_tokens(ts, worst_lines_tokens(cs, line_tokens_max(cs, vocab)));
+     int64_t branch_total = 0;
+@@ -715,7 +799,7 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+     const int64_t tail  = (int64_t) ps[0].tail_tokens.size();
+     const int64_t held  = held_cells();
+     for (size_t i = 0; i < states.size(); ++i) {
+-        const int64_t n = (int64_t) state_tokens[i].size();
++        const int64_t n = (int64_t) state_tokens[i].size() + images[i].n_tokens;   // SPIKE: image cells
+         if (state_cells(held, prefix_total, K, n, tail, branch_total) > n_ctx - 16) {
+             throw error("budget", 400, state_cells_message(i, held, prefix_total, K, n, tail, branch_total, n_ctx - 16));
+         }
+@@ -744,7 +828,7 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+         auto need_for = [&](size_t n) {
+             int64_t state_sum = 0;
+             for (size_t c = 0; c < n; ++c) {
+-                state_sum += (int64_t) state_tokens[next + c].size();
++                state_sum += (int64_t) state_tokens[next + c].size() + images[next + c].n_tokens;   // SPIKE: image cells
+             }
+             return state_cells(held, prefix_total, K, state_sum, (int64_t) n * tail, (int64_t) n * branch_total);
+         };
+@@ -807,6 +891,10 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+         common_json u = common_json::object();
+         u["state_tokens"]  = (int64_t) state_tokens[i].size();
+         u["scored_tokens"] = K * counts.rows;
++        if (images[i].chunks != nullptr) {   // SPIKE
++            u["image_cells"]     = images[i].n_tokens;
++            u["image_positions"] = images[i].n_pos;
++        }
+         common_json a = common_json::object();
+         for (size_t f = 0; f < cs.fields.size(); ++f) {
+             a[cs.fields[f].name] = answer_json(cs.fields[f], rs.answers[i][f]);
+@@ -832,6 +920,8 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+     timings["rounds"]     = st.rounds;
+     timings["decodes"]    = st.decodes;
+     timings["retries"]    = st.retries;
++    timings["image_encode_ms"] = st.encode_us / 1000.0;   // SPIKE: parts of prefill_ms
++    timings["image_decode_ms"] = st.image_us / 1000.0;
+ 
+     common_json quote_split = common_json::array();
+     for (size_t f = 0; f < cs.fields.size(); ++f) {
+@@ -869,6 +959,36 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+     if (!resplit.empty()) {
+         eng["resplit_options"] = resplit;
+     }
++    // SPIKE: the texts a /completion reference needs: prefix, tail, and per tree branch its tokens' text and child pieces
++    {
++        common_json sp = common_json::object();
++        sp["prefix_text"] = ps[0].prefix_text;
++        sp["tail_text"]   = ps[0].tail_text;
++        common_json br = common_json::array();
++        if (ts.mode == scoring_mode::TREE && K == 1 && rs.phases.size() == 1) {
++            for (size_t f = 0; f < cs.fields.size(); ++f) {
++                const field_trie & t = ts.fields[f];
++                for (int k : t.branch_nodes) {
++                    std::string text;
++                    for (llama_token tok : branch_tokens(t, k)) {
++                        text += common_token_to_piece(ctx, tok);
++                    }
++                    common_json kids = common_json::array();
++                    for (int child : t.nodes[k].children) {
++                        kids.push_back(common_token_to_piece(ctx, t.nodes[child].tok));
++                    }
++                    common_json b = common_json::object();
++                    b["field"]    = cs.fields[f].name;
++                    b["node"]     = k;
++                    b["text"]     = text;
++                    b["children"] = kids;
++                    br.push_back(b);
++                }
++            }
++        }
++        sp["branches"] = br;
++        eng["spike"]   = sp;
++    }
+ 
+     common_json out = common_json::object();
+     out["object"]  = "decide";
+diff --git a/tools/decide/decide-engine.h b/tools/decide/decide-engine.h
+index a039508c5..1b4215f58 100644
+--- a/tools/decide/decide-engine.h
++++ b/tools/decide/decide-engine.h
+@@ -5,6 +5,7 @@
+ #include "decide-vocab.h"
+ #include "chat.h"
+ #include "llama.h"
++#include "mtmd.h"   // SPIKE
+ #include <cstdint>
+ #include <functional>
+ #include <string>
+@@ -19,6 +20,7 @@ struct engine_config {
+     std::vector<llama_seq_id> slot_seqs;            // sequences owned by server slots (for the cell check); empty in the CLI
+     int                       prefix_cache = 8;     // spec 6.2: LRU entries of host prefix snapshots (0 = off)
+     double                    temperature  = 1.0;   // spec 8: default when a request has no options.temperature
++    struct mtmd_context *     mctx         = nullptr;   // SPIKE: image states need --mmproj
+ };
+ 
+ struct prefix_state {
+@@ -114,6 +116,14 @@ private:
+         int64_t cached_tokens = 0;   // prefix tokens resident or restored
+         int     hits          = 0;   // prefixes restored from the cache
+         int     misses        = 0;   // prefixes built while the cache is on
++        int64_t encode_us     = 0;   // SPIKE: projector encode of image states
++        int64_t image_us      = 0;   // SPIKE: LLM decode of the image chunks (and the text chunks around them)
++    };
++    // SPIKE: one image state's media part (chunks == nullptr: text-only state)
++    struct image_part {
++        struct mtmd_input_chunks * chunks   = nullptr;
++        int64_t                    n_tokens = 0;   // KV cells
++        llama_pos                  n_pos    = 0;   // positions (M-RoPE: fewer than cells)
+     };
+     // spec 6.2: one host snapshot of a prefix slot
+     struct cache_entry {
+@@ -145,6 +155,7 @@ private:
+         std::vector<std::vector<field_state>>                      fields;      // per state and field
+         std::vector<std::vector<field_answer>>                     answers;     // per state and field (variant mean, then temperature); the lines of dependent fields come from these
+         double                                                     temperature = 1.0;   // spec 8: the request's T
++        std::vector<image_part>                                    images;      // SPIKE: per state
+     };
+ 
+     rendered render(const compiled_schema * cs, int variant, int variants) const;
+diff --git a/tools/decide/decide-schema.cpp b/tools/decide/decide-schema.cpp
+index 2571f0bb8..ca41c312d 100644
+--- a/tools/decide/decide-schema.cpp
++++ b/tools/decide/decide-schema.cpp
+@@ -205,6 +205,11 @@ std::vector<std::string> states_of(const common_json & body) {
+     std::vector<std::string> out;
+     for (size_t i = 0; i < sj.size(); ++i) {
+         const auto & ej = sj.at(i);
++        // SPIKE (image input): {"image": "<path on the server>", "text": "..."} becomes "\x1d<path>\x1d<text>"
++        if (ej.is_object() && ej.contains("image") && ej.at("image").is_string()) {
++            out.push_back(std::string("\x1d") + ej.at("image").get<std::string>() + "\x1d" + ej.value("text", std::string()));
++            continue;
++        }
+         if (!ej.is_string()) throw error("invalid_states", 400, "states entries must be strings");
+         std::string s = ej.get<std::string>();
+         if (s.empty()) throw error("invalid_states", 400, "states entries must not be empty");
+diff --git a/tools/server/server-context.cpp b/tools/server/server-context.cpp
+index d6adadd03..683aeee78 100644
+--- a/tools/server/server-context.cpp
++++ b/tools/server/server-context.cpp
+@@ -1424,6 +1424,7 @@ private:
+         cfg.seq_base     = (llama_seq_id) params_base.n_parallel;
+         cfg.prefix_cache = params_base.decide_prefix_cache;
+         cfg.temperature  = params_base.decide_temperature;
++        cfg.mctx         = mctx;   // SPIKE: image states
+         for (int i = 0; i < params_base.n_parallel; i++) {
+             cfg.slot_seqs.push_back((llama_seq_id) i);
+         }

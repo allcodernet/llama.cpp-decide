@@ -1,0 +1,945 @@
+From 96416ec463e31b538ce5ea4212fcd58c690d18a0 Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 23:06:59 +0200
+Subject: [PATCH 26/45] decide: full-path scoring
+
+Full-path branch phase (spec 4): one sequence per option from
+full_path_plan, rows tagged per trie node, decode chunks flushed at
+n_batch tokens or llama_n_seq_max rows (a chunk may split a sequence),
+full-vocabulary rows turned into node_logp (children, END on leaves,
+MERGED per leaf child) and scored by score_field_full. Vocab index
+built once per engine. Budget and seqs per state use the full-path
+counts; usage counts tokens decoded and rows read; engine.scoring,
+engine.resplit_options, coverage per field; info lists both modes;
+dump entries carry mode, and full-path entries option, rows, logp.
+The full_path guard in decide-api is removed.
+
+Model-free tests: test-decide-fullpath (chunks, row mapping across a
+split, row values, budget counts); leaf MERGED sets in test-decide-trie.
+---
+ tests/CMakeLists.txt           |   3 +
+ tests/test-decide-fullpath.cpp | 233 ++++++++++++++++++++++++
+ tests/test-decide-trie.cpp     |  15 ++
+ tools/decide/decide-api.cpp    |   1 -
+ tools/decide/decide-cli.cpp    |   5 +-
+ tools/decide/decide-engine.cpp | 318 ++++++++++++++++++++++++++++-----
+ tools/decide/decide-engine.h   |  66 +++++--
+ 7 files changed, 588 insertions(+), 53 deletions(-)
+ create mode 100644 tests/test-decide-fullpath.cpp
+
+diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
+index c89d15909..d5058974e 100644
+--- a/tests/CMakeLists.txt
++++ b/tests/CMakeLists.txt
+@@ -394,3 +394,6 @@ target_link_libraries(test-decide-trie PRIVATE llama-decide)
+ 
+ llama_build_and_test(test-decide-cache.cpp)
+ target_link_libraries(test-decide-cache PRIVATE llama-decide)
++
++llama_build_and_test(test-decide-fullpath.cpp)
++target_link_libraries(test-decide-fullpath PRIVATE llama-decide)
+diff --git a/tests/test-decide-fullpath.cpp b/tests/test-decide-fullpath.cpp
+new file mode 100644
+index 000000000..1dfe83cb5
+--- /dev/null
++++ b/tests/test-decide-fullpath.cpp
+@@ -0,0 +1,233 @@
++// spec 4.3-4.5 full-path engine helpers without a model: decode chunks (n_batch and the row cap), the row -> node mapping of
++// full-path branch sequences across a chunk split, the values of one row, and the branch token / row counts of the budget
++#include "decide-engine.h"
++
++#include <cmath>
++#include <cstdio>
++#include <limits>
++#include <string>
++#include <utility>
++#include <vector>
++
++static int failures = 0;
++#define CHECK(cond) do { if (!(cond)) { std::fprintf(stderr, "FAIL %s:%d: %s\n", __FILE__, __LINE__, #cond); failures++; } } while (0)
++
++using chunks = std::vector<std::pair<size_t, size_t>>;
++static const float NEG_INF = -std::numeric_limits<float>::infinity();
++
++static bool near(double a, double b, double eps = 1e-5) { return std::fabs(a - b) < eps; }
++
++// stem {100, 101}; paths: option 0 {10, 20}, option 1 {10, 21}, option 2 {11} (insertion order of build_from_paths)
++// nodes: 0 root -> 1 (10) -> 2 (20, leaf of 0) and 3 (21, leaf of 1); root -> 4 (11, leaf of 2)
++static decide::field_trie region() {
++    decide::field_trie t;
++    t.stem = {100, 101};
++    t.paths = {{10, 20}, {10, 21}, {11}};
++    t.nodes.resize(5);
++    t.nodes[0].children = {1, 4}; t.nodes[0].options_through = {0, 1, 2};
++    t.nodes[1].tok = 10; t.nodes[1].children = {2, 3}; t.nodes[1].options_through = {0, 1};
++    t.nodes[2].tok = 20; t.nodes[2].options_through = {0};
++    t.nodes[3].tok = 21; t.nodes[3].options_through = {1};
++    t.nodes[4].tok = 11; t.nodes[4].options_through = {2};
++    t.branch_nodes = {0, 1};
++    t.option_nodes = {{0, 1, 2}, {0, 1, 3}, {0, 4}};
++    return t;
++}
++
++// stem {200}; paths {7}, {8}: a bool-like field
++static decide::field_trie two_leaves() {
++    decide::field_trie t;
++    t.stem = {200};
++    t.paths = {{7}, {8}};
++    t.nodes.resize(3);
++    t.nodes[0].children = {1, 2}; t.nodes[0].options_through = {0, 1};
++    t.nodes[1].tok = 7; t.nodes[1].options_through = {0};
++    t.nodes[2].tok = 8; t.nodes[2].options_through = {1};
++    t.branch_nodes = {0};
++    t.option_nodes = {{0, 1}, {0, 2}};
++    return t;
++}
++
++static std::vector<decide::decode_entry> plain(size_t n, int row_every = 0) {
++    std::vector<decide::decode_entry> e;
++    for (size_t i = 0; i < n; ++i) {
++        e.push_back({(llama_token) i, (llama_pos) i, 1, row_every > 0 && i % row_every == 0 ? (int) i : -1});
++    }
++    return e;
++}
++
++int main() {
++    using decide::decode_chunks;
++
++    // 1. chunks: n_batch alone (no rows), the row cap alone, both; no empty chunk at the end
++    {
++        CHECK(decode_chunks({}, 4, 3).empty());
++        CHECK(decode_chunks(plain(5), 2, 3) == (chunks{{0, 2}, {2, 4}, {4, 5}}));
++        CHECK(decode_chunks(plain(5), 8, 3) == (chunks{{0, 5}}));
++        // rows on every token: the cap (3) ends chunks before n_batch (8) does
++        CHECK(decode_chunks(plain(7, 1), 8, 3) == (chunks{{0, 3}, {3, 6}, {6, 7}}));
++        // exactly the cap at the last entry: one chunk
++        CHECK(decode_chunks(plain(3, 1), 8, 3) == (chunks{{0, 3}}));
++        // n_batch (2) before the cap (5)
++        CHECK(decode_chunks(plain(6, 1), 2, 5) == (chunks{{0, 2}, {2, 4}, {4, 6}}));
++        // rows on every third token (0, 3, 6, 9): cap 2 -> the chunk ends at the token holding the 2nd row
++        CHECK(decode_chunks(plain(11, 3), 100, 2) == (chunks{{0, 4}, {4, 10}, {10, 11}}));
++        // tree mode: fewer rows than the cap -> the n_batch chunks of today
++        CHECK(decode_chunks(plain(9, 4), 4, 65) == (chunks{{0, 4}, {4, 8}, {8, 9}}));
++    }
++
++    // 2. full-path branch sequences: every node read once, the row after token x belongs to the node whose edge token is x
++    //    (the root's row after the last stem token); a row-cap chunk boundary splits option 0's sequence
++    {
++        const decide::field_trie t    = region();
++        const auto               plan = decide::full_path_plan(t);
++        CHECK(plan.size() == 3);
++        std::vector<decide::decode_entry> entries;
++        std::vector<decide::row_ref>      refs;
++        const llama_pos pos0 = 30;
++        for (size_t o = 0; o < plan.size(); ++o) {
++            decide::add_full_path_seq(plan[o], 50 + (llama_seq_id) o, pos0, 2, 1, entries, refs);
++        }
++        // option 0: 4 tokens, option 1: 4, option 2: 3
++        CHECK(entries.size() == 11 && refs.size() == t.nodes.size());
++        // every entry: its sequence, positions from pos0, the plan's tokens
++        const std::vector<size_t> starts = {0, 4, 8};
++        for (size_t o = 0; o < plan.size(); ++o) {
++            for (size_t i = 0; i < plan[o].tokens.size(); ++i) {
++                const decide::decode_entry & e = entries[starts[o] + i];
++                CHECK(e.seq == 50 + (llama_seq_id) o && e.pos == pos0 + (llama_pos) i && e.tok == plan[o].tokens[i]);
++            }
++        }
++        // tagged entries: option 0 reads root (index 1), node 1 (2), node 2 (3); option 1 node 3 (index 3); option 2 node 4 (index 2)
++        std::vector<int> tagged;
++        for (size_t j = 0; j < entries.size(); ++j) {
++            if (entries[j].tag >= 0) {
++                tagged.push_back((int) j);
++            }
++        }
++        CHECK(tagged == (std::vector<int>{1, 2, 3, 7, 10}));
++        std::vector<int> reads(t.nodes.size(), 0);
++        for (int j : tagged) {
++            const decide::row_ref & r = refs[entries[j].tag];
++            CHECK(r.state == 2 && r.field == 1 && r.node >= 0 && r.node < (int) t.nodes.size());
++            if (r.node < 0 || r.node >= (int) t.nodes.size()) {
++                continue;
++            }
++            reads[r.node]++;
++            CHECK(r.node == 0 ? entries[j].tok == t.stem.back() : entries[j].tok == t.nodes[r.node].tok);
++        }
++        CHECK(reads == (std::vector<int>{1, 1, 1, 1, 1}));
++
++        // row cap 2: chunk [0, 3) holds option 0's first three tokens (rows: root, node 1); its last token (node 2's row) opens
++        // chunk [3, 8) with option 1 (node 3's row); option 2 is chunk [8, 11)
++        const chunks ch = decode_chunks(entries, 512, 2);
++        CHECK(ch == (chunks{{0, 3}, {3, 8}, {8, 11}}));
++        // the llama_get_logits_ith argument is the index inside the chunk's batch, not the index into the phase
++        CHECK(decide::chunk_rows(entries, 0, 3) == (std::vector<std::pair<int32_t, int>>{{1, entries[1].tag}, {2, entries[2].tag}}));
++        CHECK(decide::chunk_rows(entries, 3, 8) == (std::vector<std::pair<int32_t, int>>{{0, entries[3].tag}, {4, entries[7].tag}}));
++        CHECK(decide::chunk_rows(entries, 8, 11) == (std::vector<std::pair<int32_t, int>>{{2, entries[10].tag}}));
++        // the split sequence continues at the next position in the next chunk
++        CHECK(entries[3].seq == 50 && entries[3].pos == entries[2].pos + 1 && refs[entries[3].tag].node == 2);
++        // every row once over all chunks, each at its node
++        std::vector<int> seen(t.nodes.size(), 0);
++        for (const auto & c : ch) {
++            for (const auto & [i, tag] : decide::chunk_rows(entries, c.first, c.second)) {
++                const decide::decode_entry & e = entries[c.first + (size_t) i];
++                CHECK(e.tag == tag);
++                seen[refs[tag].node]++;
++            }
++        }
++        CHECK(seen == (std::vector<int>{1, 1, 1, 1, 1}));
++    }
++
++    // 3. one row's values: full-vocabulary softmax, children, END on a leaf, MERGED per leaf child
++    {
++        // trie: root -> 1 (tok 1) -> 3 (tok 3, leaf); root -> 2 (tok 2, leaf)
++        decide::field_trie t;
++        t.stem = {9};
++        t.paths = {{1, 3}, {2}};
++        t.nodes.resize(4);
++        t.nodes[0].children = {1, 2};
++        t.nodes[1].tok = 1; t.nodes[1].children = {3};
++        t.nodes[2].tok = 2;
++        t.nodes[3].tok = 3;
++        t.option_nodes = {{0, 1, 3}, {0, 2}};
++        // probabilities over a vocabulary of 8, logits shifted by 7 (the softmax removes the shift)
++        const std::vector<double> p = {0.05, 0.30, 0.20, 0.10, 0.15, 0.10, 0.05, 0.05};
++        std::vector<float>        logits;
++        for (double x : p) {
++            logits.push_back((float) (std::log(x) + 7.0));
++        }
++        const std::vector<llama_token> end_tokens = {4, 5};           // END mass 0.25
++        const std::vector<llama_token> merged_2   = {6};              // MERGED of leaf 2's piece: 0.05
++        const std::vector<llama_token> merged_3   = {6, 7};           // MERGED of leaf 3's piece: 0.10
++        const std::vector<const std::vector<llama_token> *> merged = {nullptr, nullptr, &merged_2, &merged_3};
++
++        const decide::node_logp root = decide::full_path_row(logits.data(), 8, t, 0, end_tokens, merged);
++        CHECK(root.node == 0 && root.child_logp.size() == 2 && root.merged_logp.size() == 2);
++        CHECK(near(root.child_logp[0], std::log(0.30)) && near(root.child_logp[1], std::log(0.20)));
++        CHECK(root.merged_logp[0] == NEG_INF);                       // child 1 is not a leaf
++        CHECK(near(root.merged_logp[1], std::log(0.05)));            // child 2 is a leaf
++        CHECK(root.end_logp == NEG_INF);
++
++        const decide::node_logp inner = decide::full_path_row(logits.data(), 8, t, 1, end_tokens, merged);
++        CHECK(inner.child_logp.size() == 1 && near(inner.child_logp[0], std::log(0.10)));
++        CHECK(inner.merged_logp.size() == 1 && near(inner.merged_logp[0], std::log(0.10)));
++        CHECK(inner.end_logp == NEG_INF);
++
++        const decide::node_logp leaf = decide::full_path_row(logits.data(), 8, t, 3, end_tokens, merged);
++        CHECK(leaf.node == 3 && leaf.child_logp.empty() && leaf.merged_logp.empty() && near(leaf.end_logp, std::log(0.25)));
++
++        // a leaf child without MERGED tokens: -inf
++        const decide::node_logp none = decide::full_path_row(logits.data(), 8, t, 0, end_tokens, {nullptr, nullptr, nullptr, &merged_3});
++        CHECK(none.merged_logp[1] == NEG_INF && near(none.child_logp[1], std::log(0.20)));
++
++        // large logits (shift 1000) stay finite: the maximum is subtracted before exp
++        std::vector<float> big;
++        for (double x : p) {
++            big.push_back((float) (std::log(x) + 1000.0));
++        }
++        const decide::node_logp b = decide::full_path_row(big.data(), 8, t, 0, end_tokens, merged);
++        CHECK(near(b.child_logp[0], std::log(0.30), 1e-3) && near(b.merged_logp[1], std::log(0.05), 1e-3));
++
++        // decide::score_field_full accepts the rows: P(0) = 0.3 * 0.1 * 0.25 + 0.3 * 0.10, P(1) = 0.2 * 0.25 + 0.05
++        std::vector<decide::node_logp> rows;
++        for (int n = 0; n < 4; ++n) {
++            rows.push_back(decide::full_path_row(logits.data(), 8, t, n, end_tokens, merged));
++        }
++        decide::field f;
++        f.name    = "f";
++        f.type    = decide::field_type::CHOICE;
++        f.options = {{"a", "", "\"a\""}, {"b", "", "\"b\""}};
++        const decide::field_answer a  = decide::score_field_full(f, t, rows);
++        const double               p0 = 0.3 * 0.1 * 0.25 + 0.3 * 0.10;
++        const double               p1 = 0.2 * 0.25 + 0.05;
++        CHECK(near(a.coverage, p0 + p1) && near(a.probs[0], p0 / (p0 + p1)) && near(a.probs[1], p1 / (p0 + p1)));
++
++        // NaN in the row: every value derived from the normaliser is NaN (score_field_full turns it into a 500)
++        std::vector<float> broken = logits;
++        broken[5] = std::numeric_limits<float>::quiet_NaN();
++        const decide::node_logp nan_row = decide::full_path_row(broken.data(), 8, t, 0, end_tokens, merged);
++        CHECK(std::isnan(nan_row.child_logp[0]));
++    }
++
++    // 4. budget counts per state: tree = branch tokens of the branch nodes and one row per branch node;
++    //    full-path = stem + path tokens per option and one row per trie node
++    {
++        decide::trie_set ts;
++        ts.fields = {region(), two_leaves()};
++        ts.mode   = decide::scoring_mode::TREE;
++        // tree: region branch nodes 0 (stem, 2 tokens) and 1 (stem + 10, 3 tokens); two_leaves branch node 0 (1 token)
++        const decide::branch_counts tree = decide::count_branches(ts);
++        CHECK(tree.tokens == 2 + 3 + 1 && tree.rows == 2 + 1);
++        ts.mode = decide::scoring_mode::FULL_PATH;
++        // full-path: region 4 + 4 + 3 tokens, 5 nodes; two_leaves 2 + 2 tokens, 3 nodes
++        const decide::branch_counts full = decide::count_branches(ts);
++        CHECK(full.tokens == 11 + 4 && full.rows == 5 + 3);
++    }
++
++    if (failures == 0) {
++        std::printf("test-decide-fullpath: OK\n");
++    }
++    return failures == 0 ? 0 : 1;
++}
+diff --git a/tests/test-decide-trie.cpp b/tests/test-decide-trie.cpp
+index dcba3e433..e861c7b05 100644
+--- a/tests/test-decide-trie.cpp
++++ b/tests/test-decide-trie.cpp
+@@ -1,3 +1,4 @@
++#include "decide-engine.h"
+ #include "decide-trie.h"
+ #include "decide-vocab.h"
+ #include "common.h"
+@@ -292,6 +293,20 @@ int main() {
+             CHECK(!plan.empty() && !plan[0].row_node.empty() && plan[0].row_node[0] == 0 && plan[0].row_index[0] == (int) t.stem.size() - 1);
+         }
+         CHECK(fts.branches_per_state == (int) n_options);
++        // spec 4.1 MERGED set per leaf (the engine's row reader): MERGED[piece(edge token)] for leaves, nothing for the root and inner nodes
++        for (size_t fi = 0; fi < 3; ++fi) {
++            const auto & t      = fts.fields[fi];
++            const auto   merged = decide::leaf_merged_sets(t, vi, vocab);
++            CHECK(merged.size() == t.nodes.size());
++            std::string sizes;
++            for (size_t n = 0; n < t.nodes.size() && merged.size() == t.nodes.size(); ++n) {
++                const bool leaf = n > 0 && t.nodes[n].children.empty();
++                const auto it   = leaf ? vi.merged.find(common_token_to_piece(vocab, t.nodes[n].tok, false)) : vi.merged.end();
++                CHECK(merged[n] == (it == vi.merged.end() ? nullptr : &it->second));
++                if (leaf) sizes += " " + show(vocab, {t.nodes[n].tok}) + "=" + std::to_string(merged[n] ? merged[n]->size() : 0);
++            }
++            std::printf("full-path %s leaves, MERGED sizes:%s\n", fcs.fields[fi].name.c_str(), sizes.c_str());
++        }
+         // without a fallback, the triage fields get the tree-mode tries
+         for (size_t fi = 0; fi < 3; ++fi) CHECK(fts.fields[fi].stem == ts.fields[fi].stem && fts.fields[fi].paths == ts.fields[fi].paths);
+         // region: options 1 and 2 share nodes with option 0, so their sequences skip the rows already read
+diff --git a/tools/decide/decide-api.cpp b/tools/decide/decide-api.cpp
+index b67bf08a1..ea14acd21 100644
+--- a/tools/decide/decide-api.cpp
++++ b/tools/decide/decide-api.cpp
+@@ -17,7 +17,6 @@ static api_result error_result(int status, const std::string & code, const std::
+ // a feature without its engine part is a clean 500, not a wrong answer; the engine change for a feature removes its line
+ static void require_implemented(const compiled_schema & cs, const engine & eng) {
+     const auto missing = [](const char * feature) { return error("engine", 500, std::string("not implemented yet: ") + feature); };
+-    if (cs.opts.scoring == "full_path")  throw missing("full_path");
+     if (max_level(cs) > 0)               throw missing("after");
+     if (effective_variants(cs) > 1)      throw missing("order_debias");
+     if (cs.opts.temperature != 0)        throw missing("temperature");
+diff --git a/tools/decide/decide-cli.cpp b/tools/decide/decide-cli.cpp
+index 370ffcd6a..7a519dbf5 100644
+--- a/tools/decide/decide-cli.cpp
++++ b/tools/decide/decide-cli.cpp
+@@ -4,7 +4,7 @@
+ //                [-c N] [-b N] [-ngl N] [-fa on] [--chat-template T] [--info] [--dump-tokens] < requests.jsonl
+ //
+ // --info prints the info JSON for each line's schema instead of deciding.
+-// --dump-tokens adds the "tokens" object (prefix, state, tail, branch ids) to every response.
++// --dump-tokens adds the "tokens" object (prefix, state, tail, branch ids; full-path: the rows read and their log-probs) to every response.
+ // Exits 1 on the first error, with the error JSON on stderr.
+ // LLAMA_DECIDE_FAULT (testing, see --help) makes chosen decodes report "no KV slot" or one prefix restore fail.
+ 
+@@ -28,7 +28,8 @@ static void print_usage(int, char ** argv) {
+     printf("  %s -m model.gguf --decide-seqs N [--info] [--dump-tokens] < requests.jsonl\n\n", argv[0]);
+     printf("  one /v1/decide request body per stdin line, one response per stdout line; stops at the first error\n");
+     printf("  --info         print the info JSON for each line's schema instead of deciding\n");
+-    printf("  --dump-tokens  add the \"tokens\" object (prefix, state, tail, branch ids) to every response\n\n");
++    printf("  --dump-tokens  add the \"tokens\" object (prefix, state, tail, branch ids; full-path: the rows read and their\n");
++    printf("                 log-probs, null = -inf) to every response\n\n");
+     printf("  LLAMA_DECIDE_FAULT (testing) makes a decode return 1 (\"no KV slot\") without decoding, or a prefix restore fail:\n");
+     printf("    rc1         the first branch-phase decode of the first attempt of every round (the retry runs normally)\n");
+     printf("    rc1-twice   the first branch-phase decode of both attempts of the first round after start (a 500)\n");
+diff --git a/tools/decide/decide-engine.cpp b/tools/decide/decide-engine.cpp
+index 25767e416..d364e7b78 100644
+--- a/tools/decide/decide-engine.cpp
++++ b/tools/decide/decide-engine.cpp
+@@ -3,7 +3,9 @@
+ #include "ggml.h"
+ 
+ #include <algorithm>
++#include <cmath>
+ #include <cstdlib>
++#include <limits>
+ #include <utility>
+ 
+ namespace decide {
+@@ -19,9 +21,59 @@ static common_json token_array(const std::vector<llama_token> & toks) {
+     return a;
+ }
+ 
++static const char * mode_name(scoring_mode m) {
++    return m == scoring_mode::FULL_PATH ? "full_path" : "tree";
++}
++
++// spec 10: the dump entry of one full-path branch sequence; logp per row: the node, the children's log-probs keyed by token id,
++// "end" on a leaf row, "merged" (keyed by the leaf child's token id) on a row with leaf children; -inf is written as null
++static common_json full_path_dump(const std::string & name, const field_trie & t, const full_path_seq & s, const std::vector<node_logp> & rows) {
++    common_json logp = common_json::array();
++    for (int node : s.row_node) {
++        const auto it = std::find_if(rows.begin(), rows.end(), [&](const node_logp & r) { return r.node == node; });
++        if (it == rows.end()) {
++            throw error("engine", 500, "field \"" + name + "\": missing full-path row for node " + std::to_string(node));
++        }
++        const std::vector<int> & children = t.nodes[node].children;
++        common_json row = common_json::object();
++        row["node"] = node;
++        if (children.empty()) {
++            row["end"] = it->end_logp;
++        } else {
++            common_json child  = common_json::object();
++            common_json merged = common_json::object();
++            for (size_t k = 0; k < children.size(); ++k) {
++                const std::string tok = std::to_string(t.nodes[children[k]].tok);
++                child[tok] = it->child_logp[k];
++                if (t.nodes[children[k]].children.empty()) {
++                    merged[tok] = it->merged_logp[k];
++                }
++            }
++            row["children"] = child;
++            if (!merged.empty()) {
++                row["merged"] = merged;
++            }
++        }
++        logp.push_back(row);
++    }
++    common_json rows_at = common_json::array();
++    for (int i : s.row_index) {
++        rows_at.push_back(i);
++    }
++    common_json b = common_json::object();
++    b["field"]  = name;
++    b["mode"]   = "full_path";
++    b["option"] = s.option;
++    b["tokens"] = token_array(s.tokens);
++    b["rows"]   = rows_at;
++    b["logp"]   = logp;
++    return b;
++}
++
+ engine::engine(llama_context * ctx_, const llama_model * model_, const common_chat_templates * tmpls_, engine_config cfg_)
+     : ctx(ctx_), model(model_), vocab(llama_model_get_vocab(model_)), tmpls(tmpls_), cfg(std::move(cfg_)),
+-      mem(llama_get_memory(ctx_)), batch(), n_batch((int) llama_n_batch(ctx_)) {
++      mem(llama_get_memory(ctx_)), batch(), n_batch((int) llama_n_batch(ctx_)), row_cap((int) llama_n_seq_max(ctx_)),
++      n_vocab(llama_vocab_n_tokens(vocab)) {
+     if (tmpls == nullptr || !common_chat_templates_was_explicit(tmpls)) {
+         throw error("engine", 500, "no chat template; pass --chat-template");
+     }
+@@ -55,6 +107,7 @@ engine::engine(llama_context * ctx_, const llama_model * model_, const common_ch
+     const int vt = (int) llama_vocab_type(vocab);
+     who = std::string(desc) + ", vocab type " + (vt >= 0 && vt < 8 ? std::string(vocab_types[vt]) : std::to_string(vt));
+     check_template_joins(render(nullptr, 0, 1));
++    vi = build_vocab_index(vocab);
+     slots.resize(MAX_SLOTS);
+     batch = llama_batch_init(n_batch, 0, 1);
+     // spec 4.6: --backend-sampling attaches a sampler to every sequence, which caps the rows per sequence
+@@ -129,6 +182,113 @@ size_t cache_victim(const std::vector<uint64_t> & used, const std::vector<bool>
+     return victim;
+ }
+ 
++std::vector<std::pair<size_t, size_t>> decode_chunks(const std::vector<decode_entry> & entries, int n_batch, int row_cap) {
++    std::vector<std::pair<size_t, size_t>> out;
++    size_t begin  = 0;
++    int    tokens = 0;
++    int    rows   = 0;
++    for (size_t i = 0; i < entries.size(); ++i) {
++        tokens++;
++        rows += entries[i].tag >= 0;
++        if (tokens == n_batch || rows == row_cap || i + 1 == entries.size()) {
++            out.emplace_back(begin, i + 1);
++            begin  = i + 1;
++            tokens = 0;
++            rows   = 0;
++        }
++    }
++    return out;
++}
++
++std::vector<std::pair<int32_t, int>> chunk_rows(const std::vector<decode_entry> & entries, size_t begin, size_t end) {
++    std::vector<std::pair<int32_t, int>> out;
++    for (size_t j = begin; j < end; ++j) {
++        if (entries[j].tag >= 0) {
++            out.emplace_back((int32_t) (j - begin), entries[j].tag);
++        }
++    }
++    return out;
++}
++
++void add_full_path_seq(const full_path_seq & s, llama_seq_id seq, llama_pos pos0, size_t state, size_t field,
++                       std::vector<decode_entry> & entries, std::vector<row_ref> & refs) {
++    const size_t base = entries.size();
++    for (size_t i = 0; i < s.tokens.size(); ++i) {
++        entries.push_back({s.tokens[i], pos0 + (llama_pos) i, seq, -1});
++    }
++    for (size_t r = 0; r < s.row_index.size(); ++r) {
++        entries[base + (size_t) s.row_index[r]].tag = (int) refs.size();
++        refs.push_back({state, field, s.row_node[r]});
++    }
++}
++
++std::vector<const std::vector<llama_token> *> leaf_merged_sets(const field_trie & t, const vocab_index & vi, const llama_vocab * vocab) {
++    std::vector<const std::vector<llama_token> *> out(t.nodes.size(), nullptr);
++    for (size_t n = 1; n < t.nodes.size(); ++n) {
++        if (!t.nodes[n].children.empty()) {
++            continue;
++        }
++        const auto it = vi.merged.find(common_token_to_piece(vocab, t.nodes[n].tok, false));
++        if (it != vi.merged.end()) {
++            out[n] = &it->second;
++        }
++    }
++    return out;
++}
++
++node_logp full_path_row(const float * logits, int n_vocab, const field_trie & t, int node,
++                        const std::vector<llama_token> & end_tokens, const std::vector<const std::vector<llama_token> *> & merged) {
++    // full-vocabulary log-sum-exp; NaN or +inf in the row makes it NaN, which score_field_full rejects
++    float max = -std::numeric_limits<float>::infinity();
++    for (int i = 0; i < n_vocab; ++i) {
++        max = logits[i] > max ? logits[i] : max;
++    }
++    double sum = 0.0;
++    for (int i = 0; i < n_vocab; ++i) {
++        sum += (double) std::exp(logits[i] - max);
++    }
++    const double lse = (double) max + std::log(sum);
++    // log of the probability mass of `toks` (-inf when empty)
++    const auto log_mass = [&](const std::vector<llama_token> & toks) {
++        double m = 0.0;
++        for (llama_token u : toks) {
++            m += std::exp((double) logits[u] - lse);
++        }
++        return (float) std::log(m);
++    };
++
++    const trie_node & n = t.nodes[node];
++    node_logp         r;
++    r.node = node;
++    for (int child : n.children) {
++        r.child_logp.push_back((float) ((double) logits[t.nodes[child].tok] - lse));
++        const bool leaf = t.nodes[child].children.empty();
++        r.merged_logp.push_back(leaf && merged[child] != nullptr ? log_mass(*merged[child]) : -std::numeric_limits<float>::infinity());
++    }
++    if (n.children.empty()) {
++        r.end_logp = log_mass(end_tokens);
++    }
++    return r;
++}
++
++branch_counts count_branches(const trie_set & ts) {
++    branch_counts n;
++    for (const field_trie & t : ts.fields) {
++        if (ts.mode == scoring_mode::FULL_PATH) {
++            for (const auto & path : t.paths) {
++                n.tokens += (int64_t) (t.stem.size() + path.size());
++            }
++            n.rows += (int64_t) t.nodes.size();
++        } else {
++            for (int k : t.branch_nodes) {
++                n.tokens += (int64_t) branch_tokens(t, k).size();
++            }
++            n.rows += (int64_t) t.branch_nodes.size();
++        }
++    }
++    return n;
++}
++
+ llama_seq_id engine::trunk_seq(int K, int B, size_t c, int v) const {
+     return cfg.seq_base + K + (llama_seq_id) c * K * (1 + B) + v * (1 + B);
+ }
+@@ -265,7 +425,6 @@ void engine::fill_slot(int v, const prefix_state & ps, const std::vector<std::st
+     }
+     slots[v]       = ps;
+     slots[v].valid = true;
+-    st.prefix_built += (int64_t) ps.tokens.size();
+ }
+ 
+ void engine::end_request() {
+@@ -280,29 +439,30 @@ void engine::end_request() {
+ 
+ int engine::decode_chunked(const std::vector<entry> & entries, const std::function<void(size_t, size_t)> & on_chunk_done, stats & st,
+                            bool inject) {
+-    common_batch_clear(batch);
+-    size_t chunk_begin = 0;
+-    for (size_t i = 0; i < entries.size(); ++i) {
+-        const entry & e = entries[i];
+-        common_batch_add(batch, e.tok, e.pos, {e.seq}, e.tag >= 0);
+-        if (batch.n_tokens == n_batch || i + 1 == entries.size()) {
+-            if (inject) {
+-                common_batch_clear(batch);
+-                return 1;
+-            }
+-            const int rc = llama_decode(ctx, batch);
+-            st.decodes++;
++    // spec 4.4: one decode may not request more rows than llama_n_seq_max (n_outputs_max; the server sets it to that)
++    for (const auto & [begin, end] : decode_chunks(entries, n_batch, row_cap)) {
++        common_batch_clear(batch);
++        for (size_t i = begin; i < end; ++i) {
++            const entry & e = entries[i];
++            common_batch_add(batch, e.tok, e.pos, {e.seq}, e.tag >= 0);
++        }
++        if (inject) {
+             common_batch_clear(batch);
+-            if (rc == 1) {
+-                return 1;
+-            }
+-            if (rc != 0) {
+-                throw error("engine", 500, "llama_decode failed: rc=" + std::to_string(rc));
+-            }
+-            if (on_chunk_done) {
+-                on_chunk_done(chunk_begin, i + 1);
+-            }
+-            chunk_begin = i + 1;
++            return 1;
++        }
++        const int rc = llama_decode(ctx, batch);
++        st.decodes++;
++        const int n_tokens = batch.n_tokens;
++        common_batch_clear(batch);
++        if (rc == 1) {
++            return 1;
++        }
++        if (rc != 0) {
++            throw error("engine", 500, "llama_decode failed: rc=" + std::to_string(rc));
++        }
++        st.prompt_tokens += n_tokens;
++        if (on_chunk_done) {
++            on_chunk_done(begin, end);
+         }
+     }
+     return 0;
+@@ -316,9 +476,40 @@ void engine::cleanup(int K, int seqs_per_state, size_t count) {
+     }
+ }
+ 
++int engine::full_path_branches(const compiled_schema & cs, const trie_set & ts, int K, size_t first, size_t count,
++                               const std::vector<llama_pos> & trunk_len, full_path_state & fp, stats & st, bool inject) {
++    // one sequence per option: trunk copy + stem + the option's path, a row at the stem's last token and after every path token
++    // (a node's row only in the first option through it); a row-cap chunk boundary may split a sequence
++    std::vector<entry>   entries;
++    std::vector<row_ref> refs;
++    for (size_t c = 0; c < count; ++c) {
++        const llama_seq_id T = trunk_seq(K, ts.branches_per_state, c, 0);
++        int running_index = 0;
++        for (size_t f = 0; f < ts.fields.size(); ++f) {
++            for (const full_path_seq & s : fp.plans[f]) {
++                const llama_seq_id B = T + 1 + running_index++;
++                llama_memory_seq_cp(mem, T, B, -1, -1);
++                add_full_path_seq(s, B, trunk_len[c], first + c, f, entries, refs);
++            }
++        }
++        fp.rows[first + c].assign(ts.fields.size(), {});
++    }
++    return decode_chunked(entries, [&](size_t begin, size_t end) {
++        for (const auto & [i, tag] : chunk_rows(entries, begin, end)) {
++            const row_ref & r      = refs[tag];
++            const float *   logits = llama_get_logits_ith(ctx, i);
++            if (logits == nullptr) {
++                throw error("engine", 500, "no logits for field \"" + cs.fields[r.field].name + "\" node " + std::to_string(r.node) +
++                                               " (batch index " + std::to_string(i) + ")");
++            }
++            fp.rows[r.state][r.field].push_back(full_path_row(logits, n_vocab, ts.fields[r.field], r.node, vi.end_tokens, fp.merged[r.field]));
++        }
++    }, st, inject);
++}
++
+ int engine::run_round(const compiled_schema & cs, const trie_set & ts, int K,
+                       const std::vector<std::vector<llama_token>> & state_tokens, size_t first, size_t count,
+-                      std::vector<common_json> & answers, stats & st, bool inject) {
++                      std::vector<common_json> & answers, stats & st, bool inject, full_path_state * fp) {
+     const llama_seq_id   P        = cfg.seq_base;   // slot 0
+     const prefix_state & p        = slots[0];
+     const llama_pos      n_prefix = (llama_pos) p.tokens.size();
+@@ -347,8 +538,24 @@ int engine::run_round(const compiled_schema & cs, const trie_set & ts, int K,
+         return rc;
+     }
+ 
+-    // branch phase: trunk copy + stem + edge tokens to the branch node, logits on the last token
+     t0 = ggml_time_us();
++    if (fp != nullptr) {
++        rc = full_path_branches(cs, ts, K, first, count, trunk_len, *fp, st, inject);
++        if (rc == 0) {
++            for (size_t c = 0; c < count; ++c) {
++                common_json a = common_json::object();
++                for (size_t f = 0; f < ts.fields.size(); ++f) {
++                    a[cs.fields[f].name] = answer_json(cs.fields[f], score_field_full(cs.fields[f], ts.fields[f], fp->rows[first + c][f]));
++                }
++                answers[first + c] = a;
++            }
++        }
++        llama_synchronize(ctx);
++        st.scoring_us += ggml_time_us() - t0;
++        return rc;
++    }
++
++    // tree branch phase: trunk copy + stem + edge tokens to the branch node, logits on the last token
+     struct branch_ref {
+         size_t c;
+         size_t f;
+@@ -439,9 +646,8 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+     const int seqs_per_state = K * (1 + B);
+     int       spr            = (cfg.decide_seqs - K) / seqs_per_state;
+     if (spr == 0) {
+-        const std::string mode = ts.mode == scoring_mode::FULL_PATH ? "full_path" : "tree";
+         throw error("budget", 400, "schema needs " + std::to_string(seqs_per_state) + " sequences per state (K_eff " + std::to_string(K) +
+-                                       " \u00d7 (1 trunk + " + std::to_string(B) + " branch sequences, " + mode + ")); --decide-seqs " +
++                                       " \u00d7 (1 trunk + " + std::to_string(B) + " branch sequences, " + mode_name(ts.mode) + ")); --decide-seqs " +
+                                        std::to_string(cfg.decide_seqs) + " leaves " + std::to_string(cfg.decide_seqs - K) + " after " +
+                                        std::to_string(K) + " prefix slots");
+     }
+@@ -451,11 +657,18 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+     for (const auto & s : states) {
+         state_tokens.push_back(tokenize_plain(vocab, s));
+     }
+-    int64_t branch_total = 0;   // branch tokens per state
+-    for (const auto & t : ts.fields) {
+-        for (int k : t.branch_nodes) {
+-            branch_total += (int64_t) branch_tokens(t, k).size();
++    // spec 4.5: branch tokens (cells) and logit rows per state of the scoring mode
++    const branch_counts counts       = count_branches(ts);
++    const int64_t       branch_total = counts.tokens;
++
++    // spec 4.3: full-path branch sequences and MERGED sets per field; rows read per state
++    full_path_state fp;
++    if (ts.mode == scoring_mode::FULL_PATH) {
++        for (const field_trie & t : ts.fields) {
++            fp.plans.push_back(full_path_plan(t));
++            fp.merged.push_back(leaf_merged_sets(t, vi, vocab));
+         }
++        fp.rows.resize(states.size());
+     }
+ 
+     // spec 6.2: every budget check comes before a slot is evicted or filled
+@@ -528,7 +741,8 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+             const bool inject = fail_both || (fault == fault_mode::RC1 && !retried);
+             int rc = 0;
+             try {
+-                rc = run_round(cs, ts, K, state_tokens, next, count, answers, st, inject);
++                rc = run_round(cs, ts, K, state_tokens, next, count, answers, st, inject,
++                               ts.mode == scoring_mode::FULL_PATH ? &fp : nullptr);
+             } catch (...) {
+                 cleanup(K, seqs_per_state, count);
+                 throw;
+@@ -560,14 +774,13 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+     for (const auto & s : state_tokens) {
+         state_total += (int64_t) s.size();
+     }
+-    const int64_t n_states      = (int64_t) states.size();
+-    const int64_t prompt_tokens = st.prefix_built + state_total + n_states * (tail + branch_total);
++    const int64_t n_states = (int64_t) states.size();
+ 
+     common_json results = common_json::array();
+     for (size_t i = 0; i < states.size(); ++i) {
+         common_json u = common_json::object();
+         u["state_tokens"]  = (int64_t) state_tokens[i].size();
+-        u["scored_tokens"] = ts.branches_per_state;
++        u["scored_tokens"] = counts.rows;
+         common_json r = common_json::object();
+         r["answers"] = answers[i];
+         r["usage"]   = u;
+@@ -575,10 +788,10 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+     }
+ 
+     common_json usage = common_json::object();
+-    usage["prompt_tokens"] = prompt_tokens;
++    usage["prompt_tokens"] = st.prompt_tokens;
+     usage["cached_tokens"] = st.cached_tokens;
+     usage["state_tokens"]  = state_total;
+-    usage["scored_tokens"] = n_states * ts.branches_per_state;
++    usage["scored_tokens"] = n_states * counts.rows;
+ 
+     llama_synchronize(ctx);
+     common_json timings = common_json::object();
+@@ -602,12 +815,27 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+     prefix_cache["hits"]     = st.hits;
+     prefix_cache["misses"]   = st.misses;
+ 
++    // spec 4.8: per field, the options whose tokens before the last one change when ",\n" follows
++    common_json resplit = common_json::object();
++    for (size_t f = 0; f < cs.fields.size(); ++f) {
++        if (!ts.fields[f].resplit.empty()) {
++            common_json keys = common_json::array();
++            for (const std::string & k : ts.fields[f].resplit) {
++                keys.push_back(k);
++            }
++            resplit[cs.fields[f].name] = keys;
++        }
++    }
++
+     common_json eng = common_json::object();
+-    eng["scoring"]            = "tree";
++    eng["scoring"]            = mode_name(ts.mode);
+     eng["seqs_per_state"]     = seqs_per_state;
+     eng["states_per_round"]   = spr;
+     eng["quote_split_fields"] = quote_split;
+     eng["prefix_cache"]       = prefix_cache;
++    if (!resplit.empty()) {
++        eng["resplit_options"] = resplit;
++    }
+ 
+     common_json out = common_json::object();
+     out["object"]  = "decide";
+@@ -622,6 +850,12 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+             common_json branches = common_json::array();
+             for (size_t f = 0; f < ts.fields.size(); ++f) {
+                 const field_trie & t = ts.fields[f];
++                if (ts.mode == scoring_mode::FULL_PATH) {
++                    for (const full_path_seq & s : fp.plans[f]) {
++                        branches.push_back(full_path_dump(cs.fields[f].name, t, s, fp.rows[i][f]));
++                    }
++                    continue;
++                }
+                 for (int k : t.branch_nodes) {
+                     std::vector<llama_token> children;
+                     common_json              options = common_json::array();   // per child: option indices through it
+@@ -631,6 +865,7 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+                     }
+                     common_json b = common_json::object();
+                     b["field"]    = cs.fields[f].name;
++                    b["mode"]     = "tree";
+                     b["node"]     = k;
+                     b["tokens"]   = token_array(branch_tokens(t, k));
+                     b["children"] = token_array(children);
+@@ -647,6 +882,9 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+         common_json tokens = common_json::object();
+         tokens["prefix"] = token_array(ps[0].tokens);
+         tokens["states"] = per_state;
++        if (!resplit.empty()) {
++            tokens["resplit_options"] = resplit;
++        }
+         out["tokens"]    = tokens;
+     }
+     return out;
+@@ -716,7 +954,7 @@ common_json engine::info(const compiled_schema * cs, const trie_set * ts) {
+     j["prefixes"]      = prefixes;
+     j["prefix_cache"]  = prefix_cache;
+     j["temperature"]   = cfg.temperature;
+-    j["scoring_modes"] = common_json::array({"tree"});
++    j["scoring_modes"] = common_json::array({"tree", "full_path"});
+     if (ts != nullptr) {
+         const int K              = 1;
+         const int seqs_per_state = K * (1 + ts->branches_per_state);
+diff --git a/tools/decide/decide-engine.h b/tools/decide/decide-engine.h
+index 6c1cbb059..18cb4db5f 100644
+--- a/tools/decide/decide-engine.h
++++ b/tools/decide/decide-engine.h
+@@ -1,11 +1,13 @@
+ #pragma once
+ #include "decide-schema.h"
+ #include "decide-trie.h"
++#include "decide-vocab.h"
+ #include "chat.h"
+ #include "llama.h"
+ #include <cstdint>
+ #include <functional>
+ #include <string>
++#include <utility>
+ #include <vector>
+ 
+ namespace decide {
+@@ -29,6 +31,44 @@ struct prefix_state {
+ // spec 6.2 LRU trim, one entry per call: the least recently used entry the running request does not want, else the last one (the new snapshot)
+ size_t cache_victim(const std::vector<uint64_t> & used, const std::vector<bool> & wanted);
+ 
++// one token of a decode phase; `tag` >= 0 requests the token's logit row and names the reader's reference, -1: no row
++struct decode_entry {
++    llama_token  tok;
++    llama_pos    pos;
++    llama_seq_id seq;
++    int          tag;
++};
++
++// spec 4.4: [begin, end) of each llama_decode of a phase; a chunk ends when it holds n_batch tokens or row_cap requested rows
++std::vector<std::pair<size_t, size_t>> decode_chunks(const std::vector<decode_entry> & entries, int n_batch, int row_cap);
++// the rows requested in chunk [begin, end): (index in that chunk's batch = the llama_get_logits_ith argument, tag)
++std::vector<std::pair<int32_t, int>> chunk_rows(const std::vector<decode_entry> & entries, size_t begin, size_t end);
++
++// spec 4.3: the owner of one full-path logit row
++struct row_ref {
++    size_t state;
++    size_t field;
++    int    node;
++};
++// spec 4.3: one full-path branch sequence: s.tokens in `seq` from position pos0; the token at each s.row_index requests its row,
++// tagged with the index of the row_ref {state, field, s.row_node} appended to refs
++void add_full_path_seq(const full_path_seq & s, llama_seq_id seq, llama_pos pos0, size_t state, size_t field,
++                       std::vector<decode_entry> & entries, std::vector<row_ref> & refs);
++
++// spec 4.1: per node of t, the MERGED set of a leaf's edge-token piece; nullptr for the root, inner nodes and pieces without MERGED tokens
++std::vector<const std::vector<llama_token> *> leaf_merged_sets(const field_trie & t, const vocab_index & vi, const llama_vocab * vocab);
++// spec 4.4: the values of the row read after `node`, from the full-vocabulary softmax of `logits` (n_vocab values): the log-probs
++// of the children's tokens, the END mass on a leaf, per leaf child the MERGED mass of merged[child] (-inf otherwise)
++node_logp full_path_row(const float * logits, int n_vocab, const field_trie & t, int node,
++                        const std::vector<llama_token> & end_tokens, const std::vector<const std::vector<llama_token> *> & merged);
++
++// spec 4.3/4.5: per state and catalogue variant, the tokens of the branch sequences (cells) and the logit rows read
++struct branch_counts {
++    int64_t tokens = 0;
++    int64_t rows   = 0;
++};
++branch_counts count_branches(const trie_set & ts);
++
+ class engine {
+ public:
+     // Throws error{"engine", 500, "no chat template; pass --chat-template"} when
+@@ -49,13 +89,7 @@ public:
+     static constexpr size_t CACHE_MAX_BYTES = (size_t) 2 << 30;     // spec 6.2: snapshot bytes over all cache entries
+ 
+ private:
+-    // one token of a phase; `tag` names the branch whose logit row it requests (-1: no logits)
+-    struct entry {
+-        llama_token  tok;
+-        llama_pos    pos;
+-        llama_seq_id seq;
+-        int          tag;
+-    };
++    using entry = decode_entry;
+     // prefix, tail and hash of one rendering (cs == nullptr: placeholder system text)
+     struct rendered {
+         std::string prefix_text, tail_text, assistant_prefix, hash;
+@@ -65,11 +99,10 @@ private:
+         int     decodes       = 0;
+         int     rounds        = 0;
+         int     retries       = 0;   // rounds retried after rc == 1
+-        int64_t prompt_tokens = 0;
++        int64_t prompt_tokens = 0;   // tokens of every successful llama_decode (spec 3.2)
+         int64_t prefill_us    = 0;
+         int64_t prefix_us     = 0;   // part of prefill_us: building, restoring and snapshotting prefixes
+         int64_t scoring_us    = 0;
+-        int64_t prefix_built  = 0;   // prefix tokens decoded
+         int64_t cached_tokens = 0;   // prefix tokens resident or restored
+         int     hits          = 0;   // prefixes restored from the cache
+         int     misses        = 0;   // prefixes built while the cache is on
+@@ -82,6 +115,12 @@ private:
+     };
+     // spec 9: LLAMA_DECIDE_FAULT
+     enum class fault_mode { NONE, RC1, RC1_TWICE, RC1_PHASE1, RESTORE };
++    // spec 4.3: one request in full-path mode: per field its branch sequences and the MERGED sets of its leaves; per state and field the rows read
++    struct full_path_state {
++        std::vector<std::vector<full_path_seq>>                    plans;
++        std::vector<std::vector<const std::vector<llama_token> *>> merged;
++        std::vector<std::vector<std::vector<node_logp>>>           rows;
++    };
+ 
+     rendered render(const compiled_schema * cs, int variant, int variants) const;
+     // throws error{"engine", 500} when prefix|state, state|tail or tail|stem do not tokenise independently
+@@ -102,9 +141,13 @@ private:
+     common_json  run_request(const compiled_schema & cs, const trie_set & ts, const std::vector<std::string> & states, bool dump_tokens);
+     // returns 0, or 1 when a decode found no KV slot (caller cleans up and retries); throws on anything else.
+     // Fills answers[first + c] for every state c of the round. inject: the branch phase's first decode returns 1 without decoding (spec 9).
++    // fp: full-path mode (nullptr: tree mode)
+     int      run_round(const compiled_schema & cs, const trie_set & ts, int K,
+                        const std::vector<std::vector<llama_token>> & state_tokens, size_t first, size_t count,
+-                       std::vector<common_json> & answers, stats & st, bool inject);
++                       std::vector<common_json> & answers, stats & st, bool inject, full_path_state * fp);
++    // spec 4.3/4.4: the full-path branch phase of a round: one sequence per option after each trunk; fills fp.rows[first + c]. Returns rc as run_round.
++    int      full_path_branches(const compiled_schema & cs, const trie_set & ts, int K, size_t first, size_t count,
++                                const std::vector<llama_pos> & trunk_len, full_path_state & fp, stats & st, bool inject);
+     int      decode_chunked(const std::vector<entry> & entries, const std::function<void(size_t, size_t)> & on_chunk_done, stats & st,
+                             bool inject = false);
+     // removes the trunks and branches of `count` states (the ids after the K prefix slots)
+@@ -119,6 +162,9 @@ private:
+     llama_memory_t                mem;
+     llama_batch                   batch;
+     int                           n_batch;
++    int                           row_cap;   // spec 4.4: requested rows per llama_decode, llama_n_seq_max(ctx)
++    int                           n_vocab;
++    vocab_index                   vi;        // spec 4.1: END and MERGED, built once
+     std::string                   who;   // model description and vocab type, for error messages
+     std::vector<prefix_state>     slots;   // spec 6.1: slot v in seq_base + v; only slot 0 holds cells between requests
+     std::vector<cache_entry>      cache;   // spec 6.2: at most cfg.prefix_cache entries and CACHE_MAX_BYTES bytes
+-- 
+2.55.0
+

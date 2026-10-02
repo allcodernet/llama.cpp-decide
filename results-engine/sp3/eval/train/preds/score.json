@@ -1,0 +1,151 @@
+{
+  "preds_dir": "results-engine/sp3/eval/train/preds",
+  "test_set": "/home/marduk/Projects/temp/jev/experiment/data/triage_train.jsonl",
+  "n_tickets": 320,
+  "runs": {
+    "decide-gemma-4-e4b-b5-keywords-after-urgency=queue-angry=queue": {
+      "queue": 0.94375,
+      "urgency": 0.853125,
+      "urgency_near": 0.9875,
+      "angry": 0.978125,
+      "nll_queue": 0.24713829132846427,
+      "nll_urgency": 0.5596877828305004,
+      "nll_angry": 0.05290532038325037,
+      "nll_sum": 0.859731394542215,
+      "ece_queue": 0.040396137297617984,
+      "ece_urgency": 0.07970678214173435,
+      "ece_angry": 0.01615292007073365,
+      "brier_angry": 0.01626020099937496,
+      "p50_ms": 69.4266324993805,
+      "rounds": [
+        1
+      ]
+    },
+    "decide-gemma-4-e4b-b5-keywords-after-urgency=queue": {
+      "queue": 0.946875,
+      "urgency": 0.85,
+      "urgency_near": 0.9875,
+      "angry": 0.978125,
+      "nll_queue": 0.24649790457925716,
+      "nll_urgency": 0.5593318132453527,
+      "nll_angry": 0.05508713561583938,
+      "nll_sum": 0.8609168534404493,
+      "ece_queue": 0.0440391227391132,
+      "ece_urgency": 0.0794276730113853,
+      "ece_angry": 0.010282730173225604,
+      "brier_angry": 0.016729712184417586,
+      "p50_ms": 54.46419199870434,
+      "rounds": [
+        1
+      ]
+    },
+    "decide-gemma-4-e4b-b5-keywords-debias4": {
+      "queue": 0.946875,
+      "urgency": 0.846875,
+      "urgency_near": 0.984375,
+      "angry": 0.975,
+      "nll_queue": 0.2527044798969307,
+      "nll_urgency": 0.5138032274077448,
+      "nll_angry": 0.05510380298475832,
+      "nll_sum": 0.8216115102894338,
+      "ece_queue": 0.04571541604452725,
+      "ece_urgency": 0.0789888511092327,
+      "ece_angry": 0.012812302549305555,
+      "brier_angry": 0.01679776957771245,
+      "p50_ms": 227.8372255997965,
+      "rounds": [
+        5
+      ]
+    },
+    "decide-gemma-4-e4b-b5-keywords-full_path": {
+      "queue": 0.94375,
+      "urgency": 0.846875,
+      "urgency_near": 0.984375,
+      "angry": 0.975,
+      "nll_queue": 0.2462123377647924,
+      "nll_urgency": 0.5235459642282689,
+      "nll_angry": 0.05487903311319273,
+      "nll_sum": 0.824637335106254,
+      "ece_queue": 0.03926631065165534,
+      "ece_urgency": 0.08964366698274748,
+      "ece_angry": 0.010931535229810236,
+      "brier_angry": 0.016622727153899567,
+      "p50_ms": 152.09929869888583,
+      "rounds": [
+        5
+      ]
+    },
+    "decide-qwen3.5-9b-b5-keywords-after-urgency=queue-angry=queue": {
+      "queue": 0.946875,
+      "urgency": 0.821875,
+      "urgency_near": 0.984375,
+      "angry": 0.984375,
+      "nll_queue": 0.1767579670470134,
+      "nll_urgency": 0.5329799247467829,
+      "nll_angry": 0.09817243696745805,
+      "nll_sum": 0.8079103287612543,
+      "ece_queue": 0.026894698129250626,
+      "ece_urgency": 0.09373939726882055,
+      "ece_angry": 0.05877864314896424,
+      "brier_angry": 0.024034976190086266,
+      "p50_ms": 181.1799104994861,
+      "rounds": [
+        1
+      ]
+    },
+    "decide-qwen3.5-9b-b5-keywords-after-urgency=queue": {
+      "queue": 0.946875,
+      "urgency": 0.821875,
+      "urgency_near": 0.984375,
+      "angry": 0.984375,
+      "nll_queue": 0.17842933617753653,
+      "nll_urgency": 0.5386446304128171,
+      "nll_angry": 0.09152081248327072,
+      "nll_sum": 0.8085947790736243,
+      "ece_queue": 0.031110807144192752,
+      "ece_urgency": 0.0789063284010233,
+      "ece_angry": 0.05833531163132496,
+      "brier_angry": 0.021988373478277725,
+      "p50_ms": 146.59985559992492,
+      "rounds": [
+        1
+      ]
+    },
+    "decide-qwen3.5-9b-b5-keywords-debias4": {
+      "queue": 0.953125,
+      "urgency": 0.7875,
+      "urgency_near": 0.978125,
+      "angry": 0.984375,
+      "nll_queue": 0.17456337953859002,
+      "nll_urgency": 0.5296940305405913,
+      "nll_angry": 0.09279422734480543,
+      "nll_sum": 0.7970516374239868,
+      "ece_queue": 0.02934903919766853,
+      "ece_urgency": 0.07140604090770711,
+      "ece_angry": 0.055007014557315055,
+      "brier_angry": 0.022149817484640854,
+      "p50_ms": 494.8443859000691,
+      "rounds": [
+        5
+      ]
+    },
+    "decide-qwen3.5-9b-b5-keywords-full_path": {
+      "queue": 0.95,
+      "urgency": 0.78125,
+      "urgency_near": 0.978125,
+      "angry": 0.984375,
+      "nll_queue": 0.17696865347962293,
+      "nll_urgency": 0.5481413036541568,
+      "nll_angry": 0.09300727647264663,
+      "nll_sum": 0.8181172336064264,
+      "ece_queue": 0.02130081644881431,
+      "ece_urgency": 0.08058682787712779,
+      "ece_angry": 0.054290606320182476,
+      "brier_angry": 0.022092781385312767,
+      "p50_ms": 259.6188303999952,
+      "rounds": [
+        5
+      ]
+    }
+  }
+}

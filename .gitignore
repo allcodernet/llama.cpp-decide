@@ -1,0 +1,11 @@
+llama.cpp/
+models/
+.venv/
+__pycache__/
+*.gguf
+engine/
+.worktrees/
+models
+.build-engine.log
+local/
+engine-*/

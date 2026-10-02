@@ -1,0 +1,61 @@
+From 2c166dbd2aae43d1a65c24abca15e033bd3e32ee Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 2 Oct 2026 09:22:42 +0200
+Subject: [PATCH 38/45] decide: fault message suffix for tail-mismatch; header
+ note
+
+The tail-mismatch fault's 500 now ends in "(injected by
+LLAMA_DECIDE_FAULT=tail-mismatch)" like the cell-estimate and lines-join
+faults; a real tail mismatch keeps the bare message. The restore fault
+disarms through fault_fires like the other one-shot modes (same
+behaviour). decide-fullpath.h: n_vocab 0 gives -inf.
+---
+ tools/decide/decide-engine.cpp | 10 ++++++----
+ tools/decide/decide-fullpath.h |  3 ++-
+ 2 files changed, 8 insertions(+), 5 deletions(-)
+
+diff --git a/tools/decide/decide-engine.cpp b/tools/decide/decide-engine.cpp
+index cfd4c6818..458c48f77 100644
+--- a/tools/decide/decide-engine.cpp
++++ b/tools/decide/decide-engine.cpp
+@@ -361,8 +361,7 @@ void engine::fill_slot(int v, const prefix_state & ps, const std::vector<std::st
+     const auto it = std::find_if(cache.begin(), cache.end(), [&](const cache_entry & e) { return e.ps.hash == ps.hash; });
+     if (it != cache.end()) {
+         size_t n = it->bytes.size();
+-        if (fault == fault_mode::RESTORE && fault_armed) {
+-            fault_armed = false;
++        if (fault_fires(fault_mode::RESTORE)) {
+             n -= 1;   // a snapshot one byte short makes the restore fail
+         }
+         const size_t ret = llama_state_seq_set_data(ctx, it->bytes.data(), n, S);
+@@ -699,8 +698,11 @@ common_json engine::run_request(const compiled_schema & cs, const trie_set & ts,
+         ps.push_back(prepare_prefix(cs, v, K));
+         prefix_total += (int64_t) ps.back().tokens.size();
+         // the budget, the joins and the dump use one tail for every variant
+-        if (ps.back().tail_text != ps[0].tail_text || (v >= 1 && fault_fires(fault_mode::TAIL_MISMATCH))) {
+-            throw error("engine", 500, "catalogue variant " + std::to_string(v) + " renders another chat template tail");
++        const bool differs  = ps.back().tail_text != ps[0].tail_text;
++        const bool injected = !differs && v >= 1 && fault_fires(fault_mode::TAIL_MISMATCH);
++        if (differs || injected) {
++            throw error("engine", 500, "catalogue variant " + std::to_string(v) + " renders another chat template tail" +
++                                           (injected ? " (injected by LLAMA_DECIDE_FAULT=tail-mismatch)" : ""));
+         }
+     }
+     check_trie_joins(cs, ts, vocab, ps[0].tail_text, who);
+diff --git a/tools/decide/decide-fullpath.h b/tools/decide/decide-fullpath.h
+index a24779a97..c4842c027 100644
+--- a/tools/decide/decide-fullpath.h
++++ b/tools/decide/decide-fullpath.h
+@@ -13,7 +13,8 @@ namespace decide {
+ // spec 4.1: per node of t, the MERGED set of a leaf's edge-token piece; nullptr for the root, inner nodes and pieces without MERGED tokens
+ std::vector<const std::vector<llama_token> *> leaf_merged_sets(const field_trie & t, const vocab_index & vi, const llama_vocab * vocab);
+ // spec 4.4: log(sum exp(logits[i])) over the n_vocab values of a row, the normaliser of full_path_row; NaN or +inf anywhere gives
+-// NaN, -inf entries add 0, a row of only -inf gives NaN. Runs the fastest implementation below that this CPU supports.
++// NaN, -inf entries add 0, a row of only -inf gives NaN, n_vocab 0 gives -inf. Runs the fastest implementation below that this
++// CPU supports.
+ double full_vocab_lse(const float * logits, int n_vocab);
+ // the implementations, callable from tests: portable scalar code (float exp, double sum); on x86-64 with GCC or Clang an SSE2
+ // and an AVX2+FMA path (float exp polynomial, double sums), the latter only where full_vocab_lse_avx2_supported(); not on MSVC
+-- 
+2.55.0
+

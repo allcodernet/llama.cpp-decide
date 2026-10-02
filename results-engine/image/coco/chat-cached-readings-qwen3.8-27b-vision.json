@@ -1,0 +1,242 @@
+{
+ "model": "qwen3.8-27b-vision",
+ "chat_file": "results-engine/image/coco/chat-cached-qwen3.8-27b-vision.jsonl",
+ "splits": {
+  "calibration": {
+   "n": 485,
+   "decide": {
+    "errors": 7,
+    "accuracy": 0.9855670103092784
+   },
+   "chat_strict": {
+    "errors": 21,
+    "accuracy": 0.9567010309278351
+   },
+   "chat_p_yes": {
+    "errors": 12,
+    "accuracy": 0.9752577319587629
+   }
+  },
+  "test": {
+   "n": 487,
+   "decide": {
+    "errors": 2,
+    "accuracy": 0.9958932238193019
+   },
+   "chat_strict": {
+    "errors": 17,
+    "accuracy": 0.9650924024640657
+   },
+   "chat_p_yes": {
+    "errors": 6,
+    "accuracy": 0.9876796714579056
+   }
+  },
+  "all": {
+   "n": 972,
+   "decide": {
+    "errors": 9,
+    "accuracy": 0.9907407407407407
+   },
+   "chat_strict": {
+    "errors": 38,
+    "accuracy": 0.9609053497942387
+   },
+   "chat_p_yes": {
+    "errors": 18,
+    "accuracy": 0.9814814814814815
+   }
+  }
+ },
+ "unclear_answers": [
+  {
+   "image_id": 381587,
+   "field": "dog",
+   "answer": "```",
+   "p_yes": 0.003701740597926233,
+   "label": false,
+   "split": "test"
+  },
+  {
+   "image_id": 53994,
+   "field": "dog",
+   "answer": "",
+   "p_yes": 0.0013298533350209222,
+   "label": false,
+   "split": "test"
+  },
+  {
+   "image_id": 509699,
+   "field": "car",
+   "answer": "<tool_call>",
+   "p_yes": 0.38050357506053867,
+   "label": false,
+   "split": "calibration"
+  },
+  {
+   "image_id": 509699,
+   "field": "cat",
+   "answer": "```",
+   "p_yes": 0.7394594379065151,
+   "label": false,
+   "split": "calibration"
+  },
+  {
+   "image_id": 509699,
+   "field": "dog",
+   "answer": "```",
+   "p_yes": 0.3652155139156095,
+   "label": false,
+   "split": "calibration"
+  },
+  {
+   "image_id": 356612,
+   "field": "dog",
+   "answer": "Based",
+   "p_yes": 0.0012010506951721648,
+   "label": false,
+   "split": "test"
+  },
+  {
+   "image_id": 287291,
+   "field": "bicycle",
+   "answer": "Based",
+   "p_yes": 0.5153389364592819,
+   "label": false,
+   "split": "calibration"
+  },
+  {
+   "image_id": 425925,
+   "field": "bicycle",
+   "answer": "Based",
+   "p_yes": 0.016918637519683734,
+   "label": false,
+   "split": "test"
+  },
+  {
+   "image_id": 66231,
+   "field": "cat",
+   "answer": "```",
+   "p_yes": 0.17283238492261102,
+   "label": false,
+   "split": "calibration"
+  },
+  {
+   "image_id": 224051,
+   "field": "dog",
+   "answer": "```",
+   "p_yes": 0.06958178157759218,
+   "label": false,
+   "split": "calibration"
+  },
+  {
+   "image_id": 256868,
+   "field": "cat",
+   "answer": "```",
+   "p_yes": 0.05172321083737071,
+   "label": false,
+   "split": "calibration"
+  },
+  {
+   "image_id": 520531,
+   "field": "person",
+   "answer": "Based",
+   "p_yes": 0.13626661770126766,
+   "label": false,
+   "split": "test"
+  },
+  {
+   "image_id": 520531,
+   "field": "dog",
+   "answer": "```",
+   "p_yes": 0.0632431274381834,
+   "label": false,
+   "split": "test"
+  },
+  {
+   "image_id": 158945,
+   "field": "bicycle",
+   "answer": "Based",
+   "p_yes": 0.03232159718482282,
+   "label": false,
+   "split": "calibration"
+  },
+  {
+   "image_id": 210273,
+   "field": "dog",
+   "answer": "Based",
+   "p_yes": 0.008798794971042872,
+   "label": false,
+   "split": "test"
+  },
+  {
+   "image_id": 414340,
+   "field": "bicycle",
+   "answer": "Based",
+   "p_yes": 0.2182562930755567,
+   "label": false,
+   "split": "calibration"
+  },
+  {
+   "image_id": 170278,
+   "field": "cat",
+   "answer": "```",
+   "p_yes": 0.14413478247077147,
+   "label": false,
+   "split": "calibration"
+  },
+  {
+   "image_id": 297830,
+   "field": "car",
+   "answer": "```",
+   "p_yes": 0.0019166105549681882,
+   "label": false,
+   "split": "test"
+  },
+  {
+   "image_id": 297830,
+   "field": "bicycle",
+   "answer": "```",
+   "p_yes": 0.009798928805471303,
+   "label": false,
+   "split": "test"
+  },
+  {
+   "image_id": 297830,
+   "field": "cat",
+   "answer": "```",
+   "p_yes": 0.013754732781915486,
+   "label": false,
+   "split": "test"
+  },
+  {
+   "image_id": 255965,
+   "field": "bicycle",
+   "answer": "```",
+   "p_yes": 0.04950091132532746,
+   "label": false,
+   "split": "test"
+  }
+ ],
+ "time_s": {
+  "decide_per_image_median": 1.321020857500116,
+  "chat_per_image_median": 6.661109981505433,
+  "chat_per_call_median": 1.3232631669998227,
+  "chat_first_call_median": 1.4051893249961722,
+  "chat_calls_2_5_median": 1.3170603575017594
+ },
+ "prompt_cache": {
+  "first_call": {
+   "calls": 200,
+   "prompt_n_median": 1081.0,
+   "cache_n_median": 0.0,
+   "with_cache_n": 1
+  },
+  "calls_2_5": {
+   "calls": 800,
+   "prompt_n_median": 1081.0,
+   "cache_n_median": 0.0,
+   "with_cache_n": 0
+  }
+ }
+}

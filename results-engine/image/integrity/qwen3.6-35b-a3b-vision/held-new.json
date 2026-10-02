@@ -1,0 +1,52 @@
+{
+ "model": "qwen3.6-35b-a3b-vision",
+ "build": "new",
+ "chat": {
+  "status": 200,
+  "usage": {
+   "completion_tokens": 1,
+   "prompt_tokens": 321,
+   "total_tokens": 322,
+   "prompt_tokens_details": {
+    "cached_tokens": 0
+   }
+  }
+ },
+ "probe": {
+  "status": 400,
+  "response": {
+   "error": {
+    "message": "state 0 needs 20388 cells (held 321, prefix 52, state 20000, tail 11, branches 4), n_ctx - 16 is 16368",
+    "code": "budget"
+   }
+  }
+ },
+ "budget": {
+  "needs": 20388,
+  "held": 321,
+  "prefix": 52,
+  "state": 20000,
+  "tail": 11,
+  "branches": 4,
+  "limit": 16368
+ },
+ "old_held": 41,
+ "size": 16260,
+ "sized": {
+  "status": 400,
+  "response": {
+   "error": {
+    "message": "state 0 needs 16648 cells (held 321, prefix 52, state 16260, tail 11, branches 4), n_ctx - 16 is 16368",
+    "code": "budget"
+   }
+  }
+ },
+ "applicable": true,
+ "checks": {
+  "chat request: 200": true,
+  "probe: 400 budget with the cell counts": true,
+  "same prefix, tail, branches and limit as the old build": true,
+  "new build: 400 budget for the state that fits under the old count": true
+ },
+ "pass": true
+}

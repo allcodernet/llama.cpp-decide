@@ -1,0 +1,137 @@
+{
+  "preset": "qwen3.6-35b-a3b-vision",
+  "tag": "tree-one",
+  "n_records": 8,
+  "fields": {
+    "cat": {
+      "median_abs_diff": 0.00040904176326770605,
+      "max_abs_diff": 0.008185679236570109,
+      "argmax_agreement": 1,
+      "disagreements_over_margin": 0,
+      "argmax_abs_diff_median": 0.00040904176326767017
+    }
+  },
+  "pass": true,
+  "detail": [
+    {
+      "ticket": 0,
+      "field": "cat",
+      "branch_nodes": 1,
+      "reference": [
+        0.9999201733907678,
+        7.982660923223164e-05
+      ],
+      "engine": [
+        0.9999120138792337,
+        8.798612076632573e-05
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9998403467815355
+    },
+    {
+      "ticket": 1,
+      "field": "cat",
+      "branch_nodes": 1,
+      "reference": [
+        0.0003159580466073366,
+        0.9996840419533927
+      ],
+      "engine": [
+        0.0003310472067073756,
+        0.9996689527932926
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9993680839067853
+    },
+    {
+      "ticket": 2,
+      "field": "cat",
+      "branch_nodes": 1,
+      "reference": [
+        0.005561746365289963,
+        0.9944382536347101
+      ],
+      "engine": [
+        0.00433739575285749,
+        0.9956626042471425
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9888765072694201
+    },
+    {
+      "ticket": 3,
+      "field": "cat",
+      "branch_nodes": 1,
+      "reference": [
+        0.000921137642576551,
+        0.9990788623574234
+      ],
+      "engine": [
+        0.0012517941981462916,
+        0.9987482058018538
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9981577247148469
+    },
+    {
+      "ticket": 4,
+      "field": "cat",
+      "branch_nodes": 1,
+      "reference": [
+        0.9998213367570711,
+        0.00017866324292897814
+      ],
+      "engine": [
+        0.9997698630867042,
+        0.00023013691329576424
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.999642673514142
+    },
+    {
+      "ticket": 5,
+      "field": "cat",
+      "branch_nodes": 1,
+      "reference": [
+        0.004509227118611703,
+        0.9954907728813883
+      ],
+      "engine": [
+        0.005399176830832737,
+        0.9946008231691673
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9909815457627766
+    },
+    {
+      "ticket": 6,
+      "field": "cat",
+      "branch_nodes": 1,
+      "reference": [
+        0.025731760967637334,
+        0.9742682390323627
+      ],
+      "engine": [
+        0.017546081731067226,
+        0.9824539182689328
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9485364780647254
+    },
+    {
+      "ticket": 7,
+      "field": "cat",
+      "branch_nodes": 1,
+      "reference": [
+        0.9993377760404241,
+        0.0006622239595758979
+      ],
+      "engine": [
+        0.9998252030113898,
+        0.0001747969886102263
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9986755520808481
+    }
+  ]
+}

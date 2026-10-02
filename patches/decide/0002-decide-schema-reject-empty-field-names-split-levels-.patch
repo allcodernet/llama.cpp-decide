@@ -1,0 +1,55 @@
+From e82fc4ab54b6e34b3e46da971bcf99e1e8941b00 Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 13:36:30 +0200
+Subject: [PATCH 02/45] decide-schema: reject empty field names, split levels
+ error message
+
+Empty-string field keys compiled successfully, contradicting the rule that field names are non-empty. Also split the SCORE branch's combined missing/wrong-type levels error into distinct messages.
+---
+ tests/test-decide-schema.cpp   | 2 ++
+ tools/decide/decide-schema.cpp | 4 +++-
+ 2 files changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/tests/test-decide-schema.cpp b/tests/test-decide-schema.cpp
+index f06368cc1..65c37029b 100644
+--- a/tests/test-decide-schema.cpp
++++ b/tests/test-decide-schema.cpp
+@@ -87,11 +87,13 @@ int main() {
+     // errors: one per rule
+     expect_error(R"([])", "invalid_schema");
+     expect_error(R"({"fields": {}, "states": ["x"]})", "invalid_schema");
++    expect_error(R"({"fields": {"": {"type": "bool", "description": "d"}}, "states": ["x"]})", "invalid_schema");
+     expect_error(R"({"fields": {"q": {"type": "enum", "description": "d", "options": ["a","b"]}}, "states": ["x"]})", "invalid_schema");
+     expect_error(R"({"fields": {"q": {"type": "choice", "description": "", "options": ["a","b"]}}, "states": ["x"]})", "invalid_schema");
+     expect_error(R"({"fields": {"q": {"type": "choice", "description": "d", "options": ["a"]}}, "states": ["x"]})", "invalid_schema");
+     expect_error(R"({"fields": {"q": {"type": "choice", "description": "d", "options": ["a","a"]}}, "states": ["x"]})", "invalid_schema");
+     expect_error(R"({"fields": {"q": {"type": "choice", "description": "d", "options": {"a": 1, "b": "x"}}}, "states": ["x"]})", "invalid_schema");
++    expect_error(R"({"fields": {"s": {"type": "score", "description": "d", "levels": "x"}}, "states": ["x"]})", "invalid_schema");
+     expect_error(R"({"fields": {"s": {"type": "score", "description": "d", "levels": ["only one"]}}, "states": ["x"]})", "invalid_schema");
+     expect_error(R"({"fields": {"s": {"type": "score", "description": "d", "levels": ["0","1","2","3","4","5","6","7","8","9","10"]}}, "states": ["x"]})", "invalid_schema");
+     expect_error(R"({"fields": {"b": {"type": "bool", "description": "d", "options": ["a","b"]}}, "states": ["x"]})", "invalid_schema");
+diff --git a/tools/decide/decide-schema.cpp b/tools/decide/decide-schema.cpp
+index c7cb97bff..d7c729c76 100644
+--- a/tools/decide/decide-schema.cpp
++++ b/tools/decide/decide-schema.cpp
+@@ -54,7 +54,8 @@ static field compile_field(const std::string & name, const common_json & fj) {
+         for (auto & o : f.options) o.encoded = json_string(o.key);
+     } else if (f.type == field_type::SCORE) {
+         if (fj.contains("options")) throw error("invalid_schema", 400, "field \"" + name + "\": score has no options");
+-        if (!fj.contains("levels") || !fj.at("levels").is_array()) throw error("invalid_schema", 400, "field \"" + name + "\": missing levels array");
++        if (!fj.contains("levels")) throw error("invalid_schema", 400, "field \"" + name + "\": missing levels");
++        if (!fj.at("levels").is_array()) throw error("invalid_schema", 400, "field \"" + name + "\": levels must be an array");
+         const auto & lj = fj.at("levels");
+         if (lj.size() < 2 || lj.size() > 10) throw error("invalid_schema", 400, "field \"" + name + "\": score needs 2 to 10 levels");
+         for (size_t i = 0; i < lj.size(); ++i) f.options.push_back({std::to_string(i), require_string(lj.at(i), "level text"), std::to_string(i)});
+@@ -72,6 +73,7 @@ compiled_schema compile(const common_json & fields_j, const std::string & instru
+     compiled_schema cs;
+     cs.instructions = instructions;
+     for (const auto & [key, val] : fields_j.items()) {
++        if (key.empty()) throw error("invalid_schema", 400, "field name must not be empty");
+         cs.fields.push_back(compile_field(key, val));
+     }
+ 
+-- 
+2.55.0
+

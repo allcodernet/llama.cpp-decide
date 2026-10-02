@@ -1,0 +1,8 @@
+{
+ "a": "results-engine/image/final/regression/qwen3.8-27b-old.jsonl",
+ "b": "results-engine/image/final/regression/qwen3.8-27b-new.jsonl",
+ "requests": 88,
+ "max_abs_diff": 0.0,
+ "differences": [],
+ "pass": true
+}

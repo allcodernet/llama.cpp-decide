@@ -1,0 +1,446 @@
+{
+ "model": "qwen3.6-35b-a3b-vision",
+ "skip_cases": false,
+ "fixed": [
+  {
+   "status": 200,
+   "response": {
+    "object": "decide",
+    "results": [
+     {
+      "answers": {
+       "cat": {
+        "value": true,
+        "p_true": 0.9998848707201159,
+        "confidence": 0.9998848707201159
+       }
+      },
+      "usage": {
+       "state_tokens": 0,
+       "scored_tokens": 1,
+       "images": 1,
+       "image_cells": 302,
+       "image_positions": 22
+      }
+     },
+     {
+      "answers": {
+       "cat": {
+        "value": true,
+        "p_true": 0.7918540818774388,
+        "confidence": 0.7918540818774388
+       }
+      },
+      "usage": {
+       "state_tokens": 7,
+       "scored_tokens": 1
+      }
+     }
+    ],
+    "usage": {
+     "prompt_tokens": 391,
+     "cached_tokens": 0,
+     "state_tokens": 7,
+     "scored_tokens": 2
+    },
+    "timings": {
+     "prefill_ms": 396.474,
+     "prefix_ms": 103.569,
+     "scoring_ms": 23.287,
+     "total_ms": 426.099,
+     "rounds": 1,
+     "decodes": 6,
+     "retries": 0,
+     "image_encode_ms": 105.818,
+     "image_decode_ms": 118.961
+    },
+    "engine": {
+     "scoring": "tree",
+     "order_debias": 1,
+     "temperature": 1.0,
+     "phases": 1,
+     "seqs_per_state": 2,
+     "states_per_round": 7,
+     "quote_split_fields": [],
+     "prefix_cache": {
+      "capacity": 8,
+      "entries": 0,
+      "hits": 0,
+      "misses": 1
+     }
+    }
+   }
+  },
+  {
+   "status": 200,
+   "response": {
+    "object": "decide",
+    "results": [
+     {
+      "answers": {
+       "cat": {
+        "value": true,
+        "p_true": 0.9998848707201159,
+        "confidence": 0.9998848707201159
+       }
+      },
+      "usage": {
+       "state_tokens": 0,
+       "scored_tokens": 1,
+       "images": 1,
+       "image_cells": 302,
+       "image_positions": 22
+      }
+     },
+     {
+      "answers": {
+       "cat": {
+        "value": true,
+        "p_true": 0.7918540818774388,
+        "confidence": 0.7918540818774388
+       }
+      },
+      "usage": {
+       "state_tokens": 7,
+       "scored_tokens": 1
+      }
+     }
+    ],
+    "usage": {
+     "prompt_tokens": 339,
+     "cached_tokens": 52,
+     "state_tokens": 7,
+     "scored_tokens": 2
+    },
+    "timings": {
+     "prefill_ms": 246.384,
+     "prefix_ms": 0.365,
+     "scoring_ms": 25.602,
+     "total_ms": 277.834,
+     "rounds": 1,
+     "decodes": 5,
+     "retries": 0,
+     "image_encode_ms": 70.303,
+     "image_decode_ms": 117.953
+    },
+    "engine": {
+     "scoring": "tree",
+     "order_debias": 1,
+     "temperature": 1.0,
+     "phases": 1,
+     "seqs_per_state": 2,
+     "states_per_round": 7,
+     "quote_split_fields": [],
+     "prefix_cache": {
+      "capacity": 8,
+      "entries": 0,
+      "hits": 0,
+      "misses": 0
+     }
+    }
+   }
+  }
+ ],
+ "cases": [
+  {
+   "case": "empty part list",
+   "field": "states[1]",
+   "status": 400,
+   "error": {
+    "message": "states[1]: a part list must not be empty",
+    "code": "invalid_states",
+    "field": "states[1]"
+   }
+  },
+  {
+   "case": "adjacent text parts",
+   "field": "states[0]",
+   "status": 400,
+   "error": {
+    "message": "states[0]: part 1: two text parts must not be adjacent; join them into one",
+    "code": "invalid_states",
+    "field": "states[0]"
+   }
+  },
+  {
+   "case": "unknown part type",
+   "field": "states[0]",
+   "status": 400,
+   "error": {
+    "message": "states[0]: part 0: unknown part type \"input_image\" (text or image_url)",
+    "code": "invalid_states",
+    "field": "states[0]"
+   }
+  },
+  {
+   "case": "an extra key (detail)",
+   "field": "states[0]",
+   "status": 400,
+   "error": {
+    "message": "states[0]: part 0: an image part is {\"type\": \"image_url\", \"image_url\": {\"url\": <data URI>}}",
+    "code": "invalid_states",
+    "field": "states[0]"
+   }
+  },
+  {
+   "case": "an empty text part",
+   "field": "states[0]",
+   "status": 400,
+   "error": {
+    "message": "states[0]: part 0: a text part is {\"type\": \"text\", \"text\": <non-empty string>}",
+    "code": "invalid_states",
+    "field": "states[0]"
+   }
+  },
+  {
+   "case": "a part that is not an object",
+   "field": "states[0]",
+   "status": 400,
+   "error": {
+    "message": "states[0]: part 0: a part must be an object with a string \"type\"",
+    "code": "invalid_states",
+    "field": "states[0]"
+   }
+  },
+  {
+   "case": "5 images in a state",
+   "field": "states[0]",
+   "status": 400,
+   "error": {
+    "message": "states[0]: part 4: at most 4 images per state",
+    "code": "invalid_states",
+    "field": "states[0]"
+   }
+  },
+  {
+   "case": "33 images in a request",
+   "field": "states[8]",
+   "status": 400,
+   "error": {
+    "message": "states[8]: part 0: at most 32 images per request",
+    "code": "invalid_states",
+    "field": "states[8]"
+   }
+  },
+  {
+   "case": "10 MiB + 1 byte",
+   "field": "states[0]",
+   "status": 400,
+   "error": {
+    "message": "states[0]: part 0: the image has 10485761 bytes (at most 10485760)",
+    "code": "invalid_states",
+    "field": "states[0]"
+   }
+  },
+  {
+   "case": "8000 x 4001 pixels",
+   "field": "states[0]",
+   "status": 400,
+   "error": {
+    "message": "states[0]: part 0: the image is 8000 x 4001 = 32008000 pixels, at most 32000000",
+    "code": "invalid_states",
+    "field": "states[0]"
+   }
+  },
+  {
+   "case": "an http URL",
+   "field": "states[0]",
+   "status": 400,
+   "error": {
+    "message": "states[0]: part 0: the url must be data:image/<subtype>;base64,<data>; remote URLs, file: URLs, paths and bare base64 are not accepted",
+    "code": "invalid_states",
+    "field": "states[0]"
+   }
+  },
+  {
+   "case": "a file: URL",
+   "field": "states[0]",
+   "status": 400,
+   "error": {
+    "message": "states[0]: part 0: the url must be data:image/<subtype>;base64,<data>; remote URLs, file: URLs, paths and bare base64 are not accepted",
+    "code": "invalid_states",
+    "field": "states[0]"
+   }
+  },
+  {
+   "case": "a server path",
+   "field": "states[0]",
+   "status": 400,
+   "error": {
+    "message": "states[0]: part 0: the url must be data:image/<subtype>;base64,<data>; remote URLs, file: URLs, paths and bare base64 are not accepted",
+    "code": "invalid_states",
+    "field": "states[0]"
+   }
+  },
+  {
+   "case": "empty data",
+   "field": "states[0]",
+   "status": 400,
+   "error": {
+    "message": "states[0]: part 0: the image is not a JPEG or PNG file",
+    "code": "invalid_states",
+    "field": "states[0]"
+   }
+  },
+  {
+   "case": "IMAGE/ in upper case",
+   "field": "states[0]",
+   "status": 400,
+   "error": {
+    "message": "states[0]: part 0: the url must be data:image/<subtype>;base64,<data>; remote URLs, file: URLs, paths and bare base64 are not accepted",
+    "code": "invalid_states",
+    "field": "states[0]"
+   }
+  },
+  {
+   "case": "the subtype PNG in upper case",
+   "field": "states[0]",
+   "status": 400,
+   "error": {
+    "message": "states[0]: part 0: the url must be data:image/<subtype>;base64,<data> with a subtype of a-z 0-9 . + - and no further parameters",
+    "code": "invalid_states",
+    "field": "states[0]"
+   }
+  },
+  {
+   "case": ";base64 without the comma",
+   "field": "states[0]",
+   "status": 400,
+   "error": {
+    "message": "states[0]: part 0: the url must be data:image/<subtype>;base64,<data> with a subtype of a-z 0-9 . + - and no further parameters",
+    "code": "invalid_states",
+    "field": "states[0]"
+   }
+  },
+  {
+   "case": "bare base64",
+   "field": "states[0]",
+   "status": 400,
+   "error": {
+    "message": "states[0]: part 0: the url must be data:image/<subtype>;base64,<data>; remote URLs, file: URLs, paths and bare base64 are not accepted",
+    "code": "invalid_states",
+    "field": "states[0]"
+   }
+  },
+  {
+   "case": "DATA: in upper case",
+   "field": "states[0]",
+   "status": 400,
+   "error": {
+    "message": "states[0]: part 0: the url must be data:image/<subtype>;base64,<data>; remote URLs, file: URLs, paths and bare base64 are not accepted",
+    "code": "invalid_states",
+    "field": "states[0]"
+   }
+  },
+  {
+   "case": "a URL parameter",
+   "field": "states[0]",
+   "status": 400,
+   "error": {
+    "message": "states[0]: part 0: the url must be data:image/<subtype>;base64,<data> with a subtype of a-z 0-9 . + - and no further parameters",
+    "code": "invalid_states",
+    "field": "states[0]"
+   }
+  },
+  {
+   "case": "URL-safe base64",
+   "field": "states[0]",
+   "status": 400,
+   "error": {
+    "message": "states[0]: part 0: invalid base64 (standard alphabet A-Z a-z 0-9 + /, = padding, a length that is a multiple of 4, no whitespace)",
+    "code": "invalid_states",
+    "field": "states[0]"
+   }
+  },
+  {
+   "case": "unpadded base64",
+   "field": "states[0]",
+   "status": 400,
+   "error": {
+    "message": "states[0]: part 0: invalid base64 (standard alphabet A-Z a-z 0-9 + /, = padding, a length that is a multiple of 4, no whitespace)",
+    "code": "invalid_states",
+    "field": "states[0]"
+   }
+  },
+  {
+   "case": "a newline in the base64",
+   "field": "states[0]",
+   "status": 400,
+   "error": {
+    "message": "states[0]: part 0: invalid base64 (standard alphabet A-Z a-z 0-9 + /, = padding, a length that is a multiple of 4, no whitespace)",
+    "code": "invalid_states",
+    "field": "states[0]"
+   }
+  },
+  {
+   "case": "BMP bytes",
+   "field": "states[0]",
+   "status": 400,
+   "error": {
+    "message": "states[0]: part 0: the image is not a JPEG or PNG file",
+    "code": "invalid_states",
+    "field": "states[0]"
+   }
+  },
+  {
+   "case": "12-bit JPEG (pixel decoding, pass 3)",
+   "field": "states[1]",
+   "status": 400,
+   "error": {
+    "message": "states[1]: part 0: the image cannot be decoded (only 8-bit)",
+    "code": "invalid_states",
+    "field": "states[1]"
+   }
+  },
+  {
+   "case": "a PNG header without pixel data",
+   "field": "states[0]",
+   "status": 400,
+   "error": {
+    "message": "states[0]: part 0: the image cannot be decoded (unknown stb_image error)",
+    "code": "invalid_states",
+    "field": "states[0]"
+   }
+  },
+  {
+   "case": "image state over the budget",
+   "status": 400,
+   "error": {
+    "message": "state 0 needs 20369 cells (held 0, prefix 52, state 20302 (image cells 302), tail 11, branches 4), n_ctx - 16 is 16368",
+    "code": "budget"
+   }
+  }
+ ],
+ "checks": {
+  "empty part list": true,
+  "adjacent text parts": true,
+  "unknown part type": true,
+  "an extra key (detail)": true,
+  "an empty text part": true,
+  "a part that is not an object": true,
+  "5 images in a state": true,
+  "33 images in a request": true,
+  "10 MiB + 1 byte": true,
+  "8000 x 4001 pixels": true,
+  "an http URL": true,
+  "a file: URL": true,
+  "a server path": true,
+  "empty data": true,
+  "IMAGE/ in upper case": true,
+  "the subtype PNG in upper case": true,
+  ";base64 without the comma": true,
+  "bare base64": true,
+  "DATA: in upper case": true,
+  "a URL parameter": true,
+  "URL-safe base64": true,
+  "unpadded base64": true,
+  "a newline in the base64": true,
+  "BMP bytes": true,
+  "12-bit JPEG (pixel decoding, pass 3)": true,
+  "a PNG header without pixel data": true,
+  "image state over the budget: 400 budget naming the image cells": true,
+  "info unchanged": true,
+  "the fixed request: 200 before and after": true
+ },
+ "pass": true
+}

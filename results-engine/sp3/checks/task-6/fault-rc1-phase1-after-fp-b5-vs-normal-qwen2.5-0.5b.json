@@ -1,0 +1,34 @@
+{
+  "ref": "results-engine/sp3/checks/task-6/after-fp-b5-qwen2.5-0.5b.jsonl",
+  "run": "results-engine/sp3/checks/task-6/fault-rc1-phase1-after-fp-b5-seqs64-qwen2.5-0.5b.jsonl",
+  "n_tickets": 20,
+  "max_abs_diff": 0.06930898633964866,
+  "fields": {
+    "queue": {
+      "median_abs_diff": 0.004029675590069837,
+      "max_abs_diff": 0.041928240615587004,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    },
+    "urgency": {
+      "median_abs_diff": 0.0037829687336578804,
+      "max_abs_diff": 0.040259396011606996,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    },
+    "angry": {
+      "median_abs_diff": 0.009288292472181575,
+      "max_abs_diff": 0.06930898633964866,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    }
+  },
+  "pass": true,
+  "pass_all": true
+}

@@ -1,0 +1,32 @@
+gpu: 22 MiB, 55 C
+gpu: 22 MiB, 58 C
+gpu: 22 MiB, 61 C
+gpu: 22 MiB, 62 C
+gpu: 22 MiB, 65 C
+gpu: 22 MiB, 65 C
+gpu: 22 MiB, 65 C
+gpu: 22 MiB, 66 C
+gpu: 22 MiB, 67 C
+gpu: 22 MiB, 67 C
+gpu: 22 MiB, 61 C
+qwen2.5-0.5b loaded: 800 MiB, 62
+gemma-4-e4b loaded: 3302 MiB, 72
+qwen3.5-4b loaded: 4110 MiB, 74
+qwen3.5-9b loaded: 6406 MiB, 75
+gpu: 22 MiB, 68 C
+gpu: 22 MiB, 73 C
+gpu: 22 MiB, 74 C
+gpu: 22 MiB, 76 C
+gpu: 22 MiB, 74 C
+gpu: 22 MiB, 74 C
+gpu: 22 MiB, 49 C
+qwen3.5-9b loaded: 6406 MiB, 52
+gpu: 22 MiB, 55 C
+qwen3.5-9b loaded: 6406 MiB, 57
+gpu: 22 MiB, 67 C
+gemma-4-e4b loaded: 3302 MiB, 67
+gpu: 22 MiB, 67 C
+gemma-4-e4b loaded: 3302 MiB, 66
+gpu: 22 MiB, 68 C
+gpu: 22 MiB, 54 C (diagnostic split s84, gemma-4-e4b)
+gpu: 22 MiB, 54 C (diagnostic split s84, qwen2.5-0.5b)

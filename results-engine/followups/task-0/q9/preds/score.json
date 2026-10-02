@@ -1,0 +1,25 @@
+{
+  "preds_dir": "/tmp/t0-probe/q9/preds",
+  "test_set": "local/data/triage_test.jsonl",
+  "n_tickets": 80,
+  "runs": {
+    "decide-qwen3.5-9b-b5-keywords": {
+      "queue": 0.95,
+      "urgency": 0.7875,
+      "urgency_near": 0.9625,
+      "angry": 0.975,
+      "nll_queue": 0.1845444341025977,
+      "nll_urgency": 0.5503120816024359,
+      "nll_angry": 0.12694180913585193,
+      "nll_sum": 0.8617983248408856,
+      "ece_queue": 0.045056862849279705,
+      "ece_urgency": 0.06293256253411274,
+      "ece_angry": 0.06450511961741617,
+      "brier_angry": 0.035063099559723296,
+      "p50_ms": 35.25414620000902,
+      "rounds": [
+        1
+      ]
+    }
+  }
+}

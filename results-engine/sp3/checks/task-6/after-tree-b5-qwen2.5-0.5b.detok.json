@@ -1,0 +1,21 @@
+{
+  "req": "results-engine/sp3/checks/task-6/requests-after-tree-b5-qwen2.5-0.5b.jsonl",
+  "resp": "results-engine/sp3/checks/task-6/after-tree-b5-qwen2.5-0.5b.jsonl",
+  "entries_checked": 40,
+  "lines_tokens_kept_as_prefix": {
+    "urgency: '  \"queue\": \"sales\",\\n'": [
+      true
+    ],
+    "angry: '  \"queue\": \"sales\",\\n'": [
+      true
+    ],
+    "urgency: '  \"queue\": \"technical\",\\n'": [
+      true
+    ],
+    "angry: '  \"queue\": \"technical\",\\n'": [
+      true
+    ]
+  },
+  "problems": [],
+  "pass": true
+}

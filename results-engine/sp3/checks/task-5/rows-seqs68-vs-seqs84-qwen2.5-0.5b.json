@@ -1,0 +1,122 @@
+{
+  "split": "results-engine/sp3/checks/task-5/fp-b5-seqs68-qwen2.5-0.5b.jsonl",
+  "whole": "results-engine/sp3/checks/task-5/fp-b5-seqs84-qwen2.5-0.5b.jsonl",
+  "row_cap": 69,
+  "rows_compared": 340,
+  "max_abs_diff_all_rows": 0.08310554218072874,
+  "rows_after_boundary": [
+    {
+      "line": 0,
+      "state": 4,
+      "field": "queue",
+      "node": 1,
+      "max_abs_diff": 4.6435173295389376e-07,
+      "values_split": {
+        "children:1": 7.201811226660938e-08,
+        "merged:1": 0.9999946104171332
+      },
+      "values_whole": {
+        "children:1": 7.261660628311779e-08,
+        "merged:1": 0.9999941460654003
+      }
+    },
+    {
+      "line": 0,
+      "state": 4,
+      "field": "queue",
+      "node": 2,
+      "max_abs_diff": 0.006703832883920541,
+      "values_split": {
+        "end:": 0.22663670816182585
+      },
+      "values_whole": {
+        "end:": 0.2333405410457464
+      }
+    },
+    {
+      "line": 1,
+      "state": 4,
+      "field": "queue",
+      "node": 1,
+      "max_abs_diff": 3.427788302090562e-07,
+      "values_split": {
+        "children:1": 8.042848393707771e-08,
+        "merged:1": 0.9999611948477337
+      },
+      "values_whole": {
+        "children:1": 9.049684751615817e-08,
+        "merged:1": 0.9999608520689035
+      }
+    },
+    {
+      "line": 1,
+      "state": 4,
+      "field": "queue",
+      "node": 2,
+      "max_abs_diff": 0.004900434280204924,
+      "values_split": {
+        "end:": 0.31579036054629905
+      },
+      "values_whole": {
+        "end:": 0.31088992626609413
+      }
+    },
+    {
+      "line": 2,
+      "state": 4,
+      "field": "queue",
+      "node": 1,
+      "max_abs_diff": 1.6499841272166194e-06,
+      "values_split": {
+        "children:1": 3.945446592751014e-08,
+        "merged:1": 0.9999880038959545
+      },
+      "values_whole": {
+        "children:1": 3.516838320311137e-08,
+        "merged:1": 0.9999896538800818
+      }
+    },
+    {
+      "line": 2,
+      "state": 4,
+      "field": "queue",
+      "node": 2,
+      "max_abs_diff": 0.0020760865246892135,
+      "values_split": {
+        "end:": 0.2327847655098253
+      },
+      "values_whole": {
+        "end:": 0.2348608520345145
+      }
+    },
+    {
+      "line": 3,
+      "state": 4,
+      "field": "queue",
+      "node": 1,
+      "max_abs_diff": 7.267922843556818e-07,
+      "values_split": {
+        "children:1": 5.5228629773971884e-08,
+        "merged:1": 0.9999853306010699
+      },
+      "values_whole": {
+        "children:1": 5.346483363109323e-08,
+        "merged:1": 0.9999860573933542
+      }
+    },
+    {
+      "line": 3,
+      "state": 4,
+      "field": "queue",
+      "node": 2,
+      "max_abs_diff": 0.033329720184183786,
+      "values_split": {
+        "end:": 0.34004597986593377
+      },
+      "values_whole": {
+        "end:": 0.30671625968175
+      }
+    }
+  ],
+  "max_abs_diff_after_boundary": 0.033329720184183786
+}

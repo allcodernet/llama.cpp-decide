@@ -1,0 +1,38 @@
+From e6e42043192c0e8079de523593115b6871351af7 Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 15:55:15 +0200
+Subject: [PATCH 13/45] decide: option indices per branch child in
+ --dump-tokens
+
+An external checker needs to know which options pass through each child
+of a branch node to multiply child probabilities along option paths on
+fields with more than one branch node.
+---
+ tools/decide/decide-engine.cpp | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/tools/decide/decide-engine.cpp b/tools/decide/decide-engine.cpp
+index 83a7ba376..5222433e5 100644
+--- a/tools/decide/decide-engine.cpp
++++ b/tools/decide/decide-engine.cpp
+@@ -446,14 +446,17 @@ common_json engine::decide(const compiled_schema & cs, const trie_set & ts, cons
+                 const field_trie & t = ts.fields[f];
+                 for (int k : t.branch_nodes) {
+                     std::vector<llama_token> children;
++                    common_json              options = common_json::array();   // per child: option indices through it
+                     for (int child : t.nodes[k].children) {
+                         children.push_back(t.nodes[child].tok);
++                        options.push_back(t.nodes[child].options_through);
+                     }
+                     common_json b = common_json::object();
+                     b["field"]    = cs.fields[f].name;
+                     b["node"]     = k;
+                     b["tokens"]   = token_array(branch_tokens(t, k));
+                     b["children"] = token_array(children);
++                    b["options"]  = options;
+                     branches.push_back(b);
+                 }
+             }
+-- 
+2.55.0
+

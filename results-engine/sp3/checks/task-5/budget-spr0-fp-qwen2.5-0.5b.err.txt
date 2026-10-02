@@ -1,0 +1,3 @@
+0.00.395.944 W load: control-looking token: 128247 '</s>' was not control-type; this is probably a bug in the model. its type will be overridden
+0.00.505.797 I cmn          init: llama threadpool init, n_threads = 6
+{"error":{"message":"schema needs 11 sequences per state (K_eff 1 × (1 trunk + 10 branch sequences, full_path)); --decide-seqs 10 leaves 9 after 1 prefix slots","code":"budget"}}

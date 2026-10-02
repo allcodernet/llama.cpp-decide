@@ -1,0 +1,151 @@
+{
+  "preds_dir": "results-engine/sp3/eval/test/preds",
+  "test_set": "/home/marduk/Projects/temp/jev/experiment/data/triage_test.jsonl",
+  "n_tickets": 80,
+  "runs": {
+    "decide-gemma-4-e4b-b5-keywords-after-urgency=queue-angry=queue": {
+      "queue": 0.9375,
+      "urgency": 0.8625,
+      "urgency_near": 0.9875,
+      "angry": 0.9625,
+      "nll_queue": 0.20095195533024166,
+      "nll_urgency": 0.6069340088589602,
+      "nll_angry": 0.12475367020695154,
+      "nll_sum": 0.9326396343961534,
+      "ece_queue": 0.042023760397749486,
+      "ece_urgency": 0.08206329335478929,
+      "ece_angry": 0.04209698665507726,
+      "brier_angry": 0.030976930342578965,
+      "p50_ms": 56.75025130040012,
+      "rounds": [
+        1
+      ]
+    },
+    "decide-gemma-4-e4b-b5-keywords-after-urgency=queue": {
+      "queue": 0.9375,
+      "urgency": 0.8625,
+      "urgency_near": 0.9875,
+      "angry": 0.9625,
+      "nll_queue": 0.20169599034265104,
+      "nll_urgency": 0.6124480551227316,
+      "nll_angry": 0.13058862533587545,
+      "nll_sum": 0.9447326708012581,
+      "ece_queue": 0.0414186867939528,
+      "ece_urgency": 0.08082876883452914,
+      "ece_angry": 0.03861342179802694,
+      "brier_angry": 0.03130445648022005,
+      "p50_ms": 56.09575130074518,
+      "rounds": [
+        1
+      ]
+    },
+    "decide-gemma-4-e4b-b5-keywords-debias4": {
+      "queue": 0.925,
+      "urgency": 0.8375,
+      "urgency_near": 0.9875,
+      "angry": 0.9625,
+      "nll_queue": 0.20333626760275453,
+      "nll_urgency": 0.5648200611786971,
+      "nll_angry": 0.13139757394097235,
+      "nll_sum": 0.899553902722424,
+      "ece_queue": 0.045606163926332946,
+      "ece_urgency": 0.09898075756457086,
+      "ece_angry": 0.02761511483555245,
+      "brier_angry": 0.031276847513217056,
+      "p50_ms": 232.4954310985049,
+      "rounds": [
+        5
+      ]
+    },
+    "decide-gemma-4-e4b-b5-keywords-full_path": {
+      "queue": 0.925,
+      "urgency": 0.825,
+      "urgency_near": 0.9875,
+      "angry": 0.95,
+      "nll_queue": 0.19994735200422661,
+      "nll_urgency": 0.5800995096361035,
+      "nll_angry": 0.13100913141141454,
+      "nll_sum": 0.9110559930517446,
+      "ece_queue": 0.054280470338138126,
+      "ece_urgency": 0.10645066526788538,
+      "ece_angry": 0.027061958895023046,
+      "brier_angry": 0.03140805550227652,
+      "p50_ms": 154.17285319999792,
+      "rounds": [
+        5
+      ]
+    },
+    "decide-qwen3.5-9b-b5-keywords-after-urgency=queue-angry=queue": {
+      "queue": 0.95,
+      "urgency": 0.85,
+      "urgency_near": 0.9625,
+      "angry": 0.9875,
+      "nll_queue": 0.18112361993259243,
+      "nll_urgency": 0.546359083194736,
+      "nll_angry": 0.13784256877257478,
+      "nll_sum": 0.8653252718999033,
+      "ece_queue": 0.04513995047350159,
+      "ece_urgency": 0.11983411841035391,
+      "ece_angry": 0.09021347749916073,
+      "brier_angry": 0.0384169850308619,
+      "p50_ms": 174.28770429978613,
+      "rounds": [
+        1
+      ]
+    },
+    "decide-qwen3.5-9b-b5-keywords-after-urgency=queue": {
+      "queue": 0.95,
+      "urgency": 0.85,
+      "urgency_near": 0.9625,
+      "angry": 0.975,
+      "nll_queue": 0.17454501334825584,
+      "nll_urgency": 0.5553948252339675,
+      "nll_angry": 0.1232823367385884,
+      "nll_sum": 0.8532221753208118,
+      "ece_queue": 0.052291395752608646,
+      "ece_urgency": 0.12093312217359567,
+      "ece_angry": 0.06495039990087059,
+      "brier_angry": 0.033645180786859845,
+      "p50_ms": 144.85594680008944,
+      "rounds": [
+        1
+      ]
+    },
+    "decide-qwen3.5-9b-b5-keywords-debias4": {
+      "queue": 0.95,
+      "urgency": 0.7875,
+      "urgency_near": 0.95,
+      "angry": 0.9875,
+      "nll_queue": 0.17754712298146014,
+      "nll_urgency": 0.5079255547774788,
+      "nll_angry": 0.12375295844273373,
+      "nll_sum": 0.8092256362016726,
+      "ece_queue": 0.04725016551295809,
+      "ece_urgency": 0.05522591647758365,
+      "ece_angry": 0.07605966937174269,
+      "brier_angry": 0.0336810657144171,
+      "p50_ms": 513.4429041994736,
+      "rounds": [
+        5
+      ]
+    },
+    "decide-qwen3.5-9b-b5-keywords-full_path": {
+      "queue": 0.9375,
+      "urgency": 0.8125,
+      "urgency_near": 0.9625,
+      "angry": 0.975,
+      "nll_queue": 0.18202730273044354,
+      "nll_urgency": 0.5215777524105599,
+      "nll_angry": 0.12594045703649814,
+      "nll_sum": 0.8295455121775016,
+      "ece_queue": 0.055478194276543005,
+      "ece_urgency": 0.07239699837006335,
+      "ece_angry": 0.06098728921551204,
+      "brier_angry": 0.03423398941889949,
+      "p50_ms": 217.29741470044246,
+      "rounds": [
+        5
+      ]
+    }
+  }
+}

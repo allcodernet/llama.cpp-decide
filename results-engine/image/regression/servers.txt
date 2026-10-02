@@ -1,0 +1,22 @@
+# Evidence for the Task 5 regression runs (spec 9.2): per router log in /tmp/image-logs on the test machine, the server binary
+# the router spawned and the projector lines (grep -n of the log, collected on 2026-10-02).
+
+== /tmp/image-logs/router-regression-qwen3.8-27b-old.log
+31-0.00.985.326 I srv          load:   /home/marduk/llama.cpp-decision/engine-49785a95d/build/bin/llama-server
+no mmproj line
+
+== /tmp/image-logs/router-regression-qwen3.8-27b-new.log
+31-0.00.986.046 I srv          load:   /home/marduk/llama.cpp-decision/engine/build/bin/llama-server
+no mmproj line
+
+== /tmp/image-logs/router-regression-qwen3.8-27b-vision-old.log
+31-0.00.984.914 I srv          load:   /home/marduk/llama.cpp-decision/engine-49785a95d/build/bin/llama-server
+53:0.00.984.918 I srv          load:   --mmproj
+54-0.00.984.918 I srv          load:   /home/marduk/.lmstudio/models/ISTA-DASLab/Qwen3.8-27B-GSQ-RCO-GGUF/mmproj-Qwen3.8-27B-BF16.gguf
+95:[45819] 0.02.784.592 I srv    load_model: loaded multimodal model, '/home/marduk/.lmstudio/models/ISTA-DASLab/Qwen3.8-27B-GSQ-RCO-GGUF/mmproj-Qwen3.8-27B-BF16.gguf'
+
+== /tmp/image-logs/router-regression-qwen3.8-27b-vision-new.log
+31-0.00.986.097 I srv          load:   /home/marduk/llama.cpp-decision/engine/build/bin/llama-server
+53:0.00.986.102 I srv          load:   --mmproj
+54-0.00.986.102 I srv          load:   /home/marduk/.lmstudio/models/ISTA-DASLab/Qwen3.8-27B-GSQ-RCO-GGUF/mmproj-Qwen3.8-27B-BF16.gguf
+95:[41377] 0.02.788.271 I srv    load_model: loaded multimodal model, '/home/marduk/.lmstudio/models/ISTA-DASLab/Qwen3.8-27B-GSQ-RCO-GGUF/mmproj-Qwen3.8-27B-BF16.gguf'

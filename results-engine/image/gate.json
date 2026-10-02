@@ -1,0 +1,16 @@
+{
+ "preset": "gemma-3-4b-vision",
+ "dir": "results-engine/image/integrity/gemma-3-4b-vision",
+ "skipped": null,
+ "checks": {
+  "tree-one": true,
+  "tree-multi": false,
+  "fp": true,
+  "after": true,
+  "debias2": true,
+  "t0.5": false,
+  "batch": false,
+  "the model ran (no SKIPPED.txt)": true
+ },
+ "pass": false
+}

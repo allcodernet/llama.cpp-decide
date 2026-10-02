@@ -1,0 +1,34 @@
+{
+  "ref": "results-engine/sp3/checks/task-6/plain-tree-b5-qwen2.5-0.5b.jsonl",
+  "run": "results-engine/sp3/checks/task-6/after-tree-b5-qwen2.5-0.5b.jsonl",
+  "n_tickets": 20,
+  "max_abs_diff": 0.4597717876739888,
+  "fields": {
+    "queue": {
+      "median_abs_diff": 0.0034866727620873348,
+      "max_abs_diff": 0.0431299019115704,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    },
+    "urgency": {
+      "median_abs_diff": 0.09957843023441212,
+      "max_abs_diff": 0.4597717876739888,
+      "argmax_agreement": 0.55,
+      "argmax_disagreements": 9,
+      "disagreements_over_margin": 8,
+      "pass": false
+    },
+    "angry": {
+      "median_abs_diff": 0.1690225337037359,
+      "max_abs_diff": 0.41519411255993527,
+      "argmax_agreement": 0.7,
+      "argmax_disagreements": 6,
+      "disagreements_over_margin": 4,
+      "pass": false
+    }
+  },
+  "pass": false,
+  "pass_all": false
+}

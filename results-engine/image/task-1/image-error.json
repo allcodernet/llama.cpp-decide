@@ -1,0 +1,1 @@
+{"error":{"message":"states[0] has an image part, but vision is not available (no_projector): no projector is loaded; start the server or llama-decide with --mmproj","code":"vision_unavailable","field":"states[0]"}}

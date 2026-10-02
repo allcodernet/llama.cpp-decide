@@ -1,0 +1,34 @@
+{
+  "ref": "results-engine/sp3/checks/task-6/normal-after-tree-b5-seqs9-qwen2.5-0.5b.jsonl",
+  "run": "results-engine/sp3/checks/task-6/fault-rc1-phase1-after-tree-b5-seqs9-qwen2.5-0.5b.jsonl",
+  "n_tickets": 20,
+  "max_abs_diff": 0.04420576667552012,
+  "fields": {
+    "queue": {
+      "median_abs_diff": 0.002293059082194628,
+      "max_abs_diff": 0.04002883788326528,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    },
+    "urgency": {
+      "median_abs_diff": 0.0014272029887017284,
+      "max_abs_diff": 0.037402761529983675,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    },
+    "angry": {
+      "median_abs_diff": 0.010476168707976796,
+      "max_abs_diff": 0.04420576667552012,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": false
+    }
+  },
+  "pass": false,
+  "pass_all": false
+}

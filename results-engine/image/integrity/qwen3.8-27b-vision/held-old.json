@@ -1,0 +1,48 @@
+{
+ "model": "qwen3.8-27b-vision",
+ "build": "old",
+ "chat": {
+  "status": 200,
+  "usage": {
+   "completion_tokens": 1,
+   "prompt_tokens": 1057,
+   "total_tokens": 1058,
+   "prompt_tokens_details": {
+    "cached_tokens": 0
+   }
+  }
+ },
+ "probe": {
+  "status": 400,
+  "response": {
+   "error": {
+    "message": "state 0 needs 20125 cells (held 58, prefix 52, state 20000, tail 11, branches 4), n_ctx - 16 is 16368",
+    "code": "budget"
+   }
+  }
+ },
+ "budget": {
+  "needs": 20125,
+  "held": 58,
+  "prefix": 52,
+  "state": 20000,
+  "tail": 11,
+  "branches": 4,
+  "limit": 16368
+ },
+ "size": 16243,
+ "sized": {
+  "status": 500,
+  "response": {
+   "error": {
+    "message": "no KV cell space (rc=1)",
+    "code": "engine"
+   }
+  }
+ },
+ "checks": {
+  "chat request: 200": true,
+  "probe: 400 budget with the cell counts": true
+ },
+ "pass": true
+}

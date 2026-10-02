@@ -1,0 +1,49 @@
+{
+  "ref": "server-moved-rebuild-qwen2.5-0.5b.responses.jsonl line 3",
+  "run": "server-moved-restore-qwen2.5-0.5b.responses.jsonl line 3",
+  "n_tickets": 5,
+  "max_abs_diff": 0.06436790819597282,
+  "fields": {
+    "queue": {
+      "median_abs_diff": 0.007884104377858678,
+      "max_abs_diff": 0.029465977681939703,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    },
+    "urgency": {
+      "median_abs_diff": 0.005546132700823925,
+      "max_abs_diff": 0.06436790819597282,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    },
+    "angry": {
+      "median_abs_diff": 0.012892574802745901,
+      "max_abs_diff": 0.020884915733447862,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": false
+    }
+  },
+  "pass": false,
+  "run_lines": [
+    {
+      "retries": 0,
+      "rounds": 3,
+      "states_per_round": 2,
+      "decodes": 6
+    }
+  ],
+  "ref_lines": [
+    {
+      "retries": 0,
+      "rounds": 3,
+      "states_per_round": 2
+    }
+  ],
+  "pass_all": false
+}

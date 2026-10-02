@@ -1,0 +1,29 @@
+{
+  "preds_a": "results-engine/image/swa/text-integrity/integrity/batch-invariance/preds/decide-gemma-4-e4b-b1-keywords.jsonl",
+  "preds_b": "results-engine/image/swa/text-integrity/integrity/batch-invariance/decide-gemma-4-e4b-b5-keywords-first20.jsonl",
+  "n": 20,
+  "fields": {
+    "queue": {
+      "median_abs_diff": 8.95777874384239e-06,
+      "max_abs_diff": 0.014168782501016053,
+      "argmax_agreement": 1,
+      "disagreements_over_margin": 0,
+      "argmax_abs_diff_median": 3.588378779678658e-05
+    },
+    "urgency": {
+      "median_abs_diff": 4.687693618698174e-05,
+      "max_abs_diff": 0.022339750800749125,
+      "argmax_agreement": 1,
+      "disagreements_over_margin": 0,
+      "argmax_abs_diff_median": 0.0006971021617935835
+    },
+    "angry": {
+      "median_abs_diff": 5.024814972042342e-05,
+      "max_abs_diff": 0.025574698063347445,
+      "argmax_agreement": 1,
+      "disagreements_over_margin": 0,
+      "argmax_abs_diff_median": 5.024814972043323e-05
+    }
+  },
+  "pass": true
+}

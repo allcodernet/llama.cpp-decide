@@ -1,0 +1,8 @@
+[{"image": "local/image/integrity/coco-000000039769.jpg"}]
+[{"image": "local/image/integrity/coco-000000000776.jpg"}]
+[{"image": "local/image/integrity/coco-000000000139.jpg"}]
+[{"image": "local/image/integrity/coco-000000000632.jpg"}]
+[{"text": "A customer sent this photo with a support ticket: "}, {"image": "local/image/integrity/coco-000000039769.jpg"}]
+[{"image": "local/image/integrity/coco-000000000776.jpg"}, {"text": " The customer says the photo was taken at home."}]
+[{"text": "First photo: "}, {"image": "local/image/integrity/coco-000000000139.jpg"}, {"text": " Second photo: "}, {"image": "local/image/integrity/coco-000000000632.jpg"}, {"text": " Answer for both photos together."}]
+[{"image": "local/image/integrity/coco-000000039769.png"}, {"text": " The same photo as a PNG file."}]

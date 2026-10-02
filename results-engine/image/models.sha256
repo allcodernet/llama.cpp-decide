@@ -1,0 +1,6 @@
+9d4612de6a42214499e301494a3ecc2be0abdd9de44e663bda63f1152fad1bf4  models/SmolVLM-500M-Instruct-Q8_0.gguf
+d1eb8b6b23979205fdf63703ed10f788131a3f812c7b1f72e0119d5d81295150  models/mmproj-SmolVLM-500M-Instruct-Q8_0.gguf
+882e8d2db44dc554fb0ea5077cb7e4bc49e7342a1f0da57901c0802ea21a0863  models/gemma-3-4b-it-Q4_K_M.gguf
+8c0fb064b019a6972856aaae2c7e4792858af3ca4561be2dbf649123ba6c40cb  models/mmproj-gemma-3-4b-it-f16.gguf
+a555b900214b477d8880e7832e0b8925e139b0159640036b09fe472b6f2097f2  models/gemma-4-E4B-it-Q4_0.gguf
+f77995e4b6a569ab8f0d1bfdb7e8da4a0fa5b9e6f309b9bf3bdb76164d75e29f  models/mmproj-gemma-4-E4B-it-BF16.gguf

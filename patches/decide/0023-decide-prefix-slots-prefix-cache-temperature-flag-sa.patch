@@ -1,0 +1,931 @@
+From c9f30f76dde4520e65cf9a200a50addaaabd9c69 Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 22:12:27 +0200
+Subject: [PATCH 23/45] decide: prefix slots, prefix cache, temperature flag,
+ sampler detach, fault hook
+
+The engine keeps up to 8 prefix slots, slot v in seq_base + v (spec
+6.1). A request with K catalogue variants (K = 1 until debiasing
+lands) uses slots 0..K-1; state c owns the K*(1+B) ids from
+seq_base + K + c*K*(1+B), variant v's trunk at offset v*(1+B) with its
+branches after it, so K = 1 is the old layout. spr is
+(decide_seqs - K) / (K*(1+B)); spr = 0 is the 400 budget error with the
+single message of spec 7.3.
+
+Every budget check runs before a slot changes. Then slots >= K are
+evicted, every id from seq_base + K is cleared, and slots 0..K-1 are
+filled: resident, restored from the cache, or decoded. At the end of
+every request, on errors too (a try/catch around the whole request,
+because the second rc == 1 is thrown outside the per-round catch),
+slots >= 1 are evicted and the ids above slot 0 are cleared, so only
+slot 0 holds cells between requests.
+
+--decide-prefix-cache N (0-16, default 8) is an LRU of host snapshots
+(llama_state_seq_get/set_data, flags 0) with at most N entries and
+2 GiB. Evicting a valid slot whose hash is not cached stores its
+snapshot; filling a slot restores a cached snapshot and checks the
+set_data result and seq_pos_max, else clears the slot, drops the entry
+and decodes. Responses add timings.prefix_ms (part of prefill_ms),
+usage.cached_tokens (resident or restored prefix tokens) and
+engine.prefix_cache {capacity, entries, hits, misses}; info adds
+prefixes (every slot that holds cells), prefix_cache {capacity,
+entries, bytes} and temperature.
+
+--decide-temperature T (0.05-20, default 1.0) is registered like
+--decide-seqs and copied into engine_config. Until the engine applies
+it, a value other than 1 turns every request into the 500 "not
+implemented yet: temperature" guard (decide-api reads engine::config()).
+
+Hardening (spec 9): the engine detaches any backend sampler from its
+sequences at construction (llama_set_sampler(ctx, s, nullptr)).
+LLAMA_DECIDE_FAULT=rc1 makes the first branch-phase decode of the first
+attempt of every round return 1 without decoding; rc1-twice does it for
+both attempts of the first round after construction (a 500); rc1-phase1
+is accepted for the "after" phases. timings.retries counts retried
+rounds. llama-decide --help documents the variable.
+---
+ common/arg.cpp                  |  21 +++
+ common/common.h                 |   2 +
+ common/speculative.cpp          |   2 +
+ tools/decide/decide-api.cpp     |   7 +-
+ tools/decide/decide-cli.cpp     |  25 ++-
+ tools/decide/decide-engine.cpp  | 325 +++++++++++++++++++++++++-------
+ tools/decide/decide-engine.h    |  72 +++++--
+ tools/server/server-context.cpp |   6 +-
+ 8 files changed, 360 insertions(+), 100 deletions(-)
+
+diff --git a/common/arg.cpp b/common/arg.cpp
+index 39de43bfd..965b7ad36 100644
+--- a/common/arg.cpp
++++ b/common/arg.cpp
+@@ -2574,6 +2574,27 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
+             params.decide_seqs = value;
+         }
+     ).set_env("LLAMA_ARG_DECIDE_SEQS").set_examples({LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_COMPLETION}));
++    add_opt(common_arg(
++        {"--decide-prefix-cache"}, "N",
++        string_format("decide prefix snapshots kept in host RAM, at most 2 GiB in total (default: %d, 0 = off, maximum 16)", params.decide_prefix_cache),
++        [](common_params & params, int value) {
++            if (value < 0 || value > 16) {
++                throw std::invalid_argument("--decide-prefix-cache must be from 0 to 16");
++            }
++            params.decide_prefix_cache = value;
++        }
++    ).set_env("LLAMA_ARG_DECIDE_PREFIX_CACHE").set_examples({LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_COMPLETION}));
++    add_opt(common_arg(
++        {"--decide-temperature"}, "T",
++        string_format("default temperature of decide answers, used when a request has no options.temperature (default: %.2f, 0.05 - 20)", params.decide_temperature),
++        [](common_params & params, const std::string & value) {
++            const double t = std::stod(value);
++            if (!(t >= 0.05 && t <= 20.0)) {
++                throw std::invalid_argument("--decide-temperature must be a number from 0.05 to 20");
++            }
++            params.decide_temperature = t;
++        }
++    ).set_env("LLAMA_ARG_DECIDE_TEMPERATURE").set_examples({LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_COMPLETION}));
+     add_opt(common_arg(
+         {"-ns", "--sequences"}, "N",
+         string_format("number of sequences to decode (default: %d)", params.n_sequences),
+diff --git a/common/common.h b/common/common.h
+index 31a499053..4976455d8 100644
+--- a/common/common.h
++++ b/common/common.h
+@@ -454,6 +454,8 @@ struct common_params {
+     int32_t n_chunks              =    -1; // max number of chunks to process (-1 = unlimited)
+     int32_t n_parallel            =     1; // number of parallel sequences to decode
+     int32_t decide_seqs           =     0; // sequences reserved for the decide engine above the slots (0 = disabled, minimum 3)
++    int32_t decide_prefix_cache   =     8; // decide prefix snapshots kept in host RAM, at most 2 GiB (0 = off, maximum 16)
++    double  decide_temperature    =   1.0; // default temperature of decide answers (0.05 - 20)
+     int32_t n_sequences           =     1; // number of sequences to decode
+     int32_t n_outputs_max         =     0; // max outputs in a batch (0 = n_batch)
+     int32_t n_outputs_max_per_seq =     1; // max outputs per sequence
+diff --git a/common/speculative.cpp b/common/speculative.cpp
+index d12fc523f..09ae93aa1 100644
+--- a/common/speculative.cpp
++++ b/common/speculative.cpp
+@@ -2469,6 +2469,8 @@ common_params common_base_params_to_speculative(const common_params & params) {
+     const auto & params_spec = params.speculative.draft;
+     common_params result = params;
+     result.decide_seqs = 0; // the draft context gets neither the decide sequences nor their output reservation
++    result.decide_prefix_cache = 8;    // defaults: the draft context has no decide engine
++    result.decide_temperature  = 1.0;
+ 
+     result.embedding    = false;
+     result.pooling_type = LLAMA_POOLING_TYPE_UNSPECIFIED;
+diff --git a/tools/decide/decide-api.cpp b/tools/decide/decide-api.cpp
+index 3287622e5..b67bf08a1 100644
+--- a/tools/decide/decide-api.cpp
++++ b/tools/decide/decide-api.cpp
+@@ -15,12 +15,13 @@ static api_result error_result(int status, const std::string & code, const std::
+ }
+ 
+ // a feature without its engine part is a clean 500, not a wrong answer; the engine change for a feature removes its line
+-static void require_implemented(const compiled_schema & cs) {
++static void require_implemented(const compiled_schema & cs, const engine & eng) {
+     const auto missing = [](const char * feature) { return error("engine", 500, std::string("not implemented yet: ") + feature); };
+     if (cs.opts.scoring == "full_path")  throw missing("full_path");
+     if (max_level(cs) > 0)               throw missing("after");
+     if (effective_variants(cs) > 1)      throw missing("order_debias");
+     if (cs.opts.temperature != 0)        throw missing("temperature");
++    if (eng.config().temperature != 1.0) throw missing("temperature");   // --decide-temperature
+ }
+ 
+ static scoring_mode mode_of(const compiled_schema & cs) {
+@@ -31,7 +32,7 @@ api_result handle_decide(engine & eng, const llama_vocab * vocab, const common_j
+     try {
+         const compiled_schema          cs     = compile_request(body);
+         const std::vector<std::string> states = states_of(body);
+-        require_implemented(cs);
++        require_implemented(cs, eng);
+         const trie_set                 ts     = build_tries(cs, vocab, mode_of(cs));
+         return {200, eng.decide(cs, ts, states, dump_tokens)};
+     } catch (const error & e) {
+@@ -47,7 +48,7 @@ api_result handle_info(engine & eng, const llama_vocab * vocab, const common_jso
+             return {200, eng.info(nullptr, nullptr)};
+         }
+         const compiled_schema cs = compile_request(*schema_body);
+-        require_implemented(cs);
++        require_implemented(cs, eng);
+         const trie_set        ts = build_tries(cs, vocab, mode_of(cs));
+         return {200, eng.info(&cs, &ts)};
+     } catch (const error & e) {
+diff --git a/tools/decide/decide-cli.cpp b/tools/decide/decide-cli.cpp
+index 10f34f1e9..c228bd3bc 100644
+--- a/tools/decide/decide-cli.cpp
++++ b/tools/decide/decide-cli.cpp
+@@ -1,11 +1,12 @@
+ // llama-decide: reads one /v1/decide request body per stdin line, writes one response per stdout line.
+ //
+-//   llama-decide -m model.gguf --decide-seqs N [-c N] [-b N] [-ngl N] [-fa on] [--chat-template T]
+-//                [--info] [--dump-tokens] < requests.jsonl
++//   llama-decide -m model.gguf --decide-seqs N [--decide-prefix-cache N] [--decide-temperature T]
++//                [-c N] [-b N] [-ngl N] [-fa on] [--chat-template T] [--info] [--dump-tokens] < requests.jsonl
+ //
+ // --info prints the info JSON for each line's schema instead of deciding.
+ // --dump-tokens adds the "tokens" object (prefix, state, tail, branch ids) to every response.
+ // Exits 1 on the first error, with the error JSON on stderr.
++// LLAMA_DECIDE_FAULT (testing, see --help) makes chosen decodes report "no KV slot".
+ 
+ #include "decide-api.h"
+ 
+@@ -22,6 +23,18 @@
+ #include <string>
+ #include <vector>
+ 
++static void print_usage(int, char ** argv) {
++    printf("\nexample usage:\n\n");
++    printf("  %s -m model.gguf --decide-seqs N [--info] [--dump-tokens] < requests.jsonl\n\n", argv[0]);
++    printf("  one /v1/decide request body per stdin line, one response per stdout line; stops at the first error\n");
++    printf("  --info         print the info JSON for each line's schema instead of deciding\n");
++    printf("  --dump-tokens  add the \"tokens\" object (prefix, state, tail, branch ids) to every response\n\n");
++    printf("  LLAMA_DECIDE_FAULT (testing) makes a decode return 1 (\"no KV slot\") without decoding:\n");
++    printf("    rc1         the first branch-phase decode of the first attempt of every round (the retry runs normally)\n");
++    printf("    rc1-twice   the first branch-phase decode of both attempts of the first round after start (a 500)\n");
++    printf("    rc1-phase1  as rc1, for the first phase-1 decode (fields with \"after\")\n\n");
++}
++
+ int main(int argc, char ** argv) {
+     std::setlocale(LC_NUMERIC, "C");
+ 
+@@ -40,7 +53,7 @@ int main(int argc, char ** argv) {
+ 
+     common_params params;
+     common_init();
+-    if (!common_params_parse((int) args.size(), args.data(), params, LLAMA_EXAMPLE_COMPLETION)) {
++    if (!common_params_parse((int) args.size(), args.data(), params, LLAMA_EXAMPLE_COMPLETION, print_usage)) {
+         return 2;
+     }
+     if (params.decide_seqs < 3) {
+@@ -70,8 +83,10 @@ int main(int argc, char ** argv) {
+     int exit_code = 0;
+     try {
+         decide::engine_config cfg;
+-        cfg.decide_seqs = params.decide_seqs;
+-        cfg.seq_base    = 1;
++        cfg.decide_seqs  = params.decide_seqs;
++        cfg.seq_base     = 1;
++        cfg.prefix_cache = params.decide_prefix_cache;
++        cfg.temperature  = params.decide_temperature;
+         decide::engine eng(ctx, model, tmpls.get(), cfg);
+ 
+         std::string line;
+diff --git a/tools/decide/decide-engine.cpp b/tools/decide/decide-engine.cpp
+index c3589b59b..d5150918f 100644
+--- a/tools/decide/decide-engine.cpp
++++ b/tools/decide/decide-engine.cpp
+@@ -3,6 +3,7 @@
+ #include "ggml.h"
+ 
+ #include <algorithm>
++#include <cstdlib>
+ #include <utility>
+ 
+ namespace decide {
+@@ -33,13 +34,30 @@ engine::engine(llama_context * ctx_, const llama_model * model_, const common_ch
+                                        ", the decide engine needs sequences " + std::to_string(cfg.seq_base) + ".." +
+                                        std::to_string(last_seq - 1));
+     }
++    const char *      fault_env = std::getenv("LLAMA_DECIDE_FAULT");
++    const std::string fault_str = fault_env ? fault_env : "";
++    if (fault_str == "rc1") {
++        fault = fault_mode::RC1;
++    } else if (fault_str == "rc1-twice") {
++        fault       = fault_mode::RC1_TWICE;
++        fault_armed = true;
++    } else if (fault_str == "rc1-phase1") {
++        fault = fault_mode::RC1_PHASE1;   // no phase 1 yet: nothing to fail
++    } else if (!fault_str.empty()) {
++        throw error("engine", 500, "LLAMA_DECIDE_FAULT must be rc1, rc1-twice or rc1-phase1, got \"" + fault_str + "\"");
++    }
+     char desc[128];
+     llama_model_desc(model, desc, sizeof(desc));
+     static const char * vocab_types[] = {"none", "SPM", "BPE", "WPM", "UGM", "RWKV", "PLAMO2", "TEST"};
+     const int vt = (int) llama_vocab_type(vocab);
+     who = std::string(desc) + ", vocab type " + (vt >= 0 && vt < 8 ? std::string(vocab_types[vt]) : std::to_string(vt));
+-    check_template_joins(render(nullptr));
++    check_template_joins(render(nullptr, 0, 1));
++    slots.resize(MAX_SLOTS);
+     batch = llama_batch_init(n_batch, 0, 1);
++    // spec 4.6: --backend-sampling attaches a sampler to every sequence, which caps the rows per sequence
++    for (int i = 0; i < cfg.decide_seqs; ++i) {
++        llama_set_sampler(ctx, cfg.seq_base + i, nullptr);
++    }
+ }
+ 
+ engine::~engine() {
+@@ -49,10 +67,10 @@ engine::~engine() {
+     llama_batch_free(batch);
+ }
+ 
+-engine::rendered engine::render(const compiled_schema * cs) const {
++engine::rendered engine::render(const compiled_schema * cs, int variant, int variants) const {
+     common_chat_msg sys;
+     sys.role    = "system";
+-    sys.content = cs ? render_catalogue(*cs, 0, 1) : "x";
++    sys.content = cs ? render_catalogue(*cs, variant, variants) : "x";
+     common_chat_msg usr;
+     usr.role    = "user";
+     usr.content = SENTINEL;
+@@ -82,8 +100,24 @@ engine::rendered engine::render(const compiled_schema * cs) const {
+     return r;
+ }
+ 
+-bool engine::prefix_live() const {
+-    return p.valid && llama_memory_seq_pos_max(mem, cfg.seq_base) == (llama_pos) p.tokens.size() - 1;
++int engine::n_slots() const {
++    return std::min(MAX_SLOTS, cfg.decide_seqs);
++}
++
++bool engine::slot_live(int v) const {
++    return slots[v].valid && llama_memory_seq_pos_max(mem, cfg.seq_base + v) == (llama_pos) slots[v].tokens.size() - 1;
++}
++
++size_t engine::cache_bytes() const {
++    size_t n = 0;
++    for (const cache_entry & e : cache) {
++        n += e.bytes.size();
++    }
++    return n;
++}
++
++llama_seq_id engine::trunk_seq(int K, int B, size_t c, int v) const {
++    return cfg.seq_base + K + (llama_seq_id) c * K * (1 + B) + v * (1 + B);
+ }
+ 
+ int64_t engine::held_cells() const {
+@@ -103,10 +137,17 @@ void engine::check_template_joins(const rendered & r) const {
+     check_join(vocab, r.tail_text, stem, tokenize_plain(vocab, stem), who, "tail/stem");
+ }
+ 
+-prefix_state engine::prepare_prefix(const compiled_schema & cs) const {
+-    const rendered r = render(&cs);
+-    if (p.hash == r.hash && prefix_live()) {
+-        return p;
++prefix_state engine::prepare_prefix(const compiled_schema & cs, int variant, int variants) const {
++    const rendered r = render(&cs, variant, variants);
++    for (int v = 0; v < n_slots(); ++v) {
++        if (slots[v].hash == r.hash && slot_live(v)) {
++            return slots[v];
++        }
++    }
++    for (const cache_entry & e : cache) {
++        if (e.ps.hash == r.hash) {
++            return e.ps;
++        }
+     }
+     check_template_joins(r);
+ 
+@@ -128,50 +169,105 @@ prefix_state engine::prepare_prefix(const compiled_schema & cs) const {
+     return ps;
+ }
+ 
+-bool engine::ensure_prefix(const prefix_state & ps, stats & st) {
+-    if (p.hash == ps.hash && prefix_live()) {
+-        return true;
++void engine::evict_slot(int v) {
++    const llama_seq_id S = cfg.seq_base + v;
++    if (cfg.prefix_cache > 0 && slot_live(v)) {
++        const std::string & hash   = slots[v].hash;
++        const bool          cached = std::any_of(cache.begin(), cache.end(), [&](const cache_entry & e) { return e.ps.hash == hash; });
++        try {
++            const size_t n = cached ? 0 : llama_state_seq_get_size(ctx, S);
++            if (n > 0 && n <= CACHE_MAX_BYTES) {
++                cache_entry e;
++                e.bytes.resize(n);
++                if (llama_state_seq_get_data(ctx, e.bytes.data(), n, S) == n) {
++                    e.ps   = slots[v];
++                    e.used = ++cache_tick;
++                    cache.push_back(std::move(e));
++                    // the new entry is the most recent, so this drops only older ones
++                    while (cache.size() > (size_t) cfg.prefix_cache || cache_bytes() > CACHE_MAX_BYTES) {
++                        cache.erase(std::min_element(cache.begin(), cache.end(),
++                                                     [](const cache_entry & a, const cache_entry & b) { return a.used < b.used; }));
++                    }
++                }
++            }
++        } catch (...) {
++            // no snapshot (e.g. out of host memory): the prefix is decoded again when it is needed
++        }
+     }
++    llama_memory_seq_rm(mem, S, -1, -1);
++    slots[v] = prefix_state();
++}
+ 
+-    const llama_seq_id P = cfg.seq_base;
+-    llama_memory_seq_rm(mem, P, -1, -1);
+-    p = prefix_state();
+-
+-    const int64_t n_ctx = llama_n_ctx(ctx);
+-    const int64_t held  = held_cells();
+-    if (held + (int64_t) ps.tokens.size() > n_ctx - 16) {
+-        throw error("budget", 400, "prefix needs " + std::to_string(ps.tokens.size()) + " cells with " +
+-                                       std::to_string(held) + " held by slots, n_ctx - 16 is " + std::to_string(n_ctx - 16));
++void engine::fill_slot(int v, const prefix_state & ps, stats & st) {
++    const llama_seq_id S = cfg.seq_base + v;
++    if (slots[v].hash == ps.hash && slot_live(v)) {
++        st.cached_tokens += (int64_t) ps.tokens.size();
++        return;
++    }
++    evict_slot(v);
++
++    const auto it = std::find_if(cache.begin(), cache.end(), [&](const cache_entry & e) { return e.ps.hash == ps.hash; });
++    if (it != cache.end()) {
++        const size_t ret = llama_state_seq_set_data(ctx, it->bytes.data(), it->bytes.size(), S);
++        if (ret != 0 && llama_memory_seq_pos_max(mem, S) == (llama_pos) ps.tokens.size() - 1) {
++            it->used       = ++cache_tick;
++            slots[v]       = ps;
++            slots[v].valid = true;
++            st.cached_tokens += (int64_t) ps.tokens.size();
++            st.hits++;
++            return;
++        }
++        // hybrid and iSWA memory restore their parts one after the other: a failed restore can leave cells behind
++        llama_memory_seq_rm(mem, S, -1, -1);
++        cache.erase(it);
++    }
++    if (cfg.prefix_cache > 0) {
++        st.misses++;
+     }
+ 
+     std::vector<entry> entries;
+     entries.reserve(ps.tokens.size());
+     for (size_t i = 0; i < ps.tokens.size(); ++i) {
+-        entries.push_back({ps.tokens[i], (llama_pos) i, P, -1});
++        entries.push_back({ps.tokens[i], (llama_pos) i, S, -1});
+     }
+     int rc = 0;
+     try {
+         rc = decode_chunked(entries, nullptr, st);
+     } catch (...) {
+-        llama_memory_seq_rm(mem, P, -1, -1);
++        llama_memory_seq_rm(mem, S, -1, -1);
+         throw;
+     }
+     if (rc != 0) {
+-        llama_memory_seq_rm(mem, P, -1, -1);
++        llama_memory_seq_rm(mem, S, -1, -1);
+         throw error("engine", 500, "prefix decode failed: rc=" + std::to_string(rc));
+     }
+-    p       = ps;
+-    p.valid = true;
+-    return false;
++    slots[v]       = ps;
++    slots[v].valid = true;
++    st.prefix_built += (int64_t) ps.tokens.size();
+ }
+ 
+-int engine::decode_chunked(const std::vector<entry> & entries, const std::function<void(size_t, size_t)> & on_chunk_done, stats & st) {
++void engine::end_request() {
++    for (int v = 1; v < n_slots(); ++v) {
++        evict_slot(v);
++    }
++    // trunk and branch cells an error path may have left
++    for (int i = 1; i < cfg.decide_seqs; ++i) {
++        llama_memory_seq_rm(mem, cfg.seq_base + i, -1, -1);
++    }
++}
++
++int engine::decode_chunked(const std::vector<entry> & entries, const std::function<void(size_t, size_t)> & on_chunk_done, stats & st,
++                           bool inject) {
+     common_batch_clear(batch);
+     size_t chunk_begin = 0;
+     for (size_t i = 0; i < entries.size(); ++i) {
+         const entry & e = entries[i];
+         common_batch_add(batch, e.tok, e.pos, {e.seq}, e.tag >= 0);
+         if (batch.n_tokens == n_batch || i + 1 == entries.size()) {
++            if (inject) {
++                common_batch_clear(batch);
++                return 1;
++            }
+             const int rc = llama_decode(ctx, batch);
+             st.decodes++;
+             common_batch_clear(batch);
+@@ -190,26 +286,28 @@ int engine::decode_chunked(const std::vector<entry> & entries, const std::functi
+     return 0;
+ }
+ 
+-void engine::cleanup(int seqs_per_state, size_t count) {
+-    // trunk c owns seq_base + 1 + c * seqs_per_state and its branches the ids right after it
++void engine::cleanup(int K, int seqs_per_state, size_t count) {
++    // state c owns the seqs_per_state ids from seq_base + K + c * seqs_per_state
+     const int n = (int) count * seqs_per_state;
+     for (int i = 0; i < n; ++i) {
+-        llama_memory_seq_rm(mem, cfg.seq_base + 1 + i, -1, -1);
++        llama_memory_seq_rm(mem, cfg.seq_base + K + i, -1, -1);
+     }
+ }
+ 
+-int engine::run_round(const compiled_schema & cs, const trie_set & ts, int seqs_per_state,
++int engine::run_round(const compiled_schema & cs, const trie_set & ts, int K,
+                       const std::vector<std::vector<llama_token>> & state_tokens, size_t first, size_t count,
+-                      std::vector<common_json> & answers, stats & st) {
+-    const llama_seq_id P        = cfg.seq_base;
+-    const llama_pos    n_prefix = (llama_pos) p.tokens.size();
++                      std::vector<common_json> & answers, stats & st, bool inject) {
++    const llama_seq_id   P        = cfg.seq_base;   // slot 0
++    const prefix_state & p        = slots[0];
++    const llama_pos      n_prefix = (llama_pos) p.tokens.size();
++    const int            n_branch = ts.branches_per_state;
+ 
+     // trunk phase: prefix copy + state + tail, no logits
+     int64_t t0 = ggml_time_us();
+     std::vector<entry>     entries;
+     std::vector<llama_pos> trunk_len(count);
+     for (size_t c = 0; c < count; ++c) {
+-        const llama_seq_id T = cfg.seq_base + 1 + (llama_seq_id) c * seqs_per_state;
++        const llama_seq_id T = trunk_seq(K, n_branch, c, 0);
+         llama_memory_seq_cp(mem, P, T, -1, -1);
+         llama_pos pos = n_prefix;
+         for (llama_token tok : state_tokens[first + c]) {
+@@ -238,7 +336,7 @@ int engine::run_round(const compiled_schema & cs, const trie_set & ts, int seqs_
+     std::vector<std::vector<std::vector<node_scores>>> scores(count, std::vector<std::vector<node_scores>>(ts.fields.size()));
+     entries.clear();
+     for (size_t c = 0; c < count; ++c) {
+-        const llama_seq_id T = cfg.seq_base + 1 + (llama_seq_id) c * seqs_per_state;
++        const llama_seq_id T = trunk_seq(K, n_branch, c, 0);
+         int running_index = 0;
+         for (size_t f = 0; f < ts.fields.size(); ++f) {
+             const field_trie & t = ts.fields[f];
+@@ -277,7 +375,7 @@ int engine::run_round(const compiled_schema & cs, const trie_set & ts, int seqs_
+             }
+             scores[r.c][r.f].push_back(std::move(ns));
+         }
+-    }, st);
++    }, st, inject);
+     if (rc != 0) {
+         llama_synchronize(ctx);
+         st.scoring_us += ggml_time_us() - t0;
+@@ -298,18 +396,32 @@ int engine::run_round(const compiled_schema & cs, const trie_set & ts, int seqs_
+ }
+ 
+ common_json engine::decide(const compiled_schema & cs, const trie_set & ts, const std::vector<std::string> & states, bool dump_tokens) {
++    // spec 6.1: some 500s are thrown outside the per-round catch (the second rc == 1), so every error exit ends the request here
++    try {
++        return run_request(cs, ts, states, dump_tokens);
++    } catch (...) {
++        end_request();
++        throw;
++    }
++}
++
++common_json engine::run_request(const compiled_schema & cs, const trie_set & ts, const std::vector<std::string> & states, bool dump_tokens) {
+     const int64_t t_start = ggml_time_us();
+     stats st;
+ 
+     if (ts.fields.size() != cs.fields.size()) {
+         throw error("engine", 500, "trie set does not match the schema");
+     }
+-    const int seqs_per_state = 1 + ts.branches_per_state;
+-    int       spr            = (cfg.decide_seqs - 1) / seqs_per_state;
++    const int K              = 1;   // prefix slots (catalogue variants) of this request
++    const int B              = ts.branches_per_state;
++    const int seqs_per_state = K * (1 + B);
++    int       spr            = (cfg.decide_seqs - K) / seqs_per_state;
+     if (spr == 0) {
+-        throw error("budget", 400, "schema needs " + std::to_string(seqs_per_state) + " sequences per state, budget is " +
+-                                       std::to_string(cfg.decide_seqs - 1) + " (--decide-seqs " +
+-                                       std::to_string(cfg.decide_seqs) + " minus the prefix sequence)");
++        const std::string mode = ts.mode == scoring_mode::FULL_PATH ? "full_path" : "tree";
++        throw error("budget", 400, "schema needs " + std::to_string(seqs_per_state) + " sequences per state (K_eff " + std::to_string(K) +
++                                       " \u00d7 (1 trunk + " + std::to_string(B) + " branch sequences, " + mode + ")); --decide-seqs " +
++                                       std::to_string(cfg.decide_seqs) + " leaves " + std::to_string(cfg.decide_seqs - K) + " after " +
++                                       std::to_string(K) + " prefix slots");
+     }
+ 
+     std::vector<std::vector<llama_token>> state_tokens;
+@@ -324,28 +436,45 @@ common_json engine::decide(const compiled_schema & cs, const trie_set & ts, cons
+         }
+     }
+ 
+-    const prefix_state ps = prepare_prefix(cs);
+-    check_trie_joins(cs, ts, vocab, ps.tail_text, who);
++    // spec 6.2: every budget check comes before a slot is evicted or filled
++    std::vector<prefix_state> ps;
++    int64_t                   prefix_total = 0;
++    for (int v = 0; v < K; ++v) {
++        ps.push_back(prepare_prefix(cs, v, K));
++        prefix_total += (int64_t) ps.back().tokens.size();
++    }
++    check_trie_joins(cs, ts, vocab, ps[0].tail_text, who);
+ 
+     // every state must fit alone before anything is decoded; slots cannot change `held` during this call
+     const int64_t n_ctx = llama_n_ctx(ctx);
+-    const int64_t tail  = (int64_t) ps.tail_tokens.size();
++    const int64_t tail  = (int64_t) ps[0].tail_tokens.size();
+     const int64_t held  = held_cells();
+     for (size_t i = 0; i < states.size(); ++i) {
+-        const int64_t need = held + (int64_t) ps.tokens.size() + (int64_t) state_tokens[i].size() + tail + branch_total;
++        const int64_t need = held + prefix_total + K * ((int64_t) state_tokens[i].size() + tail + branch_total);
+         if (need > n_ctx - 16) {
+             throw error("budget", 400, "state " + std::to_string(i) + " needs " + std::to_string(need) +
+-                                           " cells (held " + std::to_string(held) + ", prefix " + std::to_string(ps.tokens.size()) +
++                                           " cells (held " + std::to_string(held) + ", prefix " + std::to_string(prefix_total) +
+                                            ", state " + std::to_string(state_tokens[i].size()) + ", tail " + std::to_string(tail) +
+                                            ", branches " + std::to_string(branch_total) + "), n_ctx - 16 is " +
+                                            std::to_string(n_ctx - 16));
+         }
+     }
+ 
+-    const int64_t t0 = ggml_time_us();
+-    const bool reused = ensure_prefix(ps, st);
++    // spec 6.1 slot hygiene: no trunk may inherit stale cells; then slots 0..K-1 get their prefixes
++    int64_t t0 = ggml_time_us();
++    for (int v = K; v < n_slots(); ++v) {
++        evict_slot(v);
++    }
++    for (int i = K; i < cfg.decide_seqs; ++i) {
++        llama_memory_seq_rm(mem, cfg.seq_base + i, -1, -1);
++    }
++    for (int v = 0; v < K; ++v) {
++        fill_slot(v, ps[v], st);
++    }
+     llama_synchronize(ctx);
+-    st.prefill_us += ggml_time_us() - t0;
++    int64_t dt = ggml_time_us() - t0;
++    st.prefix_us  += dt;
++    st.prefill_us += dt;
+ 
+     std::vector<common_json> answers(states.size());
+     size_t next = 0;
+@@ -353,9 +482,9 @@ common_json engine::decide(const compiled_schema & cs, const trie_set & ts, cons
+         size_t count = std::min<size_t>((size_t) spr, states.size() - next);
+ 
+         auto need_for = [&](size_t n) {
+-            int64_t need = held + (int64_t) p.tokens.size();
++            int64_t need = held + prefix_total;
+             for (size_t c = 0; c < n; ++c) {
+-                need += (int64_t) state_tokens[next + c].size() + tail + branch_total;
++                need += K * ((int64_t) state_tokens[next + c].size() + tail + branch_total);
+             }
+             return need;
+         };
+@@ -363,16 +492,20 @@ common_json engine::decide(const compiled_schema & cs, const trie_set & ts, cons
+             count--;
+         }
+ 
++        // spec 9: rc1-twice fails both attempts of the first round after construction
++        const bool fail_both = fault == fault_mode::RC1_TWICE && fault_armed;
++        fault_armed = false;
+         bool retried = false;
+         for (;;) {
++            const bool inject = fail_both || (fault == fault_mode::RC1 && !retried);
+             int rc = 0;
+             try {
+-                rc = run_round(cs, ts, seqs_per_state, state_tokens, next, count, answers, st);
++                rc = run_round(cs, ts, K, state_tokens, next, count, answers, st, inject);
+             } catch (...) {
+-                cleanup(seqs_per_state, count);
++                cleanup(K, seqs_per_state, count);
+                 throw;
+             }
+-            cleanup(seqs_per_state, count);
++            cleanup(K, seqs_per_state, count);
+             if (rc == 0) {
+                 break;
+             }
+@@ -380,6 +513,7 @@ common_json engine::decide(const compiled_schema & cs, const trie_set & ts, cons
+                 throw error("engine", 500, "no KV cell space (rc=1)");
+             }
+             retried = true;
++            st.retries++;
+             spr   = std::max(1, spr / 2);
+             count = std::min<size_t>(count, (size_t) spr);
+         }
+@@ -387,12 +521,19 @@ common_json engine::decide(const compiled_schema & cs, const trie_set & ts, cons
+         next += count;
+     }
+ 
++    // spec 6.1: only slot 0 keeps its cells between requests (snapshots of slots >= 1 count as prefix work)
++    t0 = ggml_time_us();
++    end_request();
++    dt = ggml_time_us() - t0;
++    st.prefix_us  += dt;
++    st.prefill_us += dt;
++
+     int64_t state_total = 0;
+     for (const auto & s : state_tokens) {
+         state_total += (int64_t) s.size();
+     }
+     const int64_t n_states      = (int64_t) states.size();
+-    const int64_t prompt_tokens = (reused ? 0 : (int64_t) p.tokens.size()) + state_total + n_states * (tail + branch_total);
++    const int64_t prompt_tokens = st.prefix_built + state_total + n_states * (tail + branch_total);
+ 
+     common_json results = common_json::array();
+     for (size_t i = 0; i < states.size(); ++i) {
+@@ -407,17 +548,19 @@ common_json engine::decide(const compiled_schema & cs, const trie_set & ts, cons
+ 
+     common_json usage = common_json::object();
+     usage["prompt_tokens"] = prompt_tokens;
+-    usage["cached_tokens"] = reused ? (int64_t) p.tokens.size() : (int64_t) 0;
++    usage["cached_tokens"] = st.cached_tokens;
+     usage["state_tokens"]  = state_total;
+     usage["scored_tokens"] = n_states * ts.branches_per_state;
+ 
+     llama_synchronize(ctx);
+     common_json timings = common_json::object();
+     timings["prefill_ms"] = st.prefill_us / 1000.0;
++    timings["prefix_ms"]  = st.prefix_us / 1000.0;
+     timings["scoring_ms"] = st.scoring_us / 1000.0;
+     timings["total_ms"]   = (ggml_time_us() - t_start) / 1000.0;
+     timings["rounds"]     = st.rounds;
+     timings["decodes"]    = st.decodes;
++    timings["retries"]    = st.retries;
+ 
+     common_json quote_split = common_json::array();
+     for (size_t f = 0; f < cs.fields.size(); ++f) {
+@@ -425,11 +568,18 @@ common_json engine::decide(const compiled_schema & cs, const trie_set & ts, cons
+             quote_split.push_back(cs.fields[f].name);
+         }
+     }
++    common_json prefix_cache = common_json::object();
++    prefix_cache["capacity"] = cfg.prefix_cache;
++    prefix_cache["entries"]  = (int64_t) cache.size();
++    prefix_cache["hits"]     = st.hits;
++    prefix_cache["misses"]   = st.misses;
++
+     common_json eng = common_json::object();
+     eng["scoring"]            = "tree";
+     eng["seqs_per_state"]     = seqs_per_state;
+     eng["states_per_round"]   = spr;
+     eng["quote_split_fields"] = quote_split;
++    eng["prefix_cache"]       = prefix_cache;
+ 
+     common_json out = common_json::object();
+     out["object"]  = "decide";
+@@ -462,12 +612,12 @@ common_json engine::decide(const compiled_schema & cs, const trie_set & ts, cons
+             }
+             common_json s = common_json::object();
+             s["state"]    = token_array(state_tokens[i]);
+-            s["tail"]     = token_array(p.tail_tokens);
++            s["tail"]     = token_array(ps[0].tail_tokens);
+             s["branches"] = branches;
+             per_state.push_back(s);
+         }
+         common_json tokens = common_json::object();
+-        tokens["prefix"] = token_array(p.tokens);
++        tokens["prefix"] = token_array(ps[0].tokens);
+         tokens["states"] = per_state;
+         out["tokens"]    = tokens;
+     }
+@@ -478,24 +628,51 @@ common_json engine::info(const compiled_schema * cs, const trie_set * ts) {
+     common_json prefix = common_json::object();
+     if (cs != nullptr) {
+         stats              st;
+-        const prefix_state ps = prepare_prefix(*cs);
++        const prefix_state ps = prepare_prefix(*cs, 0, 1);
+         if (ts != nullptr) {
+             check_trie_joins(*cs, *ts, vocab, ps.tail_text, who);
+         }
+-        ensure_prefix(ps, st);
+-        prefix["hash"]             = p.hash;
+-        prefix["tokens"]           = (int64_t) p.tokens.size();
+-        prefix["assistant_prefix"] = p.assistant_prefix;
+-        prefix["valid"]            = prefix_live();
++        // spec 6.2: check the budget before slot 0 is evicted
++        const int64_t n_ctx = llama_n_ctx(ctx);
++        const int64_t held  = held_cells();
++        if (!(slots[0].hash == ps.hash && slot_live(0)) && held + (int64_t) ps.tokens.size() > n_ctx - 16) {
++            throw error("budget", 400, "prefix needs " + std::to_string(ps.tokens.size()) + " cells with " +
++                                           std::to_string(held) + " held by slots, n_ctx - 16 is " + std::to_string(n_ctx - 16));
++        }
++        fill_slot(0, ps, st);
++        prefix["hash"]             = slots[0].hash;
++        prefix["tokens"]           = (int64_t) slots[0].tokens.size();
++        prefix["assistant_prefix"] = slots[0].assistant_prefix;
++        prefix["valid"]            = slot_live(0);
+     } else {
+-        const rendered r    = render(nullptr);
+-        const bool     live = prefix_live();
+-        prefix["hash"]             = p.hash;
+-        prefix["tokens"]           = live ? (int64_t) p.tokens.size() : (int64_t) 0;
++        const rendered r    = render(nullptr, 0, 1);
++        const bool     live = slot_live(0);
++        prefix["hash"]             = slots[0].hash;
++        prefix["tokens"]           = live ? (int64_t) slots[0].tokens.size() : (int64_t) 0;
+         prefix["assistant_prefix"] = r.assistant_prefix;
+         prefix["valid"]            = live;
+     }
+ 
++    // every slot whose sequence holds cells; tokens = its highest position + 1
++    common_json prefixes = common_json::array();
++    for (int v = 0; v < n_slots(); ++v) {
++        const llama_pos pos_max = llama_memory_seq_pos_max(mem, cfg.seq_base + v);
++        if (pos_max < 0 && !slots[v].valid) {
++            continue;
++        }
++        common_json s = common_json::object();
++        s["slot"]   = v;
++        s["hash"]   = slots[v].hash;
++        s["tokens"] = (int64_t) pos_max + 1;
++        s["valid"]  = slot_live(v);
++        prefixes.push_back(s);
++    }
++
++    common_json prefix_cache = common_json::object();
++    prefix_cache["capacity"] = cfg.prefix_cache;
++    prefix_cache["entries"]  = (int64_t) cache.size();
++    prefix_cache["bytes"]    = (int64_t) cache_bytes();
++
+     common_json memory = common_json::object();
+     memory["recurrent"] = llama_model_is_recurrent(model) || llama_model_is_hybrid(model);
+     memory["swa"]       = llama_model_n_swa(model) > 0;
+@@ -508,12 +685,16 @@ common_json engine::info(const compiled_schema * cs, const trie_set * ts) {
+     j["n_parallel"]    = std::max<int64_t>(1, (int64_t) cfg.slot_seqs.size());
+     j["memory"]        = memory;
+     j["prefix"]        = prefix;
++    j["prefixes"]      = prefixes;
++    j["prefix_cache"]  = prefix_cache;
++    j["temperature"]   = cfg.temperature;
+     j["scoring_modes"] = common_json::array({"tree"});
+     if (ts != nullptr) {
+-        const int seqs_per_state = 1 + ts->branches_per_state;
++        const int K              = 1;
++        const int seqs_per_state = K * (1 + ts->branches_per_state);
+         common_json schema = common_json::object();
+         schema["seqs_per_state"]   = seqs_per_state;
+-        schema["states_per_round"] = (cfg.decide_seqs - 1) / seqs_per_state;
++        schema["states_per_round"] = (cfg.decide_seqs - K) / seqs_per_state;
+         j["schema"] = schema;
+     }
+     return j;
+diff --git a/tools/decide/decide-engine.h b/tools/decide/decide-engine.h
+index 6eb374d28..3ab84b123 100644
+--- a/tools/decide/decide-engine.h
++++ b/tools/decide/decide-engine.h
+@@ -11,15 +11,17 @@
+ namespace decide {
+ 
+ struct engine_config {
+-    int                       decide_seqs = 0;   // >= 3
+-    llama_seq_id              seq_base    = 0;   // first reserved seq id
+-    std::vector<llama_seq_id> slot_seqs;         // sequences owned by server slots (for the cell check); empty in the CLI
++    int                       decide_seqs  = 0;     // >= 3
++    llama_seq_id              seq_base     = 0;     // first reserved seq id
++    std::vector<llama_seq_id> slot_seqs;            // sequences owned by server slots (for the cell check); empty in the CLI
++    int                       prefix_cache = 8;     // spec 6.2: LRU entries of host prefix snapshots (0 = off)
++    double                    temperature  = 1.0;   // spec 8: default when a request has no options.temperature
+ };
+ 
+ struct prefix_state {
+     std::string              hash;              // hex64(fnv1a64(prefix_text + "\x1e" + tail_text))
+     std::string              prefix_text, tail_text, assistant_prefix;
+-    std::vector<llama_token> tokens;            // prefix tokens in seq P
++    std::vector<llama_token> tokens;            // prefix tokens in the slot's sequence
+     std::vector<llama_token> tail_tokens;       // template tail + "{"
+     bool                     valid = false;
+ };
+@@ -33,11 +35,16 @@ public:
+     engine(const engine &) = delete;
+     engine & operator=(const engine &) = delete;
+ 
+-    // Full request: throws decide::error; never leaves trunks/branches behind.
++    // Full request: throws decide::error; never leaves trunks/branches behind, and afterwards only slot 0 holds cells.
+     common_json decide(const compiled_schema & cs, const trie_set & ts, const std::vector<std::string> & states, bool dump_tokens);
+-    // Info JSON (spec 3.3); builds/validates the prefix for cs when given.
++    // Info JSON (spec 3.3); builds/validates the prefix for cs in slot 0 when given.
+     common_json info(const compiled_schema * cs, const trie_set * ts);
+ 
++    const engine_config & config() const { return cfg; }
++
++    static constexpr int    MAX_SLOTS       = 8;                    // spec 6.1: slot v lives in seq_base + v
++    static constexpr size_t CACHE_MAX_BYTES = (size_t) 2 << 30;     // spec 6.2: snapshot bytes over all cache entries
++
+ private:
+     // one token of a phase; `tag` names the branch whose logit row it requests (-1: no logits)
+     struct entry {
+@@ -54,26 +61,51 @@ private:
+     struct stats {
+         int     decodes       = 0;
+         int     rounds        = 0;
++        int     retries       = 0;   // rounds retried after rc == 1
+         int64_t prompt_tokens = 0;
+         int64_t prefill_us    = 0;
++        int64_t prefix_us     = 0;   // part of prefill_us: building, restoring and snapshotting prefixes
+         int64_t scoring_us    = 0;
++        int64_t prefix_built  = 0;   // prefix tokens decoded
++        int64_t cached_tokens = 0;   // prefix tokens resident or restored
++        int     hits          = 0;   // prefixes restored from the cache
++        int     misses        = 0;   // prefixes built while the cache is on
++    };
++    // spec 6.2: one host snapshot of a prefix slot
++    struct cache_entry {
++        prefix_state         ps;
++        std::vector<uint8_t> bytes;
++        uint64_t             used = 0;   // tick of the last store or hit (LRU order)
+     };
++    // spec 9: LLAMA_DECIDE_FAULT
++    enum class fault_mode { NONE, RC1, RC1_TWICE, RC1_PHASE1 };
+ 
+-    rendered render(const compiled_schema * cs) const;
++    rendered render(const compiled_schema * cs, int variant, int variants) const;
+     // throws error{"engine", 500} when prefix|state, state|tail or tail|stem do not tokenise independently
+     void     check_template_joins(const rendered & r) const;
+-    // rendered and tokenised prefix for cs, no decode; the live prefix when the hash matches
+-    prefix_state prepare_prefix(const compiled_schema & cs) const;
+-    // decodes ps into seq P unless it is live already; returns true when the cached prefix was reused
+-    bool     ensure_prefix(const prefix_state & ps, stats & st);
+-    bool     prefix_live() const;
++    // rendered and tokenised prefix of catalogue variant `variant` of `variants`, no decode; a resident slot's or a cache entry's prefix when the hash matches
++    prefix_state prepare_prefix(const compiled_schema & cs, int variant, int variants) const;
++    // spec 6.2: slot v holds ps afterwards (resident, restored from the cache or decoded); throws when decoding fails
++    void     fill_slot(int v, const prefix_state & ps, stats & st);
++    // spec 6.2: snapshot slot v into the cache (cache on, slot valid, hash not cached), then clear its sequence. Never throws.
++    void     evict_slot(int v);
++    // spec 6.1 end of request: evict slots >= 1, clear every decide sequence above slot 0. Never throws.
++    void     end_request();
++    bool     slot_live(int v) const;
++    int      n_slots() const;
++    size_t   cache_bytes() const;
++    // spec 6.1: trunk of state c, variant v, with K prefix slots and B branch sequences per trunk; its branches follow it
++    llama_seq_id trunk_seq(int K, int B, size_t c, int v) const;
++    common_json  run_request(const compiled_schema & cs, const trie_set & ts, const std::vector<std::string> & states, bool dump_tokens);
+     // returns 0, or 1 when a decode found no KV slot (caller cleans up and retries); throws on anything else.
+-    // Fills answers[first + c] for every state c of the round.
+-    int      run_round(const compiled_schema & cs, const trie_set & ts, int seqs_per_state,
++    // Fills answers[first + c] for every state c of the round. inject: the branch phase's first decode returns 1 without decoding (spec 9).
++    int      run_round(const compiled_schema & cs, const trie_set & ts, int K,
+                        const std::vector<std::vector<llama_token>> & state_tokens, size_t first, size_t count,
+-                       std::vector<common_json> & answers, stats & st);
+-    int      decode_chunked(const std::vector<entry> & entries, const std::function<void(size_t, size_t)> & on_chunk_done, stats & st);
+-    void     cleanup(int seqs_per_state, size_t count);
++                       std::vector<common_json> & answers, stats & st, bool inject);
++    int      decode_chunked(const std::vector<entry> & entries, const std::function<void(size_t, size_t)> & on_chunk_done, stats & st,
++                            bool inject = false);
++    // removes the trunks and branches of `count` states (the ids after the K prefix slots)
++    void     cleanup(int K, int seqs_per_state, size_t count);
+     int64_t  held_cells() const;
+ 
+     llama_context               * ctx;
+@@ -85,7 +117,11 @@ private:
+     llama_batch                   batch;
+     int                           n_batch;
+     std::string                   who;   // model description and vocab type, for error messages
+-    prefix_state                  p;
++    std::vector<prefix_state>     slots;   // spec 6.1: slot v in seq_base + v; only slot 0 holds cells between requests
++    std::vector<cache_entry>      cache;   // spec 6.2: at most cfg.prefix_cache entries and CACHE_MAX_BYTES bytes
++    uint64_t                      cache_tick  = 0;
++    fault_mode                    fault       = fault_mode::NONE;
++    bool                          fault_armed = false;   // rc1-twice: not yet fired
+ };
+ 
+ } // namespace decide
+diff --git a/tools/server/server-context.cpp b/tools/server/server-context.cpp
+index 3e34da820..d6adadd03 100644
+--- a/tools/server/server-context.cpp
++++ b/tools/server/server-context.cpp
+@@ -1420,8 +1420,10 @@ private:
+         }
+ 
+         decide::engine_config cfg;
+-        cfg.decide_seqs = params_base.decide_seqs;
+-        cfg.seq_base    = (llama_seq_id) params_base.n_parallel;
++        cfg.decide_seqs  = params_base.decide_seqs;
++        cfg.seq_base     = (llama_seq_id) params_base.n_parallel;
++        cfg.prefix_cache = params_base.decide_prefix_cache;
++        cfg.temperature  = params_base.decide_temperature;
+         for (int i = 0; i < params_base.n_parallel; i++) {
+             cfg.slot_seqs.push_back((llama_seq_id) i);
+         }
+-- 
+2.55.0
+

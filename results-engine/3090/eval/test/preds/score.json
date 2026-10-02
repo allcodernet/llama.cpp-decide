@@ -1,0 +1,79 @@
+{
+  "preds_dir": "results-engine/3090/eval/test/preds",
+  "test_set": "local/data/triage_test.jsonl",
+  "n_tickets": 80,
+  "runs": {
+    "decide-qwen3.8-27b-b5-keywords-after-urgency=queue-angry=queue": {
+      "queue": 0.9875,
+      "urgency": 0.8625,
+      "urgency_near": 0.9875,
+      "angry": 0.9875,
+      "nll_queue": 0.07082053735043986,
+      "nll_urgency": 0.4160960874072552,
+      "nll_angry": 0.06928883719982491,
+      "nll_sum": 0.55620546195752,
+      "ece_queue": 0.023215123133874832,
+      "ece_urgency": 0.07922115456037779,
+      "ece_angry": 0.04653758273954632,
+      "brier_angry": 0.015211805675175093,
+      "p50_ms": 123.52654209998946,
+      "rounds": [
+        1
+      ]
+    },
+    "decide-qwen3.8-27b-b5-keywords-after-urgency=queue": {
+      "queue": 0.9875,
+      "urgency": 0.8625,
+      "urgency_near": 0.9875,
+      "angry": 1,
+      "nll_queue": 0.07147981569231887,
+      "nll_urgency": 0.4110000027622377,
+      "nll_angry": 0.07743028742508572,
+      "nll_sum": 0.5599101058796423,
+      "ece_queue": 0.023713807111853176,
+      "ece_urgency": 0.07876075027000637,
+      "ece_angry": 0.06682732085897593,
+      "brier_angry": 0.016236350521448353,
+      "p50_ms": 106.27534909999667,
+      "rounds": [
+        1
+      ]
+    },
+    "decide-qwen3.8-27b-b5-keywords-debias4": {
+      "queue": 0.9875,
+      "urgency": 0.8875,
+      "urgency_near": 0.9875,
+      "angry": 1,
+      "nll_queue": 0.07299755396792969,
+      "nll_urgency": 0.37235545743776205,
+      "nll_angry": 0.07917982444835127,
+      "nll_sum": 0.524532835854043,
+      "ece_queue": 0.02504000608391497,
+      "ece_urgency": 0.09842421576093631,
+      "ece_angry": 0.068411453661828,
+      "brier_angry": 0.016534783194532894,
+      "p50_ms": 309.836139700019,
+      "rounds": [
+        2
+      ]
+    },
+    "decide-qwen3.8-27b-b5-keywords-full_path": {
+      "queue": 0.9875,
+      "urgency": 0.8875,
+      "urgency_near": 0.9875,
+      "angry": 1,
+      "nll_queue": 0.07128774738504112,
+      "nll_urgency": 0.38152444269646874,
+      "nll_angry": 0.07759559661105236,
+      "nll_sum": 0.5304077866925623,
+      "ece_queue": 0.02347155716020918,
+      "ece_urgency": 0.0872189090896831,
+      "ece_angry": 0.06693058695354098,
+      "brier_angry": 0.016329854037363062,
+      "p50_ms": 185.44775319996916,
+      "rounds": [
+        1
+      ]
+    }
+  }
+}

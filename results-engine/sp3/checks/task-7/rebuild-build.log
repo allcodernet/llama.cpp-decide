@@ -1,0 +1,134 @@
+[  0%] Provisioning UI assets
+[  0%] Built target llama-common-base
+[  0%] Built target cpp-httplib
+[  1%] Built target vendor-hash
+[  4%] Built target ggml-base
+-- UI: HF stamp matches 'ggml-org/llama-ui|b11080', skipping HF fetch
+-- UI: assets unchanged, skipping embedding
+[  4%] Built target llama-ui-assets
+[  9%] Built target ggml-cpu
+[ 11%] Built target llama-ui
+[ 50%] Built target ggml-cuda
+[ 50%] Built target ggml
+[ 63%] Built target llama
+[ 78%] Built target llama-common
+[ 78%] Building CXX object tools/decide/CMakeFiles/llama-decide.dir/decide-debias.cpp.o
+[ 78%] Building CXX object tools/decide/CMakeFiles/llama-decide.dir/decide-engine.cpp.o
+[ 93%] Built target mtmd
+[ 95%] Linking CXX static library libllama-decide.a
+[ 96%] Built target llama-decide
+[ 98%] Built target server-context
+[ 98%] Linking CXX shared library ../../bin/libllama-server-impl.so
+[ 98%] Built target llama-server-impl
+[100%] Linking CXX executable ../../bin/llama-server
+[100%] Built target llama-server
+[  0%] Built target llama-common-base
+[  0%] Built target cpp-httplib
+[  4%] Built target ggml-base
+[ 10%] Built target ggml-cpu
+[ 60%] Built target ggml-cuda
+[ 60%] Built target ggml
+[ 77%] Built target llama
+[ 95%] Built target llama-common
+[100%] Built target llama-decide
+[  0%] Built target llama-common-base
+[  0%] Built target cpp-httplib
+[  4%] Built target ggml-base
+[ 10%] Built target ggml-cpu
+[ 60%] Built target ggml-cuda
+[ 60%] Built target ggml
+[ 77%] Built target llama
+[ 95%] Built target llama-common
+[100%] Built target llama-decide
+[100%] Linking CXX executable ../../bin/llama-decide
+[100%] Built target llama-decide-cli
+[  0%] Built target llama-common-base
+[  0%] Built target cpp-httplib
+[  4%] Built target ggml-base
+[ 10%] Built target ggml-cpu
+[ 60%] Built target ggml-cuda
+[ 60%] Built target ggml
+[ 77%] Built target llama
+[ 95%] Built target llama-common
+[100%] Built target llama-decide
+[100%] Linking CXX executable ../bin/test-decide-schema
+[100%] Built target test-decide-schema
+[  0%] Built target llama-common-base
+[  0%] Built target cpp-httplib
+[  4%] Built target ggml-base
+[ 10%] Built target ggml-cpu
+[ 59%] Built target ggml-cuda
+[ 59%] Built target ggml
+[ 75%] Built target llama
+[ 93%] Built target llama-common
+[ 97%] Built target llama-decide
+[ 97%] Linking CXX executable ../bin/test-decide-score
+[100%] Built target test-decide-score
+[  0%] Built target llama-common-base
+[  4%] Built target ggml-base
+[  4%] Built target cpp-httplib
+[ 10%] Built target ggml-cpu
+[ 60%] Built target ggml-cuda
+[ 60%] Built target ggml
+[ 77%] Built target llama
+[ 95%] Built target llama-common
+[100%] Built target llama-decide
+[100%] Linking CXX executable ../bin/test-decide-trie
+[100%] Built target test-decide-trie
+[  0%] Built target llama-common-base
+[  4%] Built target ggml-base
+[  4%] Built target cpp-httplib
+[ 10%] Built target ggml-cpu
+[ 60%] Built target ggml-cuda
+[ 60%] Built target ggml
+[ 77%] Built target llama
+[ 95%] Built target llama-common
+[100%] Built target llama-decide
+[100%] Linking CXX executable ../bin/test-decide-cache
+[100%] Built target test-decide-cache
+[  0%] Built target llama-common-base
+[  0%] Built target cpp-httplib
+[  4%] Built target ggml-base
+[ 10%] Built target ggml-cpu
+[ 60%] Built target ggml-cuda
+[ 60%] Built target ggml
+[ 77%] Built target llama
+[ 95%] Built target llama-common
+[100%] Built target llama-decide
+[100%] Linking CXX executable ../bin/test-decide-compat
+[100%] Built target test-decide-compat
+[  0%] Built target llama-common-base
+[  4%] Built target ggml-base
+[  4%] Built target cpp-httplib
+[ 10%] Built target ggml-cpu
+[ 60%] Built target ggml-cuda
+[ 60%] Built target ggml
+[ 77%] Built target llama
+[ 95%] Built target llama-common
+[100%] Built target llama-decide
+[100%] Linking CXX executable ../bin/test-decide-fullpath
+[100%] Built target test-decide-fullpath
+[  0%] Built target llama-common-base
+[  0%] Built target cpp-httplib
+[  4%] Built target ggml-base
+[ 10%] Built target ggml-cpu
+[ 59%] Built target ggml-cuda
+[ 59%] Built target ggml
+[ 75%] Built target llama
+[ 93%] Built target llama-common
+[ 97%] Built target llama-decide
+[ 97%] Linking CXX executable ../bin/test-decide-after
+[100%] Built target test-decide-after
+[  0%] Built target cpp-httplib
+[  0%] Built target llama-common-base
+[  4%] Built target ggml-base
+[ 10%] Built target ggml-cpu
+[ 59%] Built target ggml-cuda
+[ 59%] Built target ggml
+[ 75%] Built target llama
+[ 93%] Built target llama-common
+[ 97%] Built target llama-decide
+[100%] Building CXX object tests/CMakeFiles/test-decide-debias.dir/test-decide-debias.cpp.o
+[100%] Linking CXX executable ../bin/test-decide-debias
+[100%] Built target test-decide-debias
+exit 0

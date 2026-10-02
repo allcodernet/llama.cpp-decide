@@ -1,0 +1,566 @@
+{
+  "preset": "gemma-3-4b-vision",
+  "tag": "t0.5",
+  "n_records": 32,
+  "fields": {
+    "cat": {
+      "median_abs_diff": 6.8833827526759706e-15,
+      "max_abs_diff": 2.0759247654211777e-08,
+      "argmax_agreement": 1,
+      "disagreements_over_margin": 0,
+      "argmax_abs_diff_median": 6.8833827526759706e-15
+    },
+    "dog": {
+      "median_abs_diff": 7.168792879816571e-12,
+      "max_abs_diff": 0.7668009484825482,
+      "argmax_agreement": 0.75,
+      "disagreements_over_margin": 1,
+      "argmax_abs_diff_median": 7.168765581155867e-12
+    },
+    "animal": {
+      "median_abs_diff": 1.9727064997235696e-17,
+      "max_abs_diff": 7.253179533626795e-07,
+      "argmax_agreement": 1,
+      "disagreements_over_margin": 0,
+      "argmax_abs_diff_median": 5.329758856476019e-11
+    },
+    "indoors": {
+      "median_abs_diff": 2.4619328283993172e-15,
+      "max_abs_diff": 2.8624748546951862e-11,
+      "argmax_agreement": 1,
+      "disagreements_over_margin": 0,
+      "argmax_abs_diff_median": 2.4424906541753444e-15
+    }
+  },
+  "pass": false,
+  "detail": [
+    {
+      "ticket": 0,
+      "field": "cat",
+      "branch_nodes": 1,
+      "reference": [
+        1.0,
+        1.1420662663606171e-17
+      ],
+      "engine": [
+        1.0,
+        0.0
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 1.0
+    },
+    {
+      "ticket": 0,
+      "field": "dog",
+      "branch_nodes": 1,
+      "reference": [
+        4.982017483501469e-16,
+        0.9999999999999996
+      ],
+      "engine": [
+        7.975158959342084e-16,
+        0.9999999999999992
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9999999999999991
+    },
+    {
+      "ticket": 0,
+      "field": "animal",
+      "branch_nodes": 1,
+      "reference": [
+        1.0,
+        6.891574842528056e-19,
+        1.9736358827815722e-24,
+        1.2265571360974428e-17,
+        5.885760476522568e-25
+      ],
+      "engine": [
+        1.0,
+        9.687322489222476e-20,
+        4.694417319873384e-25,
+        2.1956087594494686e-18,
+        4.860923199116832e-26
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 1.0
+    },
+    {
+      "ticket": 0,
+      "field": "indoors",
+      "branch_nodes": 1,
+      "reference": [
+        0.9999999999999982,
+        1.8152411878481958e-15
+      ],
+      "engine": [
+        0.9999999999999991,
+        8.881784197001252e-16
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9999999999999964
+    },
+    {
+      "ticket": 1,
+      "field": "cat",
+      "branch_nodes": 1,
+      "reference": [
+        3.0505553885706786e-11,
+        0.9999999999694944
+      ],
+      "engine": [
+        1.0687450237386493e-10,
+        0.9999999998931255
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9999999999389888
+    },
+    {
+      "ticket": 1,
+      "field": "dog",
+      "branch_nodes": 1,
+      "reference": [
+        0.7797113060499965,
+        0.22028869395000356
+      ],
+      "engine": [
+        0.012910357567448242,
+        0.9870896424325517
+      ],
+      "argmax_agree": false,
+      "ref_top2_margin": 0.559422612099993
+    },
+    {
+      "ticket": 1,
+      "field": "animal",
+      "branch_nodes": 1,
+      "reference": [
+        1.6484549863124935e-11,
+        3.260685247796961e-25,
+        6.056021543843881e-29,
+        0.9999999999835154,
+        4.73593562774098e-24
+      ],
+      "engine": [
+        6.649019788506132e-09,
+        3.994602766912782e-24,
+        3.9026256295469417e-28,
+        0.9999999933509802,
+        1.5413746552192947e-22
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9999999999670308
+    },
+    {
+      "ticket": 1,
+      "field": "indoors",
+      "branch_nodes": 1,
+      "reference": [
+        0.999999999999013,
+        9.868900798939696e-13
+      ],
+      "engine": [
+        0.9999999999997577,
+        2.4225066397320916e-13
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9999999999980261
+    },
+    {
+      "ticket": 2,
+      "field": "cat",
+      "branch_nodes": 1,
+      "reference": [
+        4.972073928109923e-14,
+        0.9999999999999503
+      ],
+      "engine": [
+        6.32854524907398e-14,
+        0.9999999999999367
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9999999999999005
+    },
+    {
+      "ticket": 2,
+      "field": "dog",
+      "branch_nodes": 1,
+      "reference": [
+        8.652775434698213e-13,
+        0.9999999999991347
+      ],
+      "engine": [
+        2.2534694493147994e-12,
+        0.9999999999977466
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9999999999982694
+    },
+    {
+      "ticket": 2,
+      "field": "animal",
+      "branch_nodes": 1,
+      "reference": [
+        6.639702874380866e-12,
+        3.5786478739963533e-16,
+        5.956451926216428e-18,
+        7.19705394423547e-12,
+        0.9999999999861628
+      ],
+      "engine": [
+        1.4220541412281659e-11,
+        3.284806200066889e-16,
+        8.827350526495477e-18,
+        9.98477821938273e-11,
+        0.9999999998859312
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9999999999789658
+    },
+    {
+      "ticket": 2,
+      "field": "indoors",
+      "branch_nodes": 1,
+      "reference": [
+        0.9999999999999998,
+        2.888676306687753e-16
+      ],
+      "engine": [
+        1.0,
+        0.0
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9999999999999994
+    },
+    {
+      "ticket": 3,
+      "field": "cat",
+      "branch_nodes": 1,
+      "reference": [
+        3.556429535364624e-15,
+        0.9999999999999964
+      ],
+      "engine": [
+        3.6896460989204314e-15,
+        0.9999999999999963
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9999999999999929
+    },
+    {
+      "ticket": 3,
+      "field": "dog",
+      "branch_nodes": 1,
+      "reference": [
+        1.802635282530166e-14,
+        0.999999999999982
+      ],
+      "engine": [
+        2.4631009361566772e-14,
+        0.9999999999999754
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.999999999999964
+    },
+    {
+      "ticket": 3,
+      "field": "animal",
+      "branch_nodes": 1,
+      "reference": [
+        1.0777737661052826e-13,
+        6.630497484057799e-20,
+        3.022197037727097e-12,
+        4.198451603759575e-06,
+        0.9999958015452662
+      ],
+      "engine": [
+        3.315858506211394e-13,
+        4.762267690970978e-20,
+        7.0188995671500924e-12,
+        3.473133650396895e-06,
+        0.9999965268589992
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9999916030936625
+    },
+    {
+      "ticket": 3,
+      "field": "indoors",
+      "branch_nodes": 1,
+      "reference": [
+        0.9999999999999976,
+        2.4975306712239454e-15
+      ],
+      "engine": [
+        0.9999999999999978,
+        2.220446049250313e-15
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9999999999999951
+    },
+    {
+      "ticket": 4,
+      "field": "cat",
+      "branch_nodes": 1,
+      "reference": [
+        1.0,
+        4.1791604948535366e-17
+      ],
+      "engine": [
+        0.9999999999999998,
+        2.220446049250313e-16
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 1.0
+    },
+    {
+      "ticket": 4,
+      "field": "dog",
+      "branch_nodes": 1,
+      "reference": [
+        3.1244200148008266e-13,
+        0.9999999999996876
+      ],
+      "engine": [
+        1.1257310141063947e-12,
+        0.9999999999988742
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9999999999993752
+    },
+    {
+      "ticket": 4,
+      "field": "animal",
+      "branch_nodes": 1,
+      "reference": [
+        1.0,
+        1.874127189196786e-23,
+        7.988743127237271e-30,
+        1.1671815073832554e-20,
+        1.9526857330130693e-28
+      ],
+      "engine": [
+        1.0,
+        3.393088145368451e-23,
+        3.4413610591196973e-29,
+        5.0146094720335003e-20,
+        3.7329001822067115e-28
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 1.0
+    },
+    {
+      "ticket": 4,
+      "field": "indoors",
+      "branch_nodes": 1,
+      "reference": [
+        0.9999999999999996,
+        3.375092601668707e-16
+      ],
+      "engine": [
+        0.9999999999999998,
+        2.220446049250313e-16
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9999999999999992
+    },
+    {
+      "ticket": 5,
+      "field": "cat",
+      "branch_nodes": 1,
+      "reference": [
+        2.447933694337703e-10,
+        0.9999999997552067
+      ],
+      "engine": [
+        3.9458640174495934e-10,
+        0.9999999996054136
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9999999995104133
+    },
+    {
+      "ticket": 5,
+      "field": "dog",
+      "branch_nodes": 1,
+      "reference": [
+        0.5355139958985755,
+        0.46448600410142454
+      ],
+      "engine": [
+        0.027383599856286172,
+        0.9726164001437139
+      ],
+      "argmax_agree": false,
+      "ref_top2_margin": 0.07102799179715097
+    },
+    {
+      "ticket": 5,
+      "field": "animal",
+      "branch_nodes": 1,
+      "reference": [
+        1.1772606440185451e-11,
+        1.1820928530443793e-20,
+        8.225445460717542e-26,
+        0.9999999999882274,
+        9.265619979089187e-21
+      ],
+      "engine": [
+        1.813610977396459e-11,
+        3.302551257304068e-21,
+        1.277428256789923e-25,
+        0.9999999999818638,
+        3.2165260042691015e-20
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9999999999764548
+    },
+    {
+      "ticket": 5,
+      "field": "indoors",
+      "branch_nodes": 1,
+      "reference": [
+        0.9999999999999205,
+        7.94771597633334e-14
+      ],
+      "engine": [
+        0.9999999999999631,
+        3.68594044175552e-14
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.999999999999841
+    },
+    {
+      "ticket": 6,
+      "field": "cat",
+      "branch_nodes": 1,
+      "reference": [
+        3.654874865802571e-08,
+        0.9999999634512513
+      ],
+      "engine": [
+        1.578950103800415e-08,
+        0.999999984210499
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9999999269025026
+    },
+    {
+      "ticket": 6,
+      "field": "dog",
+      "branch_nodes": 1,
+      "reference": [
+        1.0104747531868758e-09,
+        0.9999999989895252
+      ],
+      "engine": [
+        5.295984817645379e-10,
+        0.9999999994704015
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9999999979790505
+    },
+    {
+      "ticket": 6,
+      "field": "animal",
+      "branch_nodes": 1,
+      "reference": [
+        6.926340005486064e-09,
+        3.5261537388547e-14,
+        7.763703852029067e-13,
+        1.5554642448556686e-10,
+        0.9999999929173018
+      ],
+      "engine": [
+        1.4226260007012005e-08,
+        1.1315766682164929e-14,
+        7.106182667266562e-13,
+        1.556415373039799e-10,
+        0.9999999856173765
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9999999859909617
+    },
+    {
+      "ticket": 6,
+      "field": "indoors",
+      "branch_nodes": 1,
+      "reference": [
+        0.9999999999901916,
+        9.808285985707034e-12
+      ],
+      "engine": [
+        0.999999999961567,
+        3.8433034532658894e-11
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9999999999803834
+    },
+    {
+      "ticket": 7,
+      "field": "cat",
+      "branch_nodes": 1,
+      "reference": [
+        1.0,
+        7.937284794789329e-18
+      ],
+      "engine": [
+        1.0,
+        0.0
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 1.0
+    },
+    {
+      "ticket": 7,
+      "field": "dog",
+      "branch_nodes": 1,
+      "reference": [
+        1.4653142327707685e-11,
+        0.9999999999853468
+      ],
+      "engine": [
+        1.7037484739195226e-12,
+        0.9999999999982963
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9999999999706937
+    },
+    {
+      "ticket": 7,
+      "field": "animal",
+      "branch_nodes": 1,
+      "reference": [
+        0.9999999999999989,
+        2.5062506952834282e-17,
+        1.5983860331260258e-22,
+        1.0579565463836502e-15,
+        4.7840356589096743e-23
+      ],
+      "engine": [
+        0.9999999999999984,
+        8.690400110052761e-17,
+        3.091058492307959e-22,
+        1.6292706716997912e-15,
+        1.2898825710710459e-22
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9999999999999978
+    },
+    {
+      "ticket": 7,
+      "field": "indoors",
+      "branch_nodes": 1,
+      "reference": [
+        0.9999999999999949,
+        5.122373342809879e-15
+      ],
+      "engine": [
+        0.9999999999999989,
+        1.1102230246251565e-15
+      ],
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9999999999999898
+    }
+  ]
+}

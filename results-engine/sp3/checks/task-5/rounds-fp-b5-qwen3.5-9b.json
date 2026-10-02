@@ -1,0 +1,39 @@
+{
+  "resp": "results-engine/sp3/checks/task-5/fp-b5-qwen3.5-9b.jsonl",
+  "spr": 1,
+  "lines": [
+    {
+      "states": 5,
+      "states_per_round": 1,
+      "rounds": 5,
+      "seqs_per_state": 11,
+      "decodes": 11,
+      "ok": true
+    },
+    {
+      "states": 5,
+      "states_per_round": 1,
+      "rounds": 5,
+      "seqs_per_state": 11,
+      "decodes": 10,
+      "ok": true
+    },
+    {
+      "states": 5,
+      "states_per_round": 1,
+      "rounds": 5,
+      "seqs_per_state": 11,
+      "decodes": 10,
+      "ok": true
+    },
+    {
+      "states": 5,
+      "states_per_round": 1,
+      "rounds": 5,
+      "seqs_per_state": 11,
+      "decodes": 10,
+      "ok": true
+    }
+  ],
+  "pass": true
+}

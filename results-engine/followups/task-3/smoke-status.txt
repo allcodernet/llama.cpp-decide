@@ -1,0 +1,76 @@
+== before.txt
+head: f9a0b1f Portability: baseline step guards EVAL_DIR; tests independent of the caller's environment
+engine: 23957f14c decide: no SIMD dispatch on MSVC targets; small-n tests
+llama-server processes: 0
+gpu: 612 MiB, 53
+== exit.txt
+run.sh baseline runs score calibration preset: exit 0 after 64 s
+== after.txt
+llama-server processes: 0
+port 8097 listening: 0
+gpu: 612 MiB, 54
+== git status --porcelain --untracked-files=all, before (status-before.txt):
+== after (status-after.txt):
+== cmp: identical
+== repository paths newer than the start marker (find, .git/.venv/__pycache__ pruned):
+== end
+== outputs:
+baseline/test/preds/decide-gemma-4-e4b-b5-keywords.jsonl
+baseline/test/preds/score.json
+baseline/test/runs/decide-gemma-4-e4b-b5-keywords.json
+baseline/train/preds/decide-gemma-4-e4b-b5-keywords.jsonl
+baseline/train/preds/score.json
+baseline/train/runs/decide-gemma-4-e4b-b5-keywords.json
+eval/calibration-gemma-4-e4b.json
+eval/gpu-log.txt
+eval/signtest-gemma-4-e4b-b5-keywords-after-urgency=queue-angry=queue.json
+eval/signtest-gemma-4-e4b-b5-keywords-after-urgency=queue.json
+eval/signtest-gemma-4-e4b-b5-keywords-debias4.json
+eval/signtest-gemma-4-e4b-b5-keywords-full_path.json
+eval/summary.json
+eval/summary.md
+eval/test/preds/decide-gemma-4-e4b-b5-keywords-after-urgency=queue-angry=queue.jsonl
+eval/test/preds/decide-gemma-4-e4b-b5-keywords-after-urgency=queue.jsonl
+eval/test/preds/decide-gemma-4-e4b-b5-keywords-debias4.jsonl
+eval/test/preds/decide-gemma-4-e4b-b5-keywords-full_path.jsonl
+eval/test/preds/score.json
+eval/test/runs/decide-gemma-4-e4b-b5-keywords-after-urgency=queue-angry=queue.json
+eval/test/runs/decide-gemma-4-e4b-b5-keywords-after-urgency=queue.json
+eval/test/runs/decide-gemma-4-e4b-b5-keywords-debias4.json
+eval/test/runs/decide-gemma-4-e4b-b5-keywords-full_path.json
+eval/train/preds/decide-gemma-4-e4b-b5-keywords-after-urgency=queue-angry=queue.jsonl
+eval/train/preds/decide-gemma-4-e4b-b5-keywords-after-urgency=queue.jsonl
+eval/train/preds/decide-gemma-4-e4b-b5-keywords-debias4.jsonl
+eval/train/preds/decide-gemma-4-e4b-b5-keywords-full_path.jsonl
+eval/train/preds/score.json
+eval/train/runs/decide-gemma-4-e4b-b5-keywords-after-urgency=queue-angry=queue.json
+eval/train/runs/decide-gemma-4-e4b-b5-keywords-after-urgency=queue.json
+eval/train/runs/decide-gemma-4-e4b-b5-keywords-debias4.json
+eval/train/runs/decide-gemma-4-e4b-b5-keywords-full_path.json
+== logs:
+baseline-gemma-4-e4b-test.log
+baseline-gemma-4-e4b-train.log
+calibrate.txt
+router-gemma-4-e4b-after-a-test.log
+router-gemma-4-e4b-after-a-train.log
+router-gemma-4-e4b-after-b-test.log
+router-gemma-4-e4b-after-b-train.log
+router-gemma-4-e4b-baseline-test.log
+router-gemma-4-e4b-baseline-train.log
+router-gemma-4-e4b-debias4-test.log
+router-gemma-4-e4b-debias4-train.log
+router-gemma-4-e4b-full-path-test.log
+router-gemma-4-e4b-full-path-train.log
+run-gemma-4-e4b-after-a-test.log
+run-gemma-4-e4b-after-a-train.log
+run-gemma-4-e4b-after-b-test.log
+run-gemma-4-e4b-after-b-train.log
+run-gemma-4-e4b-debias4-test.log
+run-gemma-4-e4b-debias4-train.log
+run-gemma-4-e4b-full-path-test.log
+run-gemma-4-e4b-full-path-train.log
+score-baseline-test.txt
+score-baseline-train.txt
+score-test.txt
+score-train.txt
+summary.txt

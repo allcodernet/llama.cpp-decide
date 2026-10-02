@@ -1,0 +1,71 @@
+From bcc7174a04aaf22f93be1de4b9cf89486f508584 Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 18:32:23 +0200
+Subject: [PATCH 16/45] decide-compat: empty instructions fall back to the
+ default description
+
+An instructions value that is an empty string now gets the per-type default, like null or absent, instead of an empty description that compile rejects. The compile-stamp test uses a one-option choice to raise the error inside a field.
+---
+ tests/test-decide-compat.cpp   | 10 ++++++----
+ tools/decide/decide-compat.cpp |  3 ++-
+ 2 files changed, 8 insertions(+), 5 deletions(-)
+
+diff --git a/tests/test-decide-compat.cpp b/tests/test-decide-compat.cpp
+index 82ca22c33..1f9ae8b50 100644
+--- a/tests/test-decide-compat.cpp
++++ b/tests/test-decide-compat.cpp
+@@ -85,19 +85,21 @@ int main() {
+         CHECK(cs.fields.size() == 2 && cs.fields[0].name == "department" && cs.fields[1].name == "frustration");
+     }
+ 
+-    // 3. absent instructions (and null) -> per-type defaults
++    // 3. absent, null or empty-string instructions -> per-type defaults
+     {
+         auto out = decide::systemone_to_decide(common_json::parse(R"({
+             "state": "s", "model": "m",
+             "questions": {
+                 "n": {"type": "noul"},
+                 "c": {"type": "choice", "criteria": {"a": "x", "b": "y"}},
+-                "s": {"type": "score", "instructions": null, "criteria": ["lo", "hi"]}
++                "s": {"type": "score", "instructions": null, "criteria": ["lo", "hi"]},
++                "e": {"type": "noul", "instructions": "", "criteria": {"true": "x"}}
+             }
+         })"));
+         CHECK(out.at("fields").at("n").at("description").get<std::string>() == "Answer yes or no.");
+         CHECK(out.at("fields").at("c").at("description").get<std::string>() == "Choose the option that applies.");
+         CHECK(out.at("fields").at("s").at("description").get<std::string>() == "Rate on the given scale.");
++        CHECK(out.at("fields").at("e").at("description").get<std::string>() == "Answer yes or no. (true: x)");
+     }
+ 
+     // 4. object state, object instructions, object choice value, empty score entry
+@@ -221,11 +223,11 @@ int main() {
+         CHECK(e2.type == "invalid_states");
+     }
+ 
+-    // compile() stamps the field name on errors that do not know it (empty description)
++    // compile() stamps the field name on errors raised inside a field (a one-option choice)
+     {
+         auto tr = decide::systemone_to_decide(common_json::parse(R"({
+             "model": "m", "state": "s",
+-            "questions": {"ok": {"type": "noul"}, "q": {"type": "choice", "instructions": "", "criteria": {"a": "x", "b": "y"}}}
++            "questions": {"ok": {"type": "noul"}, "q": {"type": "choice", "instructions": "Pick", "criteria": {"a": "x"}}}
+         })"));
+         bool thrown = false;
+         try {
+diff --git a/tools/decide/decide-compat.cpp b/tools/decide/decide-compat.cpp
+index e648ac01d..8460dc833 100644
+--- a/tools/decide/decide-compat.cpp
++++ b/tools/decide/decide-compat.cpp
+@@ -56,7 +56,8 @@ static common_json translate_question(const std::string & id, const common_json
+         const auto & ij = q.at("instructions");
+         if (!ij.is_null()) {
+             if (!is_x(ij)) fail(loc_of(base, "instructions"), "Input should be a string, an object or an array", "invalid_type");
+-            d = text(ij);
++            // an empty string falls back to the default like null (compile rejects an empty description)
++            if (!(ij.is_string() && ij.get<std::string>().empty())) d = text(ij);
+         }
+     }
+ 
+-- 
+2.55.0
+

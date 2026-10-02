@@ -1,0 +1,25 @@
+{
+  "preds_dir": "/tmp/t0-probe/g4/preds",
+  "test_set": "local/data/triage_test.jsonl",
+  "n_tickets": 80,
+  "runs": {
+    "decide-gemma-4-e4b-b5-keywords": {
+      "queue": 0.95,
+      "urgency": 0.825,
+      "urgency_near": 0.9875,
+      "angry": 0.9625,
+      "nll_queue": 0.18701799153081086,
+      "nll_urgency": 0.5805885324370872,
+      "nll_angry": 0.12780738563743174,
+      "nll_sum": 0.8954139096053297,
+      "ece_queue": 0.04796989554412974,
+      "ece_urgency": 0.10640201726180368,
+      "ece_angry": 0.02743200297554315,
+      "brier_angry": 0.030451010624335414,
+      "p50_ms": 13.91791959999864,
+      "rounds": [
+        1
+      ]
+    }
+  }
+}

@@ -1,0 +1,421 @@
+From 3c27888078b70ec48e2f370fe64c6bc69139763a Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 13:51:24 +0200
+Subject: [PATCH 05/45] decide-trie: tokenisation boundary rule, sibling check,
+ quote-split fallback
+
+Add decide-trie.{h,cpp}: build_trie tokenises stem_text(f) + each
+option's encoded text (add_special=false, parse_special=false), takes
+the longest common token prefix as the stem, builds a trie from the
+remaining per-option paths, and enumerates branch nodes (>= 2
+children) in pre-order. At every branch node, a sibling-prefix check
+compares the rendered piece of each child token pairwise; if any pair
+is a text prefix of the other, the field is ambiguous under greedy
+decoding.
+
+For choice fields, a conflict falls back to a quote-anchored split:
+stem = tokenize("  \"name\": \"") and each option's path is tokenized
+on its own starting after the opening quote, which keeps keys that
+merge with the quote glyph (e.g. sales on SentencePiece-style
+tokenizers) usable at the cost of an unnatural token boundary
+(field_trie::quote_split, reported by the engine later). Score and
+bool fields never use the fallback, since their encoded values (an
+integer index or true/false) don't share the quote-anchoring
+rationale. If the conflict persists after the fallback, build_trie
+throws invalid_schema naming both options.
+
+branch_tokens(t, node) walks from a trie node up to the root and
+returns stem + the edge tokens in root-to-node order, for the engine to
+fill branch sequences. tokenize_plain/tokenize_template wrap
+common_tokenize with the add_special/parse_special flags the rest of
+the engine needs.
+
+Tested against both Qwen2.5-0.5B-Instruct (BPE/gpt2) and Gemma 4
+vocab_only GGUFs: the triage schema's queue/urgency/angry fields all
+take the joint tokenisation path on both families (quote_split never
+needed for the shipped fixtures); a "sale"/"sales" choice field
+conflicts and is rejected on both after the fallback is attempted
+(confirms the fallback path executes and still correctly detects a
+genuine ambiguity); a 255-option choice field builds on both.
+---
+ tests/CMakeLists.txt         |   3 +
+ tests/test-decide-trie.cpp   | 108 ++++++++++++++++++++
+ tools/decide/CMakeLists.txt  |   3 +-
+ tools/decide/decide-trie.cpp | 191 +++++++++++++++++++++++++++++++++++
+ tools/decide/decide-trie.h   |  27 +++++
+ 5 files changed, 331 insertions(+), 1 deletion(-)
+ create mode 100644 tests/test-decide-trie.cpp
+ create mode 100644 tools/decide/decide-trie.cpp
+ create mode 100644 tools/decide/decide-trie.h
+
+diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
+index c733899b8..ccff73d19 100644
+--- a/tests/CMakeLists.txt
++++ b/tests/CMakeLists.txt
+@@ -385,3 +385,6 @@ target_link_libraries(test-decide-schema PRIVATE llama-decide)
+ 
+ llama_build_and_test(test-decide-score.cpp)
+ target_link_libraries(test-decide-score PRIVATE llama-decide)
++
++llama_build_and_test(test-decide-trie.cpp)
++target_link_libraries(test-decide-trie PRIVATE llama-decide)
+diff --git a/tests/test-decide-trie.cpp b/tests/test-decide-trie.cpp
+new file mode 100644
+index 000000000..a48c098f6
+--- /dev/null
++++ b/tests/test-decide-trie.cpp
+@@ -0,0 +1,108 @@
++#include "decide-trie.h"
++#include "common.h"
++#include "llama.h"
++
++#include <cstdio>
++#include <cstdlib>
++#include <string>
++
++static int failures = 0;
++#define CHECK(cond) do { if (!(cond)) { std::fprintf(stderr, "FAIL %s:%d: %s\n", __FILE__, __LINE__, #cond); failures++; } } while (0)
++
++static decide::compiled_schema triage() {
++    return decide::compile_request(common_json::parse(R"({
++      "fields": {
++        "queue":   {"type": "choice", "description": "Which team?", "options": {"billing": "b", "technical": "t", "sales": "s", "feedback": "f"}},
++        "urgency": {"type": "score", "description": "How urgent?", "levels": ["a", "b", "c", "d"]},
++        "angry":   {"type": "bool", "description": "Angry?"}
++      }, "states": ["x"]})"));
++}
++
++int main() {
++    const char * path = std::getenv("DECIDE_TEST_MODEL");
++    if (!path || !std::fopen(path, "rb")) { std::printf("test-decide-trie: SKIP (DECIDE_TEST_MODEL unset or missing)\n"); return 0; }
++    llama_backend_init();
++    auto mparams = llama_model_default_params(); mparams.vocab_only = true;
++    llama_model * model = llama_model_load_from_file(path, mparams);
++    CHECK(model != nullptr);
++    const llama_vocab * vocab = llama_model_get_vocab(model);
++
++    // triage: one branch per field, paths differ, options_through consistent
++    auto cs = triage();
++    auto ts = decide::build_tries(cs, vocab);
++    CHECK(ts.fields.size() == 3);
++    for (size_t i = 0; i < 3; ++i) {
++        const auto & t = ts.fields[i];
++        CHECK(t.branch_nodes.size() == 1 && t.branch_nodes[0] == 0);
++        CHECK(t.nodes[0].children.size() == cs.fields[i].options.size());
++        CHECK(t.paths.size() == cs.fields[i].options.size());
++        for (size_t a = 0; a < t.paths.size(); ++a) { CHECK(!t.paths[a].empty()); for (size_t b = a + 1; b < t.paths.size(); ++b) CHECK(t.paths[a] != t.paths[b]); }
++    }
++    CHECK(ts.branches_per_state == 3);
++    // bool never uses the fallback; its branch tokens equal the joint tokenisation
++    {
++        const auto & t = ts.fields[2];
++        CHECK(!t.quote_split);
++        auto full_true = decide::tokenize_plain(vocab, "  \"angry\": true");
++        CHECK(full_true.size() == t.stem.size() + t.paths[0].size());
++        auto bt = decide::branch_tokens(t, t.nodes[0].children[0]);
++        CHECK(bt == full_true);
++    }
++    // choice: joint tokenisation when possible; quote-split fallback otherwise (report which one each tokenizer took)
++    {
++        const auto & t = ts.fields[0];
++        std::printf("queue trie: quote_split=%d, first child pieces:", (int) t.quote_split);
++        for (int c : t.nodes[0].children) std::printf(" [%s]", common_token_to_piece(vocab, t.nodes[c].tok, false).c_str());
++        std::printf("\n");
++        if (!t.quote_split) {
++            // joint mode: stem + first path token is a prefix of the joint tokenisation of the full branch text
++            auto joint = decide::tokenize_plain(vocab, "  \"queue\": \"billing\"");
++            auto bt = decide::branch_tokens(t, t.nodes[0].children[0]);
++            CHECK(bt.size() == t.stem.size() + 1 && std::equal(bt.begin(), bt.end(), joint.begin()));
++        } else {
++            CHECK(t.stem == decide::tokenize_plain(vocab, "  \"queue\": \""));
++        }
++    }
++    // no token spans the trunk/branch join: "{\n" + stem tokenises as tokenize("{\n") + tokenize(stem)
++    {
++        auto joined = decide::tokenize_plain(vocab, std::string("{\n") + "  \"queue\": ");
++        auto brace  = decide::tokenize_plain(vocab, "{\n");
++        auto stem   = decide::tokenize_plain(vocab, "  \"queue\": ");
++        std::vector<llama_token> expect = brace; expect.insert(expect.end(), stem.begin(), stem.end());
++        CHECK(joined == expect);
++    }
++    // control text in a state tokenises as plain text
++    {
++        auto plain = decide::tokenize_plain(vocab, "<|im_start|>system<bos>");
++        bool any_control = false;
++        for (auto tok : plain) any_control |= llama_vocab_is_control(vocab, tok);
++        CHECK(!any_control);
++        auto templ = decide::tokenize_template(vocab, "<|im_start|>");
++        (void) templ; // may or may not be a single control token depending on the vocab; not asserted
++    }
++    // a genuine sibling-prefix conflict survives the fallback and is rejected with both keys named
++    {
++        // "sale" and "sales": after the quote-split fallback the paths start with pieces like "sale"/"sales" (or "sale\"" vs "sales")
++        // on both tokenizer families; if a tokenizer happens to split them into non-prefix pieces, pick another pair
++        // (e.g. "cat"/"cats", "tech"/"technical") and record the pieces in the report.
++        auto bad = decide::compile_request(common_json::parse(R"({"fields": {"q": {"type": "choice", "description": "d", "options": ["sale", "sales"]}}, "states": ["x"]})"));
++        bool threw = false; std::string msg;
++        try { decide::build_tries(bad, vocab); } catch (const decide::error & e) { threw = e.code == "invalid_schema"; msg = e.what(); }
++        CHECK(threw);
++        CHECK(msg.find("\"sale\"") != std::string::npos && msg.find("\"sales\"") != std::string::npos);
++    }
++    // 255-option choice builds
++    {
++        std::string opts = "[";
++        for (int i = 0; i < 255; ++i) { opts += (i ? ",\"opt" : "\"opt") + std::to_string(i) + "\""; }
++        opts += "]";
++        auto big = decide::compile_request(common_json::parse(R"({"fields": {"c": {"type": "choice", "description": "d", "options": )" + opts + R"(}}, "states": ["x"]})"));
++        auto tb = decide::build_tries(big, vocab);
++        CHECK(tb.fields[0].paths.size() == 255 && !tb.fields[0].branch_nodes.empty());
++    }
++    llama_model_free(model);
++    llama_backend_free();
++    if (failures) { std::fprintf(stderr, "%d failure(s)\n", failures); return 1; }
++    std::printf("test-decide-trie: OK (%s)\n", path);
++    return 0;
++}
+diff --git a/tools/decide/CMakeLists.txt b/tools/decide/CMakeLists.txt
+index 35e800af2..43e7e0647 100644
+--- a/tools/decide/CMakeLists.txt
++++ b/tools/decide/CMakeLists.txt
+@@ -1,6 +1,7 @@
+ add_library(llama-decide STATIC
+     decide-schema.cpp decide-schema.h
+-    decide-score.cpp decide-score.h)
++    decide-score.cpp decide-score.h
++    decide-trie.cpp decide-trie.h)
+ target_include_directories(llama-decide PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+ target_link_libraries(llama-decide PUBLIC llama-common llama)
+ target_compile_features(llama-decide PUBLIC cxx_std_17)
+diff --git a/tools/decide/decide-trie.cpp b/tools/decide/decide-trie.cpp
+new file mode 100644
+index 000000000..cb4f033f6
+--- /dev/null
++++ b/tools/decide/decide-trie.cpp
+@@ -0,0 +1,191 @@
++#include "decide-trie.h"
++#include "common.h"
++
++#include <algorithm>
++
++namespace decide {
++
++std::vector<llama_token> tokenize_plain(const llama_vocab * vocab, const std::string & text) {
++    return common_tokenize(vocab, text, false, false);
++}
++
++std::vector<llama_token> tokenize_template(const llama_vocab * vocab, const std::string & text) {
++    return common_tokenize(vocab, text, false, true);
++}
++
++// Inserts `path` into the trie (nodes[0] is the root), recording `opt` in options_through
++// along the way. Reuses an existing child edge with the same token when present, so that
++// paths sharing a prefix share nodes (first-insertion order is preserved in `children`).
++static void insert_path(std::vector<trie_node> & nodes, const std::vector<llama_token> & path, int opt) {
++    int cur = 0;
++    nodes[cur].options_through.push_back(opt);
++    for (llama_token tok : path) {
++        int next = -1;
++        for (int c : nodes[cur].children) {
++            if (nodes[c].tok == tok) { next = c; break; }
++        }
++        if (next == -1) {
++            trie_node n;
++            n.tok = tok;
++            nodes.push_back(n);
++            next = (int) nodes.size() - 1;
++            nodes[cur].children.push_back(next);
++        }
++        nodes[next].options_through.push_back(opt);
++        cur = next;
++    }
++}
++
++static void collect_branch_nodes_preorder(const std::vector<trie_node> & nodes, int node, std::vector<int> & out) {
++    if (nodes[node].children.size() >= 2) out.push_back(node);
++    for (int c : nodes[node].children) collect_branch_nodes_preorder(nodes, c, out);
++}
++
++// Rule 2's empty/prefix-path check, shared between the joint path and the quote-split fallback.
++// An empty path is trivially a prefix of every other path, so a single pairwise scan over
++// (i, j) with i != j catches both cases (paths.size() >= 2 always: choice needs >= 2 options,
++// score needs >= 2 levels, bool has exactly 2).
++static void check_paths_nonempty_distinct(const field & f, const std::vector<std::vector<llama_token>> & paths) {
++    for (size_t i = 0; i < paths.size(); ++i) {
++        for (size_t j = 0; j < paths.size(); ++j) {
++            if (i == j) continue;
++            const auto & pi = paths[i];
++            const auto & pj = paths[j];
++            if (pi.size() <= pj.size() && std::equal(pi.begin(), pi.end(), pj.begin())) {
++                throw error("invalid_schema", 400, "field \"" + f.name + "\": option \"" + f.options[i].key +
++                                                        "\" tokenises as a prefix of option \"" + f.options[j].key + "\"");
++            }
++        }
++    }
++}
++
++// Builds nodes/branch_nodes for the given per-option token paths (stem already stripped).
++static void build_from_paths(field_trie & t, const std::vector<std::vector<llama_token>> & paths) {
++    t.paths = paths;
++    t.nodes.clear();
++    t.nodes.emplace_back(); // root
++    t.nodes[0].tok = -1;
++    for (size_t i = 0; i < paths.size(); ++i) {
++        insert_path(t.nodes, paths[i], (int) i);
++    }
++    t.branch_nodes.clear();
++    collect_branch_nodes_preorder(t.nodes, 0, t.branch_nodes);
++}
++
++// Rule 5: sibling-prefix check at every branch node. Returns the message for the first
++// conflicting pair found, or an empty string when there is none.
++static std::string sibling_conflict(const field & f, const field_trie & t, const llama_vocab * vocab) {
++    for (int bn : t.branch_nodes) {
++        const auto & children = t.nodes[bn].children;
++        std::vector<std::string> pieces(children.size());
++        for (size_t k = 0; k < children.size(); ++k) {
++            pieces[k] = common_token_to_piece(vocab, t.nodes[children[k]].tok, false);
++        }
++        for (size_t k = 0; k < pieces.size(); ++k) {
++            for (size_t l = k + 1; l < pieces.size(); ++l) {
++                const std::string & pk = pieces[k];
++                const std::string & pl = pieces[l];
++                bool prefix = (pk.size() <= pl.size() && pl.compare(0, pk.size(), pk) == 0) ||
++                              (pl.size() <= pk.size() && pk.compare(0, pl.size(), pl) == 0);
++                if (prefix) {
++                    int opt_k = t.nodes[children[k]].options_through.front();
++                    int opt_l = t.nodes[children[l]].options_through.front();
++                    return "field \"" + f.name + "\": options \"" + f.options[opt_k].key + "\" and \"" +
++                           f.options[opt_l].key + "\" share a token prefix (\"" + pk + "\" vs \"" + pl +
++                           "\"); rename one of them";
++                }
++            }
++        }
++    }
++    return "";
++}
++
++field_trie build_trie(const field & f, const llama_vocab * vocab) {
++    // Rule 1: tokenise stem_text(f) + option.encoded for every option.
++    std::vector<std::vector<llama_token>> toks(f.options.size());
++    for (size_t i = 0; i < f.options.size(); ++i) {
++        toks[i] = tokenize_plain(vocab, stem_text(f) + f.options[i].encoded);
++    }
++
++    // Rule 2: stem = longest common token prefix of all toks[i].
++    size_t common = toks[0].size();
++    for (size_t i = 1; i < toks.size(); ++i) {
++        size_t lim = std::min(common, toks[i].size());
++        size_t k = 0;
++        while (k < lim && toks[0][k] == toks[i][k]) ++k;
++        common = k;
++    }
++
++    field_trie t;
++    t.stem.assign(toks[0].begin(), toks[0].begin() + common);
++    std::vector<std::vector<llama_token>> paths(toks.size());
++    for (size_t i = 0; i < toks.size(); ++i) {
++        paths[i].assign(toks[i].begin() + common, toks[i].end());
++    }
++    check_paths_nonempty_distinct(f, paths);
++
++    // Rules 3-4: build the trie, enumerate branch nodes (pre-order).
++    build_from_paths(t, paths);
++
++    // Rule 5: sibling-prefix check at every branch node.
++    std::string conflict_msg = sibling_conflict(f, t, vocab);
++    if (conflict_msg.empty()) {
++        return t;
++    }
++
++    // Rule 6: quote-anchored fallback, choice fields only.
++    if (f.type != field_type::CHOICE) {
++        throw error("invalid_schema", 400, conflict_msg);
++    }
++
++    field_trie qt;
++    qt.stem = tokenize_plain(vocab, stem_text(f) + "\"");
++    std::vector<std::vector<llama_token>> qpaths(f.options.size());
++    for (size_t i = 0; i < f.options.size(); ++i) {
++        qpaths[i] = tokenize_plain(vocab, f.options[i].key + "\"");
++    }
++    check_paths_nonempty_distinct(f, qpaths);
++    build_from_paths(qt, qpaths);
++    qt.quote_split = true;
++
++    std::string qconflict_msg = sibling_conflict(f, qt, vocab);
++    if (!qconflict_msg.empty()) {
++        throw error("invalid_schema", 400, qconflict_msg);
++    }
++
++    return qt;
++}
++
++trie_set build_tries(const compiled_schema & cs, const llama_vocab * vocab) {
++    trie_set ts;
++    ts.fields.reserve(cs.fields.size());
++    for (const auto & f : cs.fields) {
++        field_trie t = build_trie(f, vocab);
++        ts.branches_per_state += (int) t.branch_nodes.size();
++        ts.fields.push_back(std::move(t));
++    }
++    return ts;
++}
++
++std::vector<llama_token> branch_tokens(const field_trie & t, int node) {
++    std::vector<llama_token> out = t.stem;
++    // Walk from `node` to the root via a simple search (nodes[].children only stores
++    // forward edges), collecting edge tokens, then reverse.
++    std::vector<llama_token> rev;
++    int cur = node;
++    while (cur != 0) {
++        int parent = -1;
++        for (size_t i = 0; i < t.nodes.size(); ++i) {
++            for (int c : t.nodes[i].children) {
++                if (c == cur) { parent = (int) i; break; }
++            }
++            if (parent != -1) break;
++        }
++        rev.push_back(t.nodes[cur].tok);
++        cur = parent;
++    }
++    out.insert(out.end(), rev.rbegin(), rev.rend());
++    return out;
++}
++
++} // namespace decide
+diff --git a/tools/decide/decide-trie.h b/tools/decide/decide-trie.h
+new file mode 100644
+index 000000000..d1d37519d
+--- /dev/null
++++ b/tools/decide/decide-trie.h
+@@ -0,0 +1,27 @@
++#pragma once
++#include "decide-schema.h"
++#include "decide-score.h"
++#include "llama.h"
++#include <vector>
++
++namespace decide {
++
++struct trie_set {
++    std::vector<field_trie> fields;            // same order as compiled_schema::fields
++    int                     branches_per_state = 0;   // sum over fields of branch_nodes.size()
++};
++
++// Tokenises stem_text(f) + o.encoded per option (add_special=false, parse_special=false),
++// takes the longest common token prefix as the stem, builds the trie, enumerates branch nodes,
++// and applies the sibling-prefix check. Throws error{"invalid_schema", 400, ...}.
++field_trie build_trie(const field & f, const llama_vocab * vocab);
++trie_set   build_tries(const compiled_schema & cs, const llama_vocab * vocab);
++
++// stem + path to `node` (edge tokens from the root), used to fill a branch sequence.
++std::vector<llama_token> branch_tokens(const field_trie & t, int node);
++
++// Plain-text tokenisation helpers shared with the engine.
++std::vector<llama_token> tokenize_plain(const llama_vocab * vocab, const std::string & text);   // add_special=false, parse_special=false
++std::vector<llama_token> tokenize_template(const llama_vocab * vocab, const std::string & text); // add_special=false, parse_special=true
++
++} // namespace decide
+-- 
+2.55.0
+

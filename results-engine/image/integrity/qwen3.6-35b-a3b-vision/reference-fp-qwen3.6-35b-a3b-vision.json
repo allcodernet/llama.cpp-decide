@@ -1,0 +1,3580 @@
+{
+  "preset": "qwen3.6-35b-a3b-vision",
+  "tag": "fp",
+  "mode": "full_path",
+  "n_records": 32,
+  "fields": {
+    "cat": {
+      "median_abs_diff": 0.0003114185834510702,
+      "max_abs_diff": 0.009700465297153087,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "statistic_pass": true,
+      "coverage_median_abs_diff": 0.0001667095554443998,
+      "coverage_max_abs_diff": 0.0008964267303027684,
+      "coverage_engine_median": 0.9986921616401452,
+      "coverage_reference_median": 0.9989107662009358,
+      "coverage_pass": true,
+      "node_values": 32,
+      "node_both_zero": 16,
+      "node_median_abs_diff": 8.640079635028659e-06,
+      "node_max_abs_diff": 0.00969466784805312,
+      "node_pass": true,
+      "end_merged_replay_excess_max": 5.237012921888162e-05,
+      "edges": 16,
+      "unverifiable_edges": 0,
+      "engine_recompute_max_abs_diff": 1.1102230246251565e-16,
+      "pass": true
+    },
+    "dog": {
+      "median_abs_diff": 0.0017364597125233347,
+      "max_abs_diff": 0.030599077481991532,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "statistic_pass": true,
+      "coverage_median_abs_diff": 0.0005955717135941452,
+      "coverage_max_abs_diff": 0.003802971228667129,
+      "coverage_engine_median": 0.9846357620553388,
+      "coverage_reference_median": 0.9824149902894987,
+      "coverage_pass": true,
+      "node_values": 32,
+      "node_both_zero": 16,
+      "node_median_abs_diff": 3.5524234752060124e-05,
+      "node_max_abs_diff": 0.030616464098652263,
+      "node_pass": true,
+      "end_merged_replay_excess_max": 4.253263989206779e-05,
+      "edges": 16,
+      "unverifiable_edges": 0,
+      "engine_recompute_max_abs_diff": 1.1102230246251565e-16,
+      "pass": true
+    },
+    "animal": {
+      "median_abs_diff": 0.0013673316162866843,
+      "max_abs_diff": 0.046451661370826736,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "statistic_pass": true,
+      "coverage_median_abs_diff": 0.00020578746809829518,
+      "coverage_max_abs_diff": 0.0010272650634532976,
+      "coverage_engine_median": 0.9965526972590389,
+      "coverage_reference_median": 0.9964242479411303,
+      "coverage_pass": true,
+      "node_values": 160,
+      "node_both_zero": 0,
+      "node_median_abs_diff": 0.005022440463624811,
+      "node_max_abs_diff": 0.12691174273402014,
+      "node_pass": true,
+      "end_merged_replay_excess_max": 0.04028546575558256,
+      "edges": 80,
+      "unverifiable_edges": 0,
+      "engine_recompute_max_abs_diff": 1.1102230246251565e-16,
+      "pass": true
+    },
+    "indoors": {
+      "median_abs_diff": 0.002948256930137217,
+      "max_abs_diff": 0.014249849181405483,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "statistic_pass": true,
+      "coverage_median_abs_diff": 0.0019633031197614503,
+      "coverage_max_abs_diff": 0.006581464259867054,
+      "coverage_engine_median": 0.9780589499575688,
+      "coverage_reference_median": 0.9757214420775042,
+      "coverage_pass": true,
+      "node_values": 32,
+      "node_both_zero": 16,
+      "node_median_abs_diff": 0.00027907516823316714,
+      "node_max_abs_diff": 0.014153646064980374,
+      "node_pass": true,
+      "end_merged_replay_excess_max": 3.881561709895287e-05,
+      "edges": 16,
+      "unverifiable_edges": 0,
+      "engine_recompute_max_abs_diff": 1.1102230246251565e-16,
+      "pass": true
+    }
+  },
+  "unverifiable": {
+    "edges": 128,
+    "unverifiable": 0,
+    "fraction": 0.0,
+    "max_fraction": 0.05,
+    "bound_factor": 2.0,
+    "max_ratio": null,
+    "within_bound": true,
+    "pass": true,
+    "detail": []
+  },
+  "coverage_gate": {
+    "threshold": 0.8,
+    "median_engine_coverage": {
+      "cat": 0.9986921616401452,
+      "dog": 0.9846357620553388,
+      "animal": 0.9965526972590389,
+      "indoors": 0.9780589499575688
+    },
+    "pass": true
+  },
+  "pass": true,
+  "detail": [
+    {
+      "ticket": 0,
+      "field": "cat",
+      "reference": [
+        0.9998432887715879,
+        0.00015671122841224707
+      ],
+      "engine": [
+        0.9998546190531917,
+        0.00014538094680827118
+      ],
+      "coverage_reference": 0.9981271112616282,
+      "coverage_engine": 0.9982220279294417,
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9996865775431757,
+      "engine_recompute_max_abs_diff": 3.222790957713162e-17,
+      "edges": 2,
+      "unverifiable": [],
+      "nodes": [
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 804,
+          "p_engine": 0.9980774689598951,
+          "p_replay": 0.9979708790504063,
+          "abs_diff": 0.00010658990948886338,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 867,
+          "p_engine": 0.0001451241256779283,
+          "p_replay": 0.00015641876043748074,
+          "abs_diff": 1.1294634759552447e-05,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 804,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 867,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 1,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999994354205799,
+          "p_replay": 0.999999814108308,
+          "abs_diff": 3.786877280642642e-07,
+          "both_zero": false
+        },
+        {
+          "node": 2,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999885468206366,
+          "p_replay": 0.9999933849360492,
+          "abs_diff": 4.838115412519883e-06,
+          "both_zero": false
+        }
+      ]
+    },
+    {
+      "ticket": 0,
+      "field": "dog",
+      "reference": [
+        0.006759853955656399,
+        0.9932401460443435
+      ],
+      "engine": [
+        0.007798476006866119,
+        0.9922015239931339
+      ],
+      "coverage_reference": 0.9825042739158901,
+      "coverage_engine": 0.9858011216298922,
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9864802920886871,
+      "engine_recompute_max_abs_diff": 1.1102230246251565e-16,
+      "edges": 2,
+      "unverifiable": [],
+      "nodes": [
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 804,
+          "p_engine": 0.007688866460349412,
+          "p_replay": 0.006642603943869431,
+          "abs_diff": 0.0010462625164799812,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 867,
+          "p_engine": 0.9781186530281311,
+          "p_replay": 0.9758670920896435,
+          "abs_diff": 0.0022515609384875512,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 804,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 867,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 1,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9998543262803734,
+          "p_replay": 0.9998466653441347,
+          "abs_diff": 7.660936238718108e-06,
+          "both_zero": false
+        },
+        {
+          "node": 2,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999946041384704,
+          "p_replay": 0.999995487524614,
+          "abs_diff": 8.83386143568643e-07,
+          "both_zero": false
+        }
+      ]
+    },
+    {
+      "ticket": 0,
+      "field": "animal",
+      "reference": [
+        0.9921945365771672,
+        0.00017231434006800836,
+        0.00020402338726276345,
+        0.0068127129602290224,
+        0.0006164127352730837
+      ],
+      "engine": [
+        0.9936657790435921,
+        0.00017465639952812275,
+        0.00016505474092635633,
+        0.005625528629817661,
+        0.00036898118613581574
+      ],
+      "coverage_reference": 0.9976158775666724,
+      "coverage_engine": 0.9976764866385166,
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9853818236169382,
+      "engine_recompute_max_abs_diff": 1.1102230246251565e-16,
+      "edges": 10,
+      "unverifiable": [],
+      "nodes": [
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 4466,
+          "p_engine": 0.9914830479210113,
+          "p_replay": 0.9899349810688444,
+          "abs_diff": 0.0015480668521669072,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 17907,
+          "p_engine": 0.00017452320011163426,
+          "p_replay": 0.00017214352719402835,
+          "abs_diff": 2.3796729176059133e-06,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 14576,
+          "p_engine": 0.0001648043519278636,
+          "p_replay": 0.0002036879495425461,
+          "abs_diff": 3.888359761468251e-05,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 1520,
+          "p_engine": 0.005618325083644629,
+          "p_replay": 0.006801542657404319,
+          "abs_diff": 0.0011832175737596902,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 6487,
+          "p_engine": 0.00036837424333898214,
+          "p_replay": 0.0006153298873912904,
+          "abs_diff": 0.00024695564405230827,
+          "both_zero": false
+        },
+        {
+          "node": 1,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.12095284537533266,
+          "p_replay": 0.10293394446601536,
+          "abs_diff": 0.018018900909317292,
+          "both_zero": false
+        },
+        {
+          "node": 1,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.8789209796885571,
+          "p_replay": 0.8969596253452453,
+          "abs_diff": 0.018038645656688224,
+          "both_zero": false
+        },
+        {
+          "node": 2,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999919591396473,
+          "p_replay": 0.9999941237492775,
+          "abs_diff": 2.164609630206371e-06,
+          "both_zero": false
+        },
+        {
+          "node": 3,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.3669693568928688,
+          "p_replay": 0.343335037137355,
+          "abs_diff": 0.023634319755513777,
+          "both_zero": false
+        },
+        {
+          "node": 3,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.6315338558294645,
+          "p_replay": 0.6553333491646264,
+          "abs_diff": 0.023799493335161848,
+          "both_zero": false
+        },
+        {
+          "node": 4,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9998221092165823,
+          "p_replay": 0.9998176581836237,
+          "abs_diff": 4.451032958652235e-06,
+          "both_zero": false
+        },
+        {
+          "node": 5,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.2635886120845381,
+          "p_replay": 0.27231766220425535,
+          "abs_diff": 0.008729050119717252,
+          "both_zero": false
+        },
+        {
+          "node": 5,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.7356582222888095,
+          "p_replay": 0.7269725073495201,
+          "abs_diff": 0.00868571493928938,
+          "both_zero": false
+        },
+        {
+          "node": 6,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9997929831839123,
+          "p_replay": 0.9998847060251187,
+          "abs_diff": 9.172284120639862e-05,
+          "both_zero": false
+        },
+        {
+          "node": 7,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.20169506881586502,
+          "p_replay": 0.16170635619397497,
+          "abs_diff": 0.03998871262189005,
+          "both_zero": false
+        },
+        {
+          "node": 7,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.7972663987941263,
+          "p_replay": 0.8375518645497089,
+          "abs_diff": 0.04028546575558256,
+          "both_zero": false
+        },
+        {
+          "node": 8,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999712032130414,
+          "p_replay": 0.9999756369904038,
+          "abs_diff": 4.433777362367053e-06,
+          "both_zero": false
+        },
+        {
+          "node": 9,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.32496838724248595,
+          "p_replay": 0.30044392609284,
+          "abs_diff": 0.02452446114964596,
+          "both_zero": false
+        },
+        {
+          "node": 9,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.6743685909375028,
+          "p_replay": 0.698936575168985,
+          "abs_diff": 0.02456798423148221,
+          "both_zero": false
+        },
+        {
+          "node": 10,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999486278601657,
+          "p_replay": 0.9999699280803221,
+          "abs_diff": 2.13002201564505e-05,
+          "both_zero": false
+        }
+      ]
+    },
+    {
+      "ticket": 0,
+      "field": "indoors",
+      "reference": [
+        0.9113280153778144,
+        0.08867198462218574
+      ],
+      "engine": [
+        0.9109006680844318,
+        0.08909933191556818
+      ],
+      "coverage_reference": 0.9748208299273893,
+      "coverage_engine": 0.9762661051467292,
+      "argmax_agree": true,
+      "ref_top2_margin": 0.8226560307556287,
+      "engine_recompute_max_abs_diff": 1.1102230246251565e-16,
+      "edges": 2,
+      "unverifiable": [],
+      "nodes": [
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 804,
+          "p_engine": 0.8892895054162694,
+          "p_replay": 0.8883874999322742,
+          "abs_diff": 0.0009020054839952163,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 867,
+          "p_engine": 0.08698791448135818,
+          "p_replay": 0.08644175991513361,
+          "abs_diff": 0.0005461545662245604,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 804,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 867,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 1,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.999990938822646,
+          "p_replay": 0.9999932826096798,
+          "abs_diff": 2.343787033787237e-06,
+          "both_zero": false
+        },
+        {
+          "node": 2,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999625609949366,
+          "p_replay": 0.99997151522102,
+          "abs_diff": 8.954226083379702e-06,
+          "both_zero": false
+        }
+      ]
+    },
+    {
+      "ticket": 1,
+      "field": "cat",
+      "reference": [
+        0.0008291693357589774,
+        0.9991708306642411
+      ],
+      "engine": [
+        0.0013575495485373997,
+        0.9986424504514626
+      ],
+      "coverage_reference": 0.9995310156427154,
+      "coverage_engine": 0.9998120249118456,
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9983416613284821,
+      "engine_recompute_max_abs_diff": 1.1102230246251565e-16,
+      "edges": 2,
+      "unverifiable": [],
+      "nodes": [
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 804,
+          "p_engine": 0.0013573150462131156,
+          "p_replay": 0.0008287891190840816,
+          "abs_diff": 0.000528525927129034,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 867,
+          "p_engine": 0.9984548522311445,
+          "p_replay": 0.9987021684141127,
+          "abs_diff": 0.0002473161829682491,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 804,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 867,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 1,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999847617015418,
+          "p_replay": 0.9999895621540921,
+          "abs_diff": 4.800452550246526e-06,
+          "both_zero": false
+        },
+        {
+          "node": 2,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999998781293516,
+          "p_replay": 1.000000066847048,
+          "abs_diff": 1.8871769624784207e-07,
+          "both_zero": false
+        }
+      ]
+    },
+    {
+      "ticket": 1,
+      "field": "dog",
+      "reference": [
+        0.04311065210342393,
+        0.9568893478965762
+      ],
+      "engine": [
+        0.04554494947726088,
+        0.9544550505227392
+      ],
+      "coverage_reference": 0.9916426221179682,
+      "coverage_engine": 0.9890511088301029,
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9137786957931523,
+      "engine_recompute_max_abs_diff": 0.0,
+      "edges": 2,
+      "unverifiable": [],
+      "nodes": [
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 804,
+          "p_engine": 0.04504930335499909,
+          "p_replay": 0.0427520238495569,
+          "abs_diff": 0.0022972795054421943,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 867,
+          "p_engine": 0.9440082578309454,
+          "p_replay": 0.9488936652810552,
+          "abs_diff": 0.004885407450109791,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 804,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 867,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 1,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999329496201218,
+          "p_replay": 0.9999610835616123,
+          "abs_diff": 2.8133941490482428e-05,
+          "both_zero": false
+        },
+        {
+          "node": 2,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999963646685186,
+          "p_replay": 0.9999985211660768,
+          "abs_diff": 2.1564975581922496e-06,
+          "both_zero": false
+        }
+      ]
+    },
+    {
+      "ticket": 1,
+      "field": "animal",
+      "reference": [
+        0.0932919400776203,
+        0.006956282150125453,
+        0.0070432682559192624,
+        0.32011704470068253,
+        0.5725914648156526
+      ],
+      "engine": [
+        0.08525156315337656,
+        0.007015065451013044,
+        0.00788834285135923,
+        0.36656870607150926,
+        0.5332763224727418
+      ],
+      "coverage_reference": 0.9917812771393782,
+      "coverage_engine": 0.9928085422028315,
+      "argmax_agree": true,
+      "ref_top2_margin": 0.25247442011497007,
+      "engine_recompute_max_abs_diff": 0.0,
+      "edges": 10,
+      "unverifiable": [],
+      "nodes": [
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 4466,
+          "p_engine": 0.08466299790058911,
+          "p_replay": 0.09255813578895684,
+          "abs_diff": 0.007895137888367737,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 17907,
+          "p_engine": 0.006965459997434587,
+          "p_replay": 0.006899788798391715,
+          "abs_diff": 6.567119904287225e-05,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 14576,
+          "p_engine": 0.007833210109313071,
+          "p_replay": 0.006986169698660186,
+          "abs_diff": 0.0008470404106528853,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 1520,
+          "p_engine": 0.3639396067400943,
+          "p_replay": 0.3174916311255815,
+          "abs_diff": 0.046447975614512804,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 6487,
+          "p_engine": 0.5294572983558256,
+          "p_replay": 0.5678942945558659,
+          "abs_diff": 0.038436996200040374,
+          "both_zero": false
+        },
+        {
+          "node": 1,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.26698492631446635,
+          "p_replay": 0.33786519980868696,
+          "abs_diff": 0.0708802734942206,
+          "both_zero": false
+        },
+        {
+          "node": 1,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.7327334930628927,
+          "p_replay": 0.6617881158996846,
+          "abs_diff": 0.07094537716320815,
+          "both_zero": false
+        },
+        {
+          "node": 2,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999699914270177,
+          "p_replay": 0.999972887710021,
+          "abs_diff": 2.896283003317457e-06,
+          "both_zero": false
+        },
+        {
+          "node": 3,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.35277331247495314,
+          "p_replay": 0.4041947040910393,
+          "abs_diff": 0.051421391616086165,
+          "both_zero": false
+        },
+        {
+          "node": 3,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.6471134689633932,
+          "p_replay": 0.5957150663861686,
+          "abs_diff": 0.05139840257722461,
+          "both_zero": false
+        },
+        {
+          "node": 4,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999778310413499,
+          "p_replay": 0.9999799779171434,
+          "abs_diff": 2.146875793584968e-06,
+          "both_zero": false
+        },
+        {
+          "node": 5,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.2837488262313608,
+          "p_replay": 0.38481772460733815,
+          "abs_diff": 0.10106889837597738,
+          "both_zero": false
+        },
+        {
+          "node": 5,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.7160547273366604,
+          "p_replay": 0.6150772938631531,
+          "abs_diff": 0.1009774334735073,
+          "both_zero": false
+        },
+        {
+          "node": 6,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999742936954977,
+          "p_replay": 0.9999796556502897,
+          "abs_diff": 5.3619547919492305e-06,
+          "both_zero": false
+        },
+        {
+          "node": 7,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.13257528444206604,
+          "p_replay": 0.22179143866750387,
+          "abs_diff": 0.08921615422543783,
+          "both_zero": false
+        },
+        {
+          "node": 7,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.867405953933857,
+          "p_replay": 0.7781917359034302,
+          "abs_diff": 0.08921421803042684,
+          "both_zero": false
+        },
+        {
+          "node": 8,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999951097840012,
+          "p_replay": 0.999997191508506,
+          "abs_diff": 2.0817245047766164e-06,
+          "both_zero": false
+        },
+        {
+          "node": 9,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.28098797820460275,
+          "p_replay": 0.3732698044601118,
+          "abs_diff": 0.09228182625550907,
+          "both_zero": false
+        },
+        {
+          "node": 9,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.7189835896139508,
+          "p_replay": 0.6267161774156904,
+          "abs_diff": 0.0922674121982604,
+          "both_zero": false
+        },
+        {
+          "node": 10,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999935711695993,
+          "p_replay": 0.9999960397307218,
+          "abs_diff": 2.468561122515034e-06,
+          "both_zero": false
+        }
+      ]
+    },
+    {
+      "ticket": 1,
+      "field": "indoors",
+      "reference": [
+        0.8499982899192093,
+        0.15000171008079066
+      ],
+      "engine": [
+        0.8357484407378039,
+        0.16425155926219615
+      ],
+      "coverage_reference": 0.9819121259422697,
+      "coverage_engine": 0.9817185483758298,
+      "argmax_agree": true,
+      "ref_top2_margin": 0.6999965798384187,
+      "engine_recompute_max_abs_diff": 0.0,
+      "edges": 2,
+      "unverifiable": [],
+      "nodes": [
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 804,
+          "p_engine": 0.8204743431606959,
+          "p_replay": 0.8346279892256763,
+          "abs_diff": 0.014153646064980374,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 867,
+          "p_engine": 0.16125127257055105,
+          "p_replay": 0.14729052362919284,
+          "abs_diff": 0.013960748941358209,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 804,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 867,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 1,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999943970067386,
+          "p_replay": 0.9999947745296491,
+          "abs_diff": 3.775229104885369e-07,
+          "both_zero": false
+        },
+        {
+          "node": 2,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999846807832156,
+          "p_replay": 0.9999862476638838,
+          "abs_diff": 1.5668806682134218e-06,
+          "both_zero": false
+        }
+      ]
+    },
+    {
+      "ticket": 2,
+      "field": "cat",
+      "reference": [
+        0.0147521892023069,
+        0.9852478107976931
+      ],
+      "engine": [
+        0.01683822086375271,
+        0.9831617791362472
+      ],
+      "coverage_reference": 0.9994447930523738,
+      "coverage_engine": 0.9994199228320011,
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9704956215953862,
+      "engine_recompute_max_abs_diff": 1.1102230246251565e-16,
+      "edges": 2,
+      "unverifiable": [],
+      "nodes": [
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 804,
+          "p_engine": 0.016828730866111283,
+          "p_replay": 0.01474433913780561,
+          "abs_diff": 0.002084391728305674,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 867,
+          "p_engine": 0.9825918108552251,
+          "p_replay": 0.984700917814271,
+          "abs_diff": 0.002109106959045981,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 804,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 867,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 1,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999835121356706,
+          "p_replay": 0.9999769095492617,
+          "abs_diff": 6.602586408943623e-06,
+          "both_zero": false
+        },
+        {
+          "node": 2,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999996525317023,
+          "p_replay": 0.999999874635776,
+          "abs_diff": 2.2210407368827845e-07,
+          "both_zero": false
+        }
+      ]
+    },
+    {
+      "ticket": 2,
+      "field": "dog",
+      "reference": [
+        0.16779435609218432,
+        0.8322056439078157
+      ],
+      "engine": [
+        0.16754474841044042,
+        0.8324552515895596
+      ],
+      "coverage_reference": 0.9823257066631075,
+      "coverage_engine": 0.9820188362214594,
+      "argmax_agree": true,
+      "ref_top2_margin": 0.6644112878156314,
+      "engine_recompute_max_abs_diff": 0.0,
+      "edges": 2,
+      "unverifiable": [],
+      "nodes": [
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 804,
+          "p_engine": 0.16453674845797914,
+          "p_replay": 0.16483285720592813,
+          "abs_diff": 0.00029610874794899766,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 867,
+          "p_engine": 0.8174906661737662,
+          "p_replay": 0.8175011302009405,
+          "abs_diff": 1.0464027174306167e-05,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 804,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 867,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 1,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999717412129219,
+          "p_replay": 0.9999748364272609,
+          "abs_diff": 3.095214339055019e-06,
+          "both_zero": false
+        },
+        {
+          "node": 2,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999951940719236,
+          "p_replay": 0.9999949443982198,
+          "abs_diff": 2.496737038226726e-07,
+          "both_zero": false
+        }
+      ]
+    },
+    {
+      "ticket": 2,
+      "field": "animal",
+      "reference": [
+        0.022564082611979095,
+        0.010575874958401517,
+        0.02198380085189548,
+        0.049335985943485795,
+        0.8955402556342381
+      ],
+      "engine": [
+        0.0198902168700545,
+        0.008807809734600741,
+        0.016376200288668884,
+        0.041964017505871636,
+        0.9129617556008043
+      ],
+      "coverage_reference": 0.9955091096179879,
+      "coverage_engine": 0.9961660655235715,
+      "argmax_agree": true,
+      "ref_top2_margin": 0.8462042696907524,
+      "engine_recompute_max_abs_diff": 1.1102230246251565e-16,
+      "edges": 10,
+      "unverifiable": [],
+      "nodes": [
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 4466,
+          "p_engine": 0.01984418720918148,
+          "p_replay": 0.0224991035279785,
+          "abs_diff": 0.0026549163187970203,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 17907,
+          "p_engine": 0.00878138402305537,
+          "p_replay": 0.010536349362190804,
+          "abs_diff": 0.001754965339135434,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 14576,
+          "p_engine": 0.0163257806658181,
+          "p_replay": 0.02190183460871482,
+          "abs_diff": 0.00557605394289672,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 1520,
+          "p_engine": 0.04180711176224172,
+          "p_replay": 0.049118945381407965,
+          "abs_diff": 0.007311833619166243,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 6487,
+          "p_engine": 0.909482384469308,
+          "p_replay": 0.8915356414646096,
+          "abs_diff": 0.01794674300469834,
+          "both_zero": false
+        },
+        {
+          "node": 1,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.20953169178294576,
+          "p_replay": 0.19533069406301784,
+          "abs_diff": 0.014200997719927916,
+          "both_zero": false
+        },
+        {
+          "node": 1,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.7889534055116211,
+          "p_replay": 0.8030592950129168,
+          "abs_diff": 0.014105889501295765,
+          "both_zero": false
+        },
+        {
+          "node": 2,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999600493042322,
+          "p_replay": 0.9999704341179269,
+          "abs_diff": 1.0384813694641615e-05,
+          "both_zero": false
+        },
+        {
+          "node": 3,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.16527131117602645,
+          "p_replay": 0.19238016998508484,
+          "abs_diff": 0.02710885880905839,
+          "both_zero": false
+        },
+        {
+          "node": 3,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.8338956513831195,
+          "p_replay": 0.8068661134406558,
+          "abs_diff": 0.027029537942463655,
+          "both_zero": false
+        },
+        {
+          "node": 4,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999809605335847,
+          "p_replay": 0.9999861480083543,
+          "abs_diff": 5.187474769630107e-06,
+          "both_zero": false
+        },
+        {
+          "node": 5,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.2884962059047095,
+          "p_replay": 0.27131524270356894,
+          "abs_diff": 0.017180963201140542,
+          "both_zero": false
+        },
+        {
+          "node": 5,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.7107896467649946,
+          "p_replay": 0.7279574112094883,
+          "abs_diff": 0.01716776444449375,
+          "both_zero": false
+        },
+        {
+          "node": 6,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9998499672002743,
+          "p_replay": 0.9998602590401157,
+          "abs_diff": 1.029183984135873e-05,
+          "both_zero": false
+        },
+        {
+          "node": 7,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.14858939323281506,
+          "p_replay": 0.15661786094358301,
+          "abs_diff": 0.008028467710767956,
+          "both_zero": false
+        },
+        {
+          "node": 7,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.8513195364148755,
+          "p_replay": 0.8432929392829241,
+          "abs_diff": 0.008026597131951307,
+          "both_zero": false
+        },
+        {
+          "node": 8,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999719641274366,
+          "p_replay": 0.9999817307121294,
+          "abs_diff": 9.766584692760816e-06,
+          "both_zero": false
+        },
+        {
+          "node": 9,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.23549532107260707,
+          "p_replay": 0.28094674718953333,
+          "abs_diff": 0.04545142611692626,
+          "both_zero": false
+        },
+        {
+          "node": 9,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.7644827709841538,
+          "p_replay": 0.7190347926254891,
+          "abs_diff": 0.045447978358664765,
+          "both_zero": false
+        },
+        {
+          "node": 10,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999956133365948,
+          "p_replay": 0.9999972011540489,
+          "abs_diff": 1.587817454073992e-06,
+          "both_zero": false
+        }
+      ]
+    },
+    {
+      "ticket": 2,
+      "field": "indoors",
+      "reference": [
+        0.9624907925577274,
+        0.03750920744227249
+      ],
+      "engine": [
+        0.9655295563684732,
+        0.03447044363152685
+      ],
+      "coverage_reference": 0.9833426977652553,
+      "coverage_engine": 0.979304746893987,
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9249815851154549,
+      "engine_recompute_max_abs_diff": 1.1102230246251565e-16,
+      "edges": 2,
+      "unverifiable": [],
+      "nodes": [
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 804,
+          "p_engine": 0.9455518326212543,
+          "p_replay": 0.9464611404694623,
+          "abs_diff": 0.0009093078482079742,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 867,
+          "p_engine": 0.03375803919474027,
+          "p_replay": 0.03688550834046089,
+          "abs_diff": 0.003127469145720624,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 804,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 867,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 1,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999956059488018,
+          "p_replay": 0.9999969909577836,
+          "abs_diff": 1.3850089818356892e-06,
+          "both_zero": false
+        },
+        {
+          "node": 2,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999712625831476,
+          "p_replay": 0.9999700938609851,
+          "abs_diff": 1.1687221624923083e-06,
+          "both_zero": false
+        }
+      ]
+    },
+    {
+      "ticket": 3,
+      "field": "cat",
+      "reference": [
+        0.009733737011017587,
+        0.9902662629889823
+      ],
+      "engine": [
+        0.019434202308170674,
+        0.9805657976918293
+      ],
+      "coverage_reference": 0.9989237929077733,
+      "coverage_engine": 0.9991622953508487,
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9805325259779648,
+      "engine_recompute_max_abs_diff": 1.1102230246251565e-16,
+      "edges": 2,
+      "unverifiable": [],
+      "nodes": [
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 804,
+          "p_engine": 0.019418083784847297,
+          "p_replay": 0.009723415936794178,
+          "abs_diff": 0.00969466784805312,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 867,
+          "p_engine": 0.9797446899154467,
+          "p_replay": 0.9892005922577164,
+          "abs_diff": 0.009455902342269673,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 804,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 867,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 1,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999916779480139,
+          "p_replay": 0.9999841164275268,
+          "abs_diff": 7.561520487087137e-06,
+          "both_zero": false
+        },
+        {
+          "node": 2,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999996767003222,
+          "p_replay": 0.99999993849159,
+          "abs_diff": 2.6179126777492456e-07,
+          "both_zero": false
+        }
+      ]
+    },
+    {
+      "ticket": 3,
+      "field": "dog",
+      "reference": [
+        0.057052421006661254,
+        0.9429475789933388
+      ],
+      "engine": [
+        0.04794404928969502,
+        0.952055950710305
+      ],
+      "coverage_reference": 0.9862732917785164,
+      "coverage_engine": 0.9867123365007578,
+      "argmax_agree": true,
+      "ref_top2_margin": 0.8858951579866775,
+      "engine_recompute_max_abs_diff": 1.1102230246251565e-16,
+      "edges": 2,
+      "unverifiable": [],
+      "nodes": [
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 804,
+          "p_engine": 0.04730894410632527,
+          "p_replay": 0.05627301806584473,
+          "abs_diff": 0.00896407395951946,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 867,
+          "p_engine": 0.9394094582464311,
+          "p_replay": 0.9300073968604816,
+          "abs_diff": 0.009402061385949456,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 804,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 867,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 1,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999585868926099,
+          "p_replay": 0.9999335561553357,
+          "abs_diff": 2.503073727411209e-05,
+          "both_zero": false
+        },
+        {
+          "node": 2,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999956284859818,
+          "p_replay": 0.9999963611556745,
+          "abs_diff": 7.326696926934773e-07,
+          "both_zero": false
+        }
+      ]
+    },
+    {
+      "ticket": 3,
+      "field": "animal",
+      "reference": [
+        0.009406588453632719,
+        0.0016613022833888921,
+        0.005090275015848634,
+        0.018283787555798476,
+        0.9655580466913313
+      ],
+      "engine": [
+        0.014647163269523766,
+        0.002241251881634195,
+        0.007344548747938553,
+        0.024151321358972855,
+        0.9516157147419306
+      ],
+      "coverage_reference": 0.9973393862642727,
+      "coverage_engine": 0.9969393289945064,
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9472742591355328,
+      "engine_recompute_max_abs_diff": 1.1102230246251565e-16,
+      "edges": 10,
+      "unverifiable": [],
+      "nodes": [
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 4466,
+          "p_engine": 0.014614293611682816,
+          "p_replay": 0.009389562078656122,
+          "abs_diff": 0.005224731533026694,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 17907,
+          "p_engine": 0.0022357735336871886,
+          "p_replay": 0.0016580644054691167,
+          "abs_diff": 0.0005777091282180718,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 14576,
+          "p_engine": 0.007326737458451267,
+          "p_replay": 0.00508031500013496,
+          "abs_diff": 0.0022464224583163073,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 1520,
+          "p_engine": 0.02407904665728681,
+          "p_replay": 0.018236178994922178,
+          "abs_diff": 0.0058428676623646335,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 6487,
+          "p_engine": 0.9487210822020526,
+          "p_replay": 0.9630517357474998,
+          "abs_diff": 0.014330653545447158,
+          "both_zero": false
+        },
+        {
+          "node": 1,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.2351919607967339,
+          "p_replay": 0.2882130971077514,
+          "abs_diff": 0.053021136311017486,
+          "both_zero": false
+        },
+        {
+          "node": 1,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.763993449901209,
+          "p_replay": 0.7109405703473649,
+          "abs_diff": 0.05305287955384408,
+          "both_zero": false
+        },
+        {
+          "node": 2,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999837532187612,
+          "p_replay": 0.9999799602376165,
+          "abs_diff": 3.792981144723484e-06,
+          "both_zero": false
+        },
+        {
+          "node": 3,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.30631680863132943,
+          "p_replay": 0.31928628688701066,
+          "abs_diff": 0.012969478255681233,
+          "both_zero": false
+        },
+        {
+          "node": 3,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.6930757069865591,
+          "p_replay": 0.6800104471938558,
+          "abs_diff": 0.013065259792703232,
+          "both_zero": false
+        },
+        {
+          "node": 4,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999661399872908,
+          "p_replay": 0.9999695019813621,
+          "abs_diff": 3.361994071360286e-06,
+          "both_zero": false
+        },
+        {
+          "node": 5,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.29479895787132593,
+          "p_replay": 0.29483013116023654,
+          "abs_diff": 3.1173288910613106e-05,
+          "both_zero": false
+        },
+        {
+          "node": 5,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.7045922923105374,
+          "p_replay": 0.7044944075270212,
+          "abs_diff": 9.788478351624441e-05,
+          "both_zero": false
+        },
+        {
+          "node": 6,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999037888712208,
+          "p_replay": 0.9998987310447244,
+          "abs_diff": 5.0578264964018516e-06,
+          "both_zero": false
+        },
+        {
+          "node": 7,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.1833586668377787,
+          "p_replay": 0.19474850117736808,
+          "abs_diff": 0.011389834339589372,
+          "both_zero": false
+        },
+        {
+          "node": 7,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.8165750285621137,
+          "p_replay": 0.8051967006731757,
+          "abs_diff": 0.011378327888938,
+          "both_zero": false
+        },
+        {
+          "node": 8,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999891291790552,
+          "p_replay": 0.99998923640364,
+          "abs_diff": 1.0722458476664087e-07,
+          "both_zero": false
+        },
+        {
+          "node": 9,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.32076696774631897,
+          "p_replay": 0.29671934237266856,
+          "abs_diff": 0.024047625373650405,
+          "both_zero": false
+        },
+        {
+          "node": 9,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.6792151314542179,
+          "p_replay": 0.7032162809222752,
+          "abs_diff": 0.024001149468057315,
+          "both_zero": false
+        },
+        {
+          "node": 10,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999968216814554,
+          "p_replay": 0.9999976624808936,
+          "abs_diff": 8.407994381842698e-07,
+          "both_zero": false
+        }
+      ]
+    },
+    {
+      "ticket": 3,
+      "field": "indoors",
+      "reference": [
+        0.9723267700290602,
+        0.027673229970939777
+      ],
+      "engine": [
+        0.978822407922285,
+        0.02117759207771497
+      ],
+      "coverage_reference": 0.9766220542276193,
+      "coverage_engine": 0.9828208855156171,
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9446535400581204,
+      "engine_recompute_max_abs_diff": 3.469446951953614e-18,
+      "edges": 2,
+      "unverifiable": [],
+      "nodes": [
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 804,
+          "p_engine": 0.962009661477783,
+          "p_replay": 0.9495975383217479,
+          "abs_diff": 0.012412123156035126,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 867,
+          "p_engine": 0.020814392067157256,
+          "p_replay": 0.027026888130360097,
+          "abs_diff": 0.00621249606320284,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 804,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 867,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 1,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999973433103879,
+          "p_replay": 0.999998135214773,
+          "abs_diff": 7.919043850668217e-07,
+          "both_zero": false
+        },
+        {
+          "node": 2,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999705843799359,
+          "p_replay": 0.9999777470116178,
+          "abs_diff": 7.162631681878473e-06,
+          "both_zero": false
+        }
+      ]
+    },
+    {
+      "ticket": 4,
+      "field": "cat",
+      "reference": [
+        0.9998727670293582,
+        0.00012723297064181006
+      ],
+      "engine": [
+        0.999862915012371,
+        0.00013708498762898813
+      ],
+      "coverage_reference": 0.9988977394940983,
+      "coverage_engine": 0.9980013127637956,
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9997455340587165,
+      "engine_recompute_max_abs_diff": 1.1926223897340549e-18,
+      "edges": 2,
+      "unverifiable": [],
+      "nodes": [
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 804,
+          "p_engine": 0.9978650187831365,
+          "p_replay": 0.9987706542329557,
+          "abs_diff": 0.0009056354498192531,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 867,
+          "p_engine": 0.0001368122334901831,
+          "p_replay": 0.00012709359470721292,
+          "abs_diff": 9.718638782970181e-06,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 804,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 867,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 1,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999994818768619,
+          "p_replay": 0.9999999925251902,
+          "abs_diff": 5.10648328289065e-07,
+          "both_zero": false
+        },
+        {
+          "node": 2,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.999990966624738,
+          "p_replay": 0.9999931708282238,
+          "abs_diff": 2.2042034858449355e-06,
+          "both_zero": false
+        }
+      ]
+    },
+    {
+      "ticket": 4,
+      "field": "dog",
+      "reference": [
+        0.009180948595820028,
+        0.9908190514041799
+      ],
+      "engine": [
+        0.008431088933190353,
+        0.9915689110668097
+      ],
+      "coverage_reference": 0.9796674312521181,
+      "coverage_engine": 0.9834704024807852,
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9816381028083598,
+      "engine_recompute_max_abs_diff": 1.1102230246251565e-16,
+      "edges": 2,
+      "unverifiable": [],
+      "nodes": [
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 804,
+          "p_engine": 0.008293256020826636,
+          "p_replay": 0.008995678956145236,
+          "abs_diff": 0.0007024229353185998,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 867,
+          "p_engine": 0.9751835823032098,
+          "p_replay": 0.9706771961924193,
+          "abs_diff": 0.004506386110790461,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 804,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 867,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 1,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9998155616627794,
+          "p_replay": 0.9998440774923915,
+          "abs_diff": 2.8515829612052457e-05,
+          "both_zero": false
+        },
+        {
+          "node": 2,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999949688971496,
+          "p_replay": 0.9999958366513173,
+          "abs_diff": 8.677541677437617e-07,
+          "both_zero": false
+        }
+      ]
+    },
+    {
+      "ticket": 4,
+      "field": "animal",
+      "reference": [
+        0.990231360780558,
+        0.00014846944682927882,
+        0.00013287647811077022,
+        0.008802662299509158,
+        0.000684630994992911
+      ],
+      "engine": [
+        0.991146500396142,
+        0.0001377556977323432,
+        0.00010451319600198299,
+        0.007794816159918215,
+        0.000816414550205358
+      ],
+      "coverage_reference": 0.9973424662701955,
+      "coverage_engine": 0.9974619582069273,
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9814286984810487,
+      "engine_recompute_max_abs_diff": 1.1102230246251565e-16,
+      "edges": 10,
+      "unverifiable": [],
+      "nodes": [
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 4466,
+          "p_engine": 0.9887740115064783,
+          "p_replay": 0.9877667421887578,
+          "abs_diff": 0.0010072693177204384,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 17907,
+          "p_engine": 0.0001377242745894097,
+          "p_replay": 0.00014852328789145643,
+          "abs_diff": 1.0799013302046723e-05,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 14576,
+          "p_engine": 0.00010433099722901304,
+          "p_replay": 0.00013262876393955775,
+          "abs_diff": 2.8297766710544707e-05,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 1520,
+          "p_engine": 0.007780234911649591,
+          "p_replay": 0.008785354471503852,
+          "abs_diff": 0.0010051195598542607,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 6487,
+          "p_engine": 0.0008147673415793712,
+          "p_replay": 0.000683195712703554,
+          "abs_diff": 0.00013157162887581723,
+          "both_zero": false
+        },
+        {
+          "node": 1,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.12113145181915363,
+          "p_replay": 0.13003274606510207,
+          "abs_diff": 0.008901294245948432,
+          "both_zero": false
+        },
+        {
+          "node": 1,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.8787247439047223,
+          "p_replay": 0.8697988972276123,
+          "abs_diff": 0.00892584667711005,
+          "both_zero": false
+        },
+        {
+          "node": 2,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999925489833198,
+          "p_replay": 0.9999948810093989,
+          "abs_diff": 2.332026079132632e-06,
+          "both_zero": false
+        },
+        {
+          "node": 3,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.33867355140605954,
+          "p_replay": 0.3548714965758596,
+          "abs_diff": 0.016197945169800054,
+          "both_zero": false
+        },
+        {
+          "node": 3,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.6590452576202188,
+          "p_replay": 0.6421250557299685,
+          "abs_diff": 0.01692020189025034,
+          "both_zero": false
+        },
+        {
+          "node": 4,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999135743006113,
+          "p_replay": 0.9999559505861612,
+          "abs_diff": 4.237628554981665e-05,
+          "both_zero": false
+        },
+        {
+          "node": 5,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.24703469180682636,
+          "p_replay": 0.27574080751360014,
+          "abs_diff": 0.028706115706773783,
+          "both_zero": false
+        },
+        {
+          "node": 5,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.7522104752495257,
+          "p_replay": 0.7234907108736449,
+          "abs_diff": 0.028719764375880752,
+          "both_zero": false
+        },
+        {
+          "node": 6,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.999832865795273,
+          "p_replay": 0.9999046575328975,
+          "abs_diff": 7.179173762450475e-05,
+          "both_zero": false
+        },
+        {
+          "node": 7,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.17118348302272013,
+          "p_replay": 0.19280888427476223,
+          "abs_diff": 0.021625401252042098,
+          "both_zero": false
+        },
+        {
+          "node": 7,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.8281515335280156,
+          "p_replay": 0.8065017524786978,
+          "abs_diff": 0.021649781049317807,
+          "both_zero": false
+        },
+        {
+          "node": 8,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999785309786571,
+          "p_replay": 0.9999827359442569,
+          "abs_diff": 4.2049655998299684e-06,
+          "both_zero": false
+        },
+        {
+          "node": 9,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.34887833056142664,
+          "p_replay": 0.33205686006083435,
+          "abs_diff": 0.016821470500592295,
+          "both_zero": false
+        },
+        {
+          "node": 9,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.6506110720089723,
+          "p_replay": 0.6673875916641773,
+          "abs_diff": 0.01677651965520499,
+          "both_zero": false
+        },
+        {
+          "node": 10,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999688043381108,
+          "p_replay": 0.9999797254861191,
+          "abs_diff": 1.0921148008380399e-05,
+          "both_zero": false
+        }
+      ]
+    },
+    {
+      "ticket": 4,
+      "field": "indoors",
+      "reference": [
+        0.8708842497695843,
+        0.12911575023041558
+      ],
+      "engine": [
+        0.8680264997200556,
+        0.13197350027994437
+      ],
+      "coverage_reference": 0.9702316887612835,
+      "coverage_engine": 0.9768131530211506,
+      "argmax_agree": true,
+      "ref_top2_margin": 0.7417684995391688,
+      "engine_recompute_max_abs_diff": 5.551115123125783e-17,
+      "edges": 2,
+      "unverifiable": [],
+      "nodes": [
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 804,
+          "p_engine": 0.8479070155023818,
+          "p_replay": 0.8449665247869921,
+          "abs_diff": 0.0029404907153897097,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 867,
+          "p_engine": 0.1289165242059667,
+          "p_replay": 0.12527439196855794,
+          "abs_diff": 0.0036421322374087517,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 804,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 867,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 1,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999913747559723,
+          "p_replay": 0.999991682016697,
+          "abs_diff": 3.072607246412673e-07,
+          "both_zero": false
+        },
+        {
+          "node": 2,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999761606799789,
+          "p_replay": 0.9999824419277783,
+          "abs_diff": 6.2812477994445e-06,
+          "both_zero": false
+        }
+      ]
+    },
+    {
+      "ticket": 5,
+      "field": "cat",
+      "reference": [
+        0.0010136970792795693,
+        0.9989863029207203
+      ],
+      "engine": [
+        0.0011081540334032874,
+        0.9988918459665967
+      ],
+      "coverage_reference": 0.9995100395596772,
+      "coverage_engine": 0.999565462449221,
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9979726058414408,
+      "engine_recompute_max_abs_diff": 0.0,
+      "edges": 2,
+      "unverifiable": [],
+      "nodes": [
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 804,
+          "p_engine": 0.0011076894057406525,
+          "p_replay": 0.001013215703953969,
+          "abs_diff": 9.447370178668354e-05,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 867,
+          "p_engine": 0.998457949561797,
+          "p_replay": 0.9984968900127246,
+          "abs_diff": 3.894045092756038e-05,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 804,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 867,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 1,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999847368072325,
+          "p_replay": 0.9999849033708638,
+          "abs_diff": 1.6656363122091733e-07,
+          "both_zero": false
+        },
+        {
+          "node": 2,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999998401420512,
+          "p_replay": 0.9999999490625757,
+          "abs_diff": 1.0892052448863154e-07,
+          "both_zero": false
+        }
+      ]
+    },
+    {
+      "ticket": 5,
+      "field": "dog",
+      "reference": [
+        0.027428742132286372,
+        0.9725712578677136
+      ],
+      "engine": [
+        0.024737883599516203,
+        0.9752621164004838
+      ],
+      "coverage_reference": 0.9704262372381093,
+      "coverage_engine": 0.9706361460144584,
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9451425157354272,
+      "engine_recompute_max_abs_diff": 1.1102230246251565e-16,
+      "edges": 2,
+      "unverifiable": [],
+      "nodes": [
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 804,
+          "p_engine": 0.024013048121232387,
+          "p_replay": 0.026618864818566023,
+          "abs_diff": 0.0026058166973336357,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 867,
+          "p_engine": 0.946627856984676,
+          "p_replay": 0.9438110581088042,
+          "abs_diff": 0.0028167988758718288,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 804,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 867,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 1,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999348635943338,
+          "p_replay": 0.9999513954120217,
+          "abs_diff": 1.6531817687903683e-05,
+          "both_zero": false
+        },
+        {
+          "node": 2,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999966248956411,
+          "p_replay": 0.9999974657106596,
+          "abs_diff": 8.408150184990859e-07,
+          "both_zero": false
+        }
+      ]
+    },
+    {
+      "ticket": 5,
+      "field": "animal",
+      "reference": [
+        0.07231955086403907,
+        0.004559522393269954,
+        0.0042142424821028195,
+        0.25412396506558976,
+        0.6647827191949984
+      ],
+      "engine": [
+        0.07428989019229136,
+        0.003147692998435586,
+        0.002557609280769385,
+        0.20892991892380813,
+        0.7110748886046956
+      ],
+      "coverage_reference": 0.9943532930148269,
+      "coverage_engine": 0.9946336722916698,
+      "argmax_agree": true,
+      "ref_top2_margin": 0.41065875412940867,
+      "engine_recompute_max_abs_diff": 1.1102230246251565e-16,
+      "edges": 10,
+      "unverifiable": [],
+      "nodes": [
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 4466,
+          "p_engine": 0.07393856023542089,
+          "p_replay": 0.07195247901469534,
+          "abs_diff": 0.0019860812207255496,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 17907,
+          "p_engine": 0.003131237753186114,
+          "p_replay": 0.004534348717410045,
+          "abs_diff": 0.0014031109642239311,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 14576,
+          "p_engine": 0.002544474390188217,
+          "p_replay": 0.0041911561505500365,
+          "abs_diff": 0.0016466817603618196,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 1520,
+          "p_engine": 0.20781321386797394,
+          "p_replay": 0.2526941478762334,
+          "abs_diff": 0.04488093400825946,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 6487,
+          "p_engine": 0.7072731115369718,
+          "p_replay": 0.6610495483875908,
+          "abs_diff": 0.04622356314938103,
+          "both_zero": false
+        },
+        {
+          "node": 1,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.19897027765074313,
+          "p_replay": 0.20209480998305632,
+          "abs_diff": 0.00312453233231319,
+          "both_zero": false
+        },
+        {
+          "node": 1,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.8003968416637612,
+          "p_replay": 0.7973356564274743,
+          "abs_diff": 0.0030611852362869563,
+          "both_zero": false
+        },
+        {
+          "node": 2,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.999963317822912,
+          "p_replay": 0.9999782611098381,
+          "abs_diff": 1.4943286926083488e-05,
+          "both_zero": false
+        },
+        {
+          "node": 3,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.2957674988669608,
+          "p_replay": 0.2909569963609249,
+          "abs_diff": 0.004810502506035874,
+          "both_zero": false
+        },
+        {
+          "node": 3,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.7041004904843703,
+          "p_replay": 0.7089206398785932,
+          "abs_diff": 0.004820149394222928,
+          "both_zero": false
+        },
+        {
+          "node": 4,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.999975218957489,
+          "p_replay": 0.999986529886825,
+          "abs_diff": 1.1310929336039166e-05,
+          "both_zero": false
+        },
+        {
+          "node": 5,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.27955615146819796,
+          "p_replay": 0.31693820924922056,
+          "abs_diff": 0.037382057781022604,
+          "both_zero": false
+        },
+        {
+          "node": 5,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.7202204979680832,
+          "p_replay": 0.6828983124476355,
+          "abs_diff": 0.03732218552044764,
+          "both_zero": false
+        },
+        {
+          "node": 6,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999693962298868,
+          "p_replay": 0.9999811058470143,
+          "abs_diff": 1.1709617127486638e-05,
+          "both_zero": false
+        },
+        {
+          "node": 7,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.08916581547999114,
+          "p_replay": 0.11185285459702933,
+          "abs_diff": 0.02268703911703819,
+          "both_zero": false
+        },
+        {
+          "node": 7,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.9108129297937217,
+          "p_replay": 0.8881270494170579,
+          "abs_diff": 0.02268588037666386,
+          "both_zero": false
+        },
+        {
+          "node": 8,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999965275347941,
+          "p_replay": 0.9999975856252779,
+          "abs_diff": 1.0580904837853566e-06,
+          "both_zero": false
+        },
+        {
+          "node": 9,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.1769118267265654,
+          "p_replay": 0.21296874129196175,
+          "abs_diff": 0.036056914565396336,
+          "both_zero": false
+        },
+        {
+          "node": 9,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.8230690209490532,
+          "p_replay": 0.7870007293106086,
+          "abs_diff": 0.036068291638444605,
+          "both_zero": false
+        },
+        {
+          "node": 10,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999957012129556,
+          "p_replay": 0.9999965835883271,
+          "abs_diff": 8.823753715470062e-07,
+          "both_zero": false
+        }
+      ]
+    },
+    {
+      "ticket": 5,
+      "field": "indoors",
+      "reference": [
+        0.9785672411245007,
+        0.021432758875499287
+      ],
+      "engine": [
+        0.9774378618530001,
+        0.02256213814699992
+      ],
+      "coverage_reference": 0.9667635393983324,
+      "coverage_engine": 0.9642822083781494,
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9571344822490013,
+      "engine_recompute_max_abs_diff": 1.1102230246251565e-16,
+      "edges": 2,
+      "unverifiable": [],
+      "nodes": [
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 804,
+          "p_engine": 0.942532835597405,
+          "p_replay": 0.9460471878097326,
+          "abs_diff": 0.003514352212327654,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 867,
+          "p_engine": 0.021756759427059614,
+          "p_replay": 0.020720776522987427,
+          "abs_diff": 0.0010359829040721864,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 804,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 867,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 1,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999926839499726,
+          "p_replay": 0.9999957103186804,
+          "abs_diff": 3.026368707748084e-06,
+          "both_zero": false
+        },
+        {
+          "node": 2,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999774309708559,
+          "p_replay": 0.9999823031034426,
+          "abs_diff": 4.872132586708489e-06,
+          "both_zero": false
+        }
+      ]
+    },
+    {
+      "ticket": 6,
+      "field": "cat",
+      "reference": [
+        0.041523085231025623,
+        0.9584769147689745
+      ],
+      "engine": [
+        0.03395276218181033,
+        0.9660472378181897
+      ],
+      "coverage_reference": 0.9980377363747295,
+      "coverage_engine": 0.9981027051769751,
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9169538295379488,
+      "engine_recompute_max_abs_diff": 1.1102230246251565e-16,
+      "edges": 2,
+      "unverifiable": [],
+      "nodes": [
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 804,
+          "p_engine": 0.033893275384471525,
+          "p_replay": 0.0414454659623565,
+          "abs_diff": 0.007552190577884976,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 867,
+          "p_engine": 0.9642161535123599,
+          "p_replay": 0.9565970284975457,
+          "abs_diff": 0.00761912501481421,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 804,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 867,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 1,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9998544961346993,
+          "p_replay": 0.9999068662639182,
+          "abs_diff": 5.237012921888162e-05,
+          "both_zero": false
+        },
+        {
+          "node": 2,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999981413739298,
+          "p_replay": 0.9999990611364481,
+          "abs_diff": 9.197625182588709e-07,
+          "both_zero": false
+        }
+      ]
+    },
+    {
+      "ticket": 6,
+      "field": "dog",
+      "reference": [
+        0.15956736831683363,
+        0.8404326316831663
+      ],
+      "engine": [
+        0.1289682908348422,
+        0.8710317091651578
+      ],
+      "coverage_reference": 0.9790308759600878,
+      "coverage_engine": 0.9797829746650346,
+      "argmax_agree": true,
+      "ref_top2_margin": 0.6808652633663327,
+      "engine_recompute_max_abs_diff": 1.1102230246251565e-16,
+      "edges": 2,
+      "unverifiable": [],
+      "nodes": [
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 804,
+          "p_engine": 0.12640008709646167,
+          "p_replay": 0.15626313541094458,
+          "abs_diff": 0.029863048314482915,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 867,
+          "p_engine": 0.8534346246411648,
+          "p_replay": 0.8228181605425126,
+          "abs_diff": 0.030616464098652263,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 804,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 867,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 1,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9996902576118895,
+          "p_replay": 0.9997327902517815,
+          "abs_diff": 4.253263989206779e-05,
+          "both_zero": false
+        },
+        {
+          "node": 2,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999852529913905,
+          "p_replay": 0.9999894691674104,
+          "abs_diff": 4.21617601986668e-06,
+          "both_zero": false
+        }
+      ]
+    },
+    {
+      "ticket": 6,
+      "field": "animal",
+      "reference": [
+        0.01746518741683051,
+        0.003998136579429826,
+        0.008455258855671447,
+        0.03667916413889031,
+        0.9334022530091779
+      ],
+      "engine": [
+        0.017138788290537568,
+        0.0026753027416908256,
+        0.006981101668599901,
+        0.037245035812285034,
+        0.9359597714868867
+      ],
+      "coverage_reference": 0.9951063826074733,
+      "coverage_engine": 0.9949751869481196,
+      "argmax_agree": true,
+      "ref_top2_margin": 0.8967230888702876,
+      "engine_recompute_max_abs_diff": 0.0,
+      "edges": 10,
+      "unverifiable": [],
+      "nodes": [
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 4466,
+          "p_engine": 0.017186352991742728,
+          "p_replay": 0.017478346497883455,
+          "abs_diff": 0.00029199350614072736,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 17907,
+          "p_engine": 0.002667453588497763,
+          "p_replay": 0.003987491763575437,
+          "abs_diff": 0.0013200381750776745,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 14576,
+          "p_engine": 0.006957529714168515,
+          "p_replay": 0.00842511717184834,
+          "abs_diff": 0.0014675874576798257,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 1520,
+          "p_engine": 0.03707202824062053,
+          "p_replay": 0.03650800169770195,
+          "abs_diff": 0.0005640265429185803,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 6487,
+          "p_engine": 0.9313248710860692,
+          "p_replay": 0.928892612878317,
+          "abs_diff": 0.0024322582077521693,
+          "both_zero": false
+        },
+        {
+          "node": 1,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.13079732979514308,
+          "p_replay": 0.12661969881256302,
+          "abs_diff": 0.004177630982580061,
+          "both_zero": false
+        },
+        {
+          "node": 1,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.8614447936055992,
+          "p_replay": 0.8677466879884853,
+          "abs_diff": 0.006301894382886086,
+          "both_zero": false
+        },
+        {
+          "node": 2,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9998423871096492,
+          "p_replay": 0.9999273497728842,
+          "abs_diff": 8.496266323498869e-05,
+          "both_zero": false
+        },
+        {
+          "node": 3,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.0782307408104467,
+          "p_replay": 0.08534081206222721,
+          "abs_diff": 0.007110071251780509,
+          "both_zero": false
+        },
+        {
+          "node": 3,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.9196798194926549,
+          "p_replay": 0.9124285070925958,
+          "abs_diff": 0.007251312400059051,
+          "both_zero": false
+        },
+        {
+          "node": 4,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999029143783661,
+          "p_replay": 0.9999244382322171,
+          "abs_diff": 2.1523853851013186e-05,
+          "both_zero": false
+        },
+        {
+          "node": 5,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.16818715717111596,
+          "p_replay": 0.1641309001804077,
+          "abs_diff": 0.004056256990708246,
+          "both_zero": false
+        },
+        {
+          "node": 5,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.8302165086867423,
+          "p_replay": 0.8345908028726602,
+          "abs_diff": 0.0043742941859178375,
+          "both_zero": false
+        },
+        {
+          "node": 6,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9996579684158722,
+          "p_replay": 0.9996635023228247,
+          "abs_diff": 5.533906952570611e-06,
+          "both_zero": false
+        },
+        {
+          "node": 7,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.08545835521563606,
+          "p_replay": 0.08449429655511766,
+          "abs_diff": 0.0009640586605184076,
+          "both_zero": false
+        },
+        {
+          "node": 7,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.914164751020828,
+          "p_replay": 0.9152812073019682,
+          "abs_diff": 0.0011164562811402101,
+          "both_zero": false
+        },
+        {
+          "node": 8,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.999946481052311,
+          "p_replay": 0.9999560903713632,
+          "abs_diff": 9.609319052250598e-06,
+          "both_zero": false
+        },
+        {
+          "node": 9,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.18517793901613308,
+          "p_replay": 0.1712090952986181,
+          "abs_diff": 0.013968843717514973,
+          "both_zero": false
+        },
+        {
+          "node": 9,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.8147528992535249,
+          "p_replay": 0.8287308756011192,
+          "abs_diff": 0.013977976347594345,
+          "both_zero": false
+        },
+        {
+          "node": 10,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999784853430127,
+          "p_replay": 0.9999854573969486,
+          "abs_diff": 6.972053935849765e-06,
+          "both_zero": false
+        }
+      ]
+    },
+    {
+      "ticket": 6,
+      "field": "indoors",
+      "reference": [
+        0.9505544207962293,
+        0.049445579203770754
+      ],
+      "engine": [
+        0.9515611056415069,
+        0.048438894358493134
+      ],
+      "coverage_reference": 0.9815581188015808,
+      "coverage_engine": 0.9810411085405153,
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9011088415924585,
+      "engine_recompute_max_abs_diff": 1.1102230246251565e-16,
+      "edges": 2,
+      "unverifiable": [],
+      "nodes": [
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 804,
+          "p_engine": 0.9335652562138107,
+          "p_replay": 0.9330459214944433,
+          "abs_diff": 0.0005193347193673814,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 867,
+          "p_engine": 0.04752483660978814,
+          "p_replay": 0.04853620703014411,
+          "abs_diff": 0.0010113704203559698,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 804,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 867,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 1,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999521251557607,
+          "p_replay": 0.999976943900965,
+          "abs_diff": 2.48187452043247e-05,
+          "both_zero": false
+        },
+        {
+          "node": 2,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999097315811859,
+          "p_replay": 0.9999485471982849,
+          "abs_diff": 3.881561709895287e-05,
+          "both_zero": false
+        }
+      ]
+    },
+    {
+      "ticket": 7,
+      "field": "cat",
+      "reference": [
+        0.9999673797109844,
+        3.2620289015752644e-05
+      ],
+      "engine": [
+        0.9999682683552803,
+        3.173164471970136e-05
+      ],
+      "coverage_reference": 0.9973844371129726,
+      "coverage_engine": 0.9977031032058177,
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9999347594219686,
+      "engine_recompute_max_abs_diff": 1.1102230246251565e-16,
+      "edges": 2,
+      "unverifiable": [],
+      "nodes": [
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 804,
+          "p_engine": 0.9976717482985022,
+          "p_replay": 0.9973520039439694,
+          "abs_diff": 0.0003197443545328582,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 867,
+          "p_engine": 3.165903499443054e-05,
+          "p_replay": 3.253522845330305e-05,
+          "abs_diff": 8.761934588725074e-07,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 804,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 867,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 1,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999996954378114,
+          "p_replay": 0.9999998979301243,
+          "abs_diff": 2.0249231291735725e-07,
+          "both_zero": false
+        },
+        {
+          "node": 2,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999913267159682,
+          "p_replay": 0.9999920131231148,
+          "abs_diff": 6.864071465662036e-07,
+          "both_zero": false
+        }
+      ]
+    },
+    {
+      "ticket": 7,
+      "field": "dog",
+      "reference": [
+        0.002707633846603007,
+        0.997292366153397
+      ],
+      "engine": [
+        0.002057815531539863,
+        0.9979421844684602
+      ],
+      "coverage_reference": 0.9883320109920528,
+      "coverage_engine": 0.9886108584937935,
+      "argmax_agree": true,
+      "ref_top2_margin": 0.994584732306794,
+      "engine_recompute_max_abs_diff": 0.0,
+      "edges": 2,
+      "unverifiable": [],
+      "nodes": [
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 804,
+          "p_engine": 0.0020345556911045264,
+          "p_replay": 0.0026762661294534333,
+          "abs_diff": 0.0006417104383489068,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 867,
+          "p_engine": 0.9865789310751151,
+          "p_replay": 0.98565709595283,
+          "abs_diff": 0.0009218351222850529,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 804,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 867,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 1,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999130464465461,
+          "p_replay": 0.9999159557386083,
+          "abs_diff": 2.909292062147628e-06,
+          "both_zero": false
+        },
+        {
+          "node": 2,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999975152919833,
+          "p_replay": 0.9999988574470523,
+          "abs_diff": 1.34215506897295e-06,
+          "both_zero": false
+        }
+      ]
+    },
+    {
+      "ticket": 7,
+      "field": "animal",
+      "reference": [
+        0.9940193076346387,
+        7.632294586342422e-05,
+        8.390560386543613e-05,
+        0.005560894609111153,
+        0.00025956920652126246
+      ],
+      "engine": [
+        0.9936187393772504,
+        6.355205268121837e-05,
+        0.00010638915138245452,
+        0.005975893659757116,
+        0.0002354257589287713
+      ],
+      "coverage_reference": 0.9981454917341778,
+      "coverage_engine": 0.9981600457405959,
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9884584130255276,
+      "engine_recompute_max_abs_diff": 0.0,
+      "edges": 10,
+      "unverifiable": [],
+      "nodes": [
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 4466,
+          "p_engine": 0.9918480307157252,
+          "p_replay": 0.9922513367397137,
+          "abs_diff": 0.00040330602398841453,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 17907,
+          "p_engine": 6.355585801926151e-05,
+          "p_replay": 7.640585875138608e-05,
+          "abs_diff": 1.2850000732124567e-05,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 14576,
+          "p_engine": 0.0001062797279302847,
+          "p_replay": 8.380185647904893e-05,
+          "abs_diff": 2.2477871451235767e-05,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 1520,
+          "p_engine": 0.005969974113506413,
+          "p_replay": 0.005555647866057296,
+          "abs_diff": 0.0004143262474491172,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 6487,
+          "p_engine": 0.00023509133473616887,
+          "p_replay": 0.000259162394502216,
+          "abs_diff": 2.407105976604714e-05,
+          "both_zero": false
+        },
+        {
+          "node": 1,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.07395571458674553,
+          "p_replay": 0.14919238520308484,
+          "abs_diff": 0.0752366706163393,
+          "both_zero": false
+        },
+        {
+          "node": 1,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.9259866990348704,
+          "p_replay": 0.8507321865031952,
+          "abs_diff": 0.07525451253167526,
+          "both_zero": false
+        },
+        {
+          "node": 2,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999947182103249,
+          "p_replay": 0.9999959313896588,
+          "abs_diff": 1.213179333880987e-06,
+          "both_zero": false
+        },
+        {
+          "node": 3,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.2773336449372786,
+          "p_replay": 0.29379117305301106,
+          "abs_diff": 0.016457528115732478,
+          "both_zero": false
+        },
+        {
+          "node": 3,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.7207814911636481,
+          "p_replay": 0.703289434219404,
+          "abs_diff": 0.01749205694424405,
+          "both_zero": false
+        },
+        {
+          "node": 4,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999464395670219,
+          "p_replay": 0.9999378228385601,
+          "abs_diff": 8.61672846175221e-06,
+          "both_zero": false
+        },
+        {
+          "node": 5,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.2311116757637415,
+          "p_replay": 0.3040265605672875,
+          "abs_diff": 0.07291488480354599,
+          "both_zero": false
+        },
+        {
+          "node": 5,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.768098355862197,
+          "p_replay": 0.6953771619965073,
+          "abs_diff": 0.07272119386568965,
+          "both_zero": false
+        },
+        {
+          "node": 6,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999035074788475,
+          "p_replay": 0.9999259324073454,
+          "abs_diff": 2.2424928497910557e-05,
+          "both_zero": false
+        },
+        {
+          "node": 7,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.11242143894165223,
+          "p_replay": 0.1657889199286389,
+          "abs_diff": 0.05336748098698667,
+          "both_zero": false
+        },
+        {
+          "node": 7,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.8867314749716726,
+          "p_replay": 0.8333029688805028,
+          "abs_diff": 0.05342850609116978,
+          "both_zero": false
+        },
+        {
+          "node": 8,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999720738330747,
+          "p_replay": 0.9999773783960308,
+          "abs_diff": 5.304562956109926e-06,
+          "both_zero": false
+        },
+        {
+          "node": 9,
+          "kind": "children",
+          "token": 1,
+          "p_engine": 0.1876362185587597,
+          "p_replay": 0.31454796129277984,
+          "abs_diff": 0.12691174273402014,
+          "both_zero": false
+        },
+        {
+          "node": 9,
+          "kind": "merged",
+          "token": 1,
+          "p_engine": 0.8119481949897138,
+          "p_replay": 0.68516867844304,
+          "abs_diff": 0.12677951654667385,
+          "both_zero": false
+        },
+        {
+          "node": 10,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999762497719599,
+          "p_replay": 0.9999862008195738,
+          "abs_diff": 9.95104761392085e-06,
+          "both_zero": false
+        }
+      ]
+    },
+    {
+      "ticket": 7,
+      "field": "indoors",
+      "reference": [
+        0.9536653462145849,
+        0.04633465378541501
+      ],
+      "engine": [
+        0.9568429246110484,
+        0.04315707538895164
+      ],
+      "coverage_reference": 0.9734765372119097,
+      "coverage_engine": 0.9733749952535494,
+      "argmax_agree": true,
+      "ref_top2_margin": 0.9073306924291699,
+      "engine_recompute_max_abs_diff": 2.0816681711721685e-17,
+      "edges": 2,
+      "unverifiable": [],
+      "nodes": [
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 804,
+          "p_engine": 0.9313713074362066,
+          "p_replay": 0.9283741690297995,
+          "abs_diff": 0.0029971384064070294,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "children",
+          "token": 867,
+          "p_engine": 0.04200885260750093,
+          "p_replay": 0.0451065118143448,
+          "abs_diff": 0.003097659206843871,
+          "both_zero": false
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 804,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 0,
+          "kind": "merged",
+          "token": 867,
+          "p_engine": 0.0,
+          "p_replay": 0.0,
+          "abs_diff": 0.0,
+          "both_zero": true
+        },
+        {
+          "node": 1,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999953506893541,
+          "p_replay": 0.9999964129357113,
+          "abs_diff": 1.0622463572085294e-06,
+          "both_zero": false
+        },
+        {
+          "node": 2,
+          "kind": "end",
+          "token": null,
+          "p_engine": 0.9999801338153451,
+          "p_replay": 0.9999819650340146,
+          "abs_diff": 1.8312186694791066e-06,
+          "both_zero": false
+        }
+      ]
+    }
+  ]
+}

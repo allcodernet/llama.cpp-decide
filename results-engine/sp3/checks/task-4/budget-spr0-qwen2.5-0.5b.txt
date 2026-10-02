@@ -1,0 +1,3 @@
+$ head -1 results-engine/sp3/checks/task-4/requests-b1-qwen2.5-0.5b.jsonl | engine/build/bin/llama-decide -m <Qwen2.5-0.5B-Instruct-Q8_0.gguf> -c 4096 -ngl 99 -fa on -ctk f16 -ctv f16 --decide-seqs 3
+{"error":{"message":"schema needs 4 sequences per state (K_eff 1 × (1 trunk + 3 branch sequences, tree)); --decide-seqs 3 leaves 2 after 1 prefix slots","code":"budget"}}
+exit code: 1

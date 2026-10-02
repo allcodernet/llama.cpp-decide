@@ -1,0 +1,54 @@
+{
+ "model": "qwen3.8-27b-vision",
+ "build": "new",
+ "chat": {
+  "status": 200,
+  "usage": {
+   "completion_tokens": 1,
+   "prompt_tokens": 1057,
+   "total_tokens": 1058,
+   "prompt_tokens_details": {
+    "cached_tokens": 0
+   }
+  }
+ },
+ "probe": {
+  "status": 400,
+  "response": {
+   "error": {
+    "message": "state 0 needs 21124 cells (held 1057, prefix 52, state 20000, tail 11, branches 4), n_ctx - 16 is 16368",
+    "code": "budget"
+   }
+  }
+ },
+ "budget": {
+  "needs": 21124,
+  "held": 1057,
+  "prefix": 52,
+  "K": 1,
+  "state": 20000,
+  "tail": 11,
+  "branches": 4,
+  "limit": 16368,
+  "swa_cells": null
+ },
+ "old_held": 58,
+ "size": 16243,
+ "sized": {
+  "status": 400,
+  "response": {
+   "error": {
+    "message": "state 0 needs 17367 cells (held 1057, prefix 52, state 16243, tail 11, branches 4), n_ctx - 16 is 16368",
+    "code": "budget"
+   }
+  }
+ },
+ "applicable": true,
+ "checks": {
+  "chat request: 200": true,
+  "probe: 400 budget with the cell counts": true,
+  "same prefix, tail, branches and limit as the old build (or the SWA cache's limit)": true,
+  "new build: 400 budget for the state that fits under the old count": true
+ },
+ "pass": true
+}

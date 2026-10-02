@@ -1,0 +1,26 @@
+Test project /home/marduk/Projects/temp/llamacpp-decision/engine/build
+    Start 61: test-decide-schema
+1/9 Test #61: test-decide-schema ...............   Passed    0.03 sec
+    Start 62: test-decide-score
+2/9 Test #62: test-decide-score ................   Passed    0.03 sec
+    Start 63: test-decide-compat
+3/9 Test #63: test-decide-compat ...............   Passed    0.06 sec
+    Start 64: test-decide-trie
+4/9 Test #64: test-decide-trie .................   Passed    0.03 sec
+    Start 65: test-decide-cache
+5/9 Test #65: test-decide-cache ................   Passed    0.03 sec
+    Start 66: test-decide-fullpath
+6/9 Test #66: test-decide-fullpath .............   Passed    0.03 sec
+    Start 67: test-decide-debias
+7/9 Test #67: test-decide-debias ...............   Passed    0.03 sec
+    Start 68: test-decide-after-qwen2
+8/9 Test #68: test-decide-after-qwen2 ..........   Passed    0.51 sec
+    Start 69: test-decide-after-gemma-4
+9/9 Test #69: test-decide-after-gemma-4 ........   Passed    0.72 sec
+
+100% tests passed out of 9
+
+Label Time Summary:
+main    =   1.48 sec*proc (9 tests)
+
+Total Test time (real) =   1.48 sec

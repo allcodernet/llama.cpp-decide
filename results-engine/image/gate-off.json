@@ -1,0 +1,22 @@
+{
+ "model": "gemma-3-4b-vision",
+ "vision": {
+  "available": false,
+  "reason": "non_causal_projector"
+ },
+ "response": {
+  "status": 400,
+  "response": {
+   "error": {
+    "message": "states[0] has an image part, but vision is not available (non_causal_projector): the projector decodes images with non-causal attention, which this engine does not support",
+    "code": "vision_unavailable",
+    "field": "states[0]"
+   }
+  }
+ },
+ "checks": {
+  "info: available false, reason non_causal_projector": true,
+  "image request: 400 vision_unavailable at states[0], naming the reason": true
+ },
+ "pass": true
+}

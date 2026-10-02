@@ -1,0 +1,4 @@
+$ engine/build/bin/llama-server -m /home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf -np -1 --decide-seqs 253 --port 8097
+0.00.109.504 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.109.511 E srv  llama_server: --decide-seqs 253 plus 4 slot sequence(s) (-np) needs 257 sequences, the maximum is 256
+exit code: 1

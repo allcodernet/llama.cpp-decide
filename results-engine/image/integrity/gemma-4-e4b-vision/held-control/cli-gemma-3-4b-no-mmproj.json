@@ -1,0 +1,41 @@
+{
+ "command": [
+  "/home/marduk/llama.cpp-decision/engine/build/bin/llama-decide",
+  "-m",
+  "./models/gemma-3-4b-it-Q4_K_M.gguf",
+  "--decide-seqs",
+  "16",
+  "-c",
+  "16384",
+  "-ngl",
+  "99",
+  "-fa",
+  "on",
+  "-ctk",
+  "q8_0",
+  "-ctv",
+  "q8_0"
+ ],
+ "words": 16156,
+ "returncode": 0,
+ "usage": {
+  "prompt_tokens": 16216,
+  "cached_tokens": 0,
+  "state_tokens": 16156,
+  "scored_tokens": 1
+ },
+ "state_usage": [
+  {
+   "state_tokens": 16156,
+   "scored_tokens": 1
+  }
+ ],
+ "error": null,
+ "kv_lines": [],
+ "summary": {
+  "no_mmproj": true,
+  "words": 16156,
+  "returncode": 0,
+  "error": null
+ }
+}

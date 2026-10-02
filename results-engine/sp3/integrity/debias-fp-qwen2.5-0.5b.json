@@ -1,0 +1,88 @@
+{
+  "preset": "qwen2.5-0.5b",
+  "tag": "fp",
+  "engine": {
+    "scoring": "full_path",
+    "order_debias": 2,
+    "temperature": 1.0,
+    "phases": 2,
+    "seqs_per_state": 22,
+    "states_per_round": 2,
+    "quote_split_fields": [],
+    "prefix_cache": {
+      "capacity": 8,
+      "entries": 1,
+      "hits": 0,
+      "misses": 2
+    }
+  },
+  "batched": {
+    "states": [
+      5,
+      5,
+      5,
+      5
+    ],
+    "rounds": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "states_per_round": 2,
+    "more_than_one_state_per_round": true
+  },
+  "batched_vs_b1": {
+    "n_tickets": 20,
+    "max_abs_diff": 0.03436181876821953,
+    "fields": {
+      "queue": {
+        "median_abs_diff": 0.0036653374984361303,
+        "max_abs_diff": 0.02686523218320347,
+        "argmax_agreement": 1,
+        "argmax_disagreements": 0,
+        "disagreements_over_margin": 0,
+        "pass": true
+      },
+      "urgency": {
+        "median_abs_diff": 0.0008612162000522913,
+        "max_abs_diff": 0.01733267095661739,
+        "argmax_agreement": 0.95,
+        "argmax_disagreements": 1,
+        "disagreements_over_margin": 0,
+        "pass": true
+      },
+      "angry": {
+        "median_abs_diff": 0.008242956215501696,
+        "max_abs_diff": 0.03436181876821953,
+        "argmax_agreement": 1,
+        "argmax_disagreements": 0,
+        "disagreements_over_margin": 0,
+        "pass": true
+      }
+    },
+    "pass": true
+  },
+  "binding": false,
+  "given_lines": {
+    "batched_entries": 240,
+    "b1_entries": 240,
+    "problems": [],
+    "pass": true
+  },
+  "recompute": {
+    "batched": {
+      "answers": 60,
+      "max_abs_diff": 2.220446049250313e-16,
+      "queue_value_not_variant0_argmax": 6,
+      "pass": true
+    },
+    "b1": {
+      "answers": 60,
+      "max_abs_diff": 2.220446049250313e-16,
+      "queue_value_not_variant0_argmax": 6,
+      "pass": true
+    }
+  },
+  "pass": true
+}

@@ -1,0 +1,19 @@
+{
+  "a": "results-engine/sp3/checks/task-6/replay-plain-tree-b1-qwen2.5-0.5b-dump.jsonl",
+  "b": "results-engine/sp3/checks/task-6/replay-after-tree-b1-qwen2.5-0.5b-dump.jsonl",
+  "fields": {
+    "queue": {
+      "median_abs_diff": 0.0035911371883828244,
+      "max_abs_diff": 0.04778779762741725,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    }
+  },
+  "records": 20,
+  "prompts_identical": 20,
+  "n_tickets": 20,
+  "max_abs_diff": 0.04778779762741725,
+  "pass": true
+}

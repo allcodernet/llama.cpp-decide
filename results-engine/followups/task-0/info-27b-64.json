@@ -1,0 +1,1 @@
+{"decide_seqs":64,"n_ctx":4096,"n_batch":2048,"kv_unified":true,"n_parallel":1,"memory":{"recurrent":true,"swa":false},"prefix":{"hash":"","tokens":0,"assistant_prefix":"<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n","valid":false},"prefixes":[],"prefix_cache":{"capacity":8,"entries":0,"bytes":0},"temperature":1.0,"scoring_modes":["tree","full_path"]}

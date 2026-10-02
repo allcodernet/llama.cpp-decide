@@ -1,0 +1,116 @@
+{
+  "b5": "results-engine/sp3/checks/task-5/fp-b5-seqs60-gemma-4-e4b.jsonl",
+  "b1": "results-engine/sp3/checks/task-5/fp-b1-gemma-4-e4b.jsonl",
+  "row_cap": 61,
+  "n_batch": 2048,
+  "b5_vs_b1": {
+    "n_tickets": 20,
+    "max_abs_diff": 0.034867362604281804,
+    "fields": {
+      "queue": {
+        "median_abs_diff": 1.5019643737980313e-05,
+        "max_abs_diff": 0.034867362604281804,
+        "argmax_agreement": 1,
+        "argmax_disagreements": 0,
+        "disagreements_over_margin": 0,
+        "pass": true
+      },
+      "urgency": {
+        "median_abs_diff": 0.0001221425207560043,
+        "max_abs_diff": 0.022919801473800558,
+        "argmax_agreement": 1,
+        "argmax_disagreements": 0,
+        "disagreements_over_margin": 0,
+        "pass": true
+      },
+      "angry": {
+        "median_abs_diff": 0.0003012630619058654,
+        "max_abs_diff": 0.026858169042120905,
+        "argmax_agreement": 1,
+        "argmax_disagreements": 0,
+        "disagreements_over_margin": 0,
+        "pass": true
+      }
+    },
+    "pass": true
+  },
+  "b5_lines": [
+    {
+      "states": 5,
+      "rounds": 1,
+      "decodes": 4,
+      "prefix_built": true,
+      "branch_decodes": 2,
+      "predicted_branch_chunks": 2,
+      "rows_read": 85,
+      "split_sequences": [
+        {
+          "state": 3,
+          "field": "urgency",
+          "option": 0,
+          "tokens_before": 6,
+          "tokens_after": 1
+        }
+      ],
+      "states_per_round": 5
+    },
+    {
+      "states": 5,
+      "rounds": 1,
+      "decodes": 3,
+      "prefix_built": false,
+      "branch_decodes": 2,
+      "predicted_branch_chunks": 2,
+      "rows_read": 85,
+      "split_sequences": [
+        {
+          "state": 3,
+          "field": "urgency",
+          "option": 0,
+          "tokens_before": 6,
+          "tokens_after": 1
+        }
+      ],
+      "states_per_round": 5
+    },
+    {
+      "states": 5,
+      "rounds": 1,
+      "decodes": 3,
+      "prefix_built": false,
+      "branch_decodes": 2,
+      "predicted_branch_chunks": 2,
+      "rows_read": 85,
+      "split_sequences": [
+        {
+          "state": 3,
+          "field": "urgency",
+          "option": 0,
+          "tokens_before": 6,
+          "tokens_after": 1
+        }
+      ],
+      "states_per_round": 5
+    },
+    {
+      "states": 5,
+      "rounds": 1,
+      "decodes": 3,
+      "prefix_built": false,
+      "branch_decodes": 2,
+      "predicted_branch_chunks": 2,
+      "rows_read": 85,
+      "split_sequences": [
+        {
+          "state": 3,
+          "field": "urgency",
+          "option": 0,
+          "tokens_before": 6,
+          "tokens_after": 1
+        }
+      ],
+      "states_per_round": 5
+    }
+  ],
+  "pass": true
+}

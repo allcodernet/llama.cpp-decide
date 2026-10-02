@@ -1,0 +1,31 @@
+{
+  "ref": "results-engine/sp3/checks/task-7/server-normal-k1-qwen3.5-4b.jsonl",
+  "run": "results-engine/sp3/checks/task-7/server-rc1-twice-qwen3.5-4b.next.jsonl",
+  "n_tickets": 5,
+  "max_abs_diff": 0.0,
+  "fields": {
+    "queue": {
+      "median_abs_diff": 0.0,
+      "max_abs_diff": 0.0,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    },
+    "urgency": {
+      "median_abs_diff": 0.0,
+      "max_abs_diff": 0.0,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    },
+    "angry": {
+      "median_abs_diff": 0.0,
+      "max_abs_diff": 0.0,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    }
+  },
+  "pass": true,
+  "pass_all": true
+}

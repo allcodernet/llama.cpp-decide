@@ -1,0 +1,55 @@
+{
+ "model": "gemma-4-e4b-vision",
+ "build": "new",
+ "chat": {
+  "status": 200,
+  "usage": {
+   "completion_tokens": 1,
+   "prompt_tokens": 148,
+   "total_tokens": 149,
+   "prompt_tokens_details": {
+    "cached_tokens": 0
+   }
+  }
+ },
+ "probe": {
+  "status": 400,
+  "response": {
+   "error": {
+    "message": "state 0 needs 20212 cells (held 148, prefix 53, state 20000, tail 7, branches 4), the sliding-window cache holds 9216 cells (limit 9200); start with --swa-full to use n_ctx",
+    "code": "budget"
+   }
+  }
+ },
+ "budget": {
+  "needs": 20212,
+  "held": 148,
+  "prefix": 53,
+  "K": 1,
+  "state": 20000,
+  "tail": 7,
+  "branches": 4,
+  "limit": 9200,
+  "swa_cells": 9216
+ },
+ "old_held": 148,
+ "size": 16156,
+ "sized": {
+  "status": 400,
+  "response": {
+   "error": {
+    "message": "state 0 needs 16368 cells (held 148, prefix 53, state 16156, tail 7, branches 4), the sliding-window cache holds 9216 cells (limit 9200); start with --swa-full to use n_ctx",
+    "code": "budget"
+   }
+  }
+ },
+ "applicable": false,
+ "note": "not applicable: the slot's cells equal its positions, so both counts agree",
+ "checks": {
+  "chat request: 200": true,
+  "probe: 400 budget with the cell counts": true,
+  "same prefix, tail, branches and limit as the old build (or the SWA cache's limit)": true,
+  "not applicable: the sized state answers 200 or 400 budget, never 500": true
+ },
+ "pass": true
+}

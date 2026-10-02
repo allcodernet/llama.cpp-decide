@@ -1,0 +1,72 @@
+{
+  "model": "gemma-4-e4b",
+  "train_preds": "results-engine/sp3/baseline/train/preds/decide-gemma-4-e4b-b5-keywords.jsonl",
+  "test_preds": "results-engine/sp3/baseline/test/preds/decide-gemma-4-e4b-b5-keywords.jsonl",
+  "train_set": "/home/marduk/Projects/temp/jev/experiment/data/triage_train.jsonl",
+  "test_set": "/home/marduk/Projects/temp/jev/experiment/data/triage_test.jsonl",
+  "n_train": 320,
+  "n_test": 80,
+  "grid": {
+    "lo": 0.25,
+    "hi": 4.0,
+    "points": 64,
+    "spacing": "log",
+    "best": 1.6588215907174761,
+    "bracket": [
+      1.5874010519681994,
+      1.7334554909225184
+    ]
+  },
+  "t_refined": 1.6947295021072717,
+  "t": 1.6947,
+  "train": {
+    "before": {
+      "nll_queue": 0.24807781126077602,
+      "nll_urgency": 0.5225565839661279,
+      "nll_angry": 0.055886345556958504,
+      "nll_sum": 0.8265207407838624,
+      "ece_queue": 0.04065389100648961,
+      "ece_urgency": 0.0869516757624611,
+      "ece_angry": 0.010865360090740524,
+      "brier_angry": 0.017054626048483196
+    },
+    "after": {
+      "nll_queue": 0.19847830957320542,
+      "nll_urgency": 0.4232109978090305,
+      "nll_angry": 0.0771684335911566,
+      "nll_sum": 0.6988577409733925,
+      "ece_queue": 0.025717465332901503,
+      "ece_urgency": 0.05628474571945345,
+      "ece_angry": 0.031078036117201474,
+      "brier_angry": 0.020004422615705935
+    }
+  },
+  "test": {
+    "before": {
+      "nll_queue": 0.19664803524308885,
+      "nll_urgency": 0.5816565824303304,
+      "nll_angry": 0.13063574868689037,
+      "nll_sum": 0.9089403663603096,
+      "ece_queue": 0.05276230817167403,
+      "ece_urgency": 0.10954680538003031,
+      "ece_angry": 0.03146800710340186,
+      "brier_angry": 0.031234720694747
+    },
+    "after": {
+      "nll_queue": 0.18311801156366925,
+      "nll_urgency": 0.46424476140306875,
+      "nll_angry": 0.13223891816071717,
+      "nll_sum": 0.7796016911274551,
+      "ece_queue": 0.02672664283607251,
+      "ece_urgency": 0.03755979031322514,
+      "ece_angry": 0.04138790395813799,
+      "brier_angry": 0.03537068901878634
+    }
+  },
+  "rule": {
+    "text": "the fitted T goes into the model's preset in models-engine.ini as decide-temperature only if it lowers the test-set summed NLL",
+    "test_nll_sum_before": 0.9089403663603096,
+    "test_nll_sum_after": 0.7796016911274551,
+    "apply": true
+  }
+}

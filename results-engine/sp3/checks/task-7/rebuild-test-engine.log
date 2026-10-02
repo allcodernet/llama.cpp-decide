@@ -1,0 +1,277 @@
+main    =   0.13 sec*proc (3 tests)
+
+Total Test time (real) =   0.13 sec
+ggml_cuda_init: found 1 CUDA devices (Total VRAM: 7839 MiB):
+  Device 0: NVIDIA GeForce RTX 3070 Ti Laptop GPU, compute capability 8.6, VMM: yes, VRAM: 7839 MiB
+llama_model_loader: loaded meta data with 34 key-value pairs and 290 tensors from /home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf (version GGUF V3 (latest))
+llama_model_loader: Dumping metadata keys/values. Note: KV overrides do not apply in this output.
+llama_model_loader: - kv   0:                       general.architecture str              = qwen2
+llama_model_loader: - kv   1:                               general.type str              = model
+llama_model_loader: - kv   2:                               general.name str              = Qwen2.5 0.5B Instruct
+llama_model_loader: - kv   3:                           general.finetune str              = Instruct
+llama_model_loader: - kv   4:                           general.basename str              = Qwen2.5
+llama_model_loader: - kv   5:                         general.size_label str              = 0.5B
+llama_model_loader: - kv   6:                            general.license str              = apache-2.0
+llama_model_loader: - kv   7:                       general.license.link str              = https://huggingface.co/Qwen/Qwen2.5-0...
+llama_model_loader: - kv   8:                   general.base_model.count u32              = 1
+llama_model_loader: - kv   9:                  general.base_model.0.name str              = Qwen2.5 0.5B
+llama_model_loader: - kv  10:          general.base_model.0.organization str              = Qwen
+llama_model_loader: - kv  11:              general.base_model.0.repo_url str              = https://huggingface.co/Qwen/Qwen2.5-0.5B
+llama_model_loader: - kv  12:                               general.tags arr[str,2]       = ["chat", "text-generation"]
+llama_model_loader: - kv  13:                          general.languages arr[str,1]       = ["en"]
+llama_model_loader: - kv  14:                          qwen2.block_count u32              = 24
+llama_model_loader: - kv  15:                       qwen2.context_length u32              = 32768
+llama_model_loader: - kv  16:                     qwen2.embedding_length u32              = 896
+llama_model_loader: - kv  17:                  qwen2.feed_forward_length u32              = 4864
+llama_model_loader: - kv  18:                 qwen2.attention.head_count u32              = 14
+llama_model_loader: - kv  19:              qwen2.attention.head_count_kv u32              = 2
+llama_model_loader: - kv  20:                       qwen2.rope.freq_base f32              = 1000000.000000
+llama_model_loader: - kv  21:     qwen2.attention.layer_norm_rms_epsilon f32              = 0.000001
+llama_model_loader: - kv  22:                          general.file_type u32              = 7
+llama_model_loader: - kv  23:                       tokenizer.ggml.model str              = gpt2
+llama_model_loader: - kv  24:                         tokenizer.ggml.pre str              = qwen2
+llama_model_loader: - kv  25:                      tokenizer.ggml.tokens arr[str,151936]  = ["!", "\"", "#", "$", "%", "&", "'", ...
+llama_model_loader: - kv  26:                  tokenizer.ggml.token_type arr[i32,151936]  = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, ...
+llama_model_loader: - kv  27:                      tokenizer.ggml.merges arr[str,151387]  = ["Ġ Ġ", "ĠĠ ĠĠ", "i n", "Ġ t",...
+llama_model_loader: - kv  28:                tokenizer.ggml.eos_token_id u32              = 151645
+llama_model_loader: - kv  29:            tokenizer.ggml.padding_token_id u32              = 151643
+llama_model_loader: - kv  30:                tokenizer.ggml.bos_token_id u32              = 151643
+llama_model_loader: - kv  31:               tokenizer.ggml.add_bos_token bool             = false
+llama_model_loader: - kv  32:                    tokenizer.chat_template str              = {%- if tools %}\n    {{- '<|im_start|>...
+llama_model_loader: - kv  33:               general.quantization_version u32              = 2
+llama_model_loader: - type  f32:  121 tensors
+llama_model_loader: - type q8_0:  169 tensors
+print_info: file format = GGUF V3 (latest)
+print_info: file type   = Q8_0
+print_info: file size   = 500.79 MiB (8.50 BPW) 
+llama_prepare_model_devices: using device CUDA0 (NVIDIA GeForce RTX 3070 Ti Laptop GPU) (0000:01:00.0) - 7656 MiB free
+init_tokenizer: initializing tokenizer for type 2
+load: 0 unused tokens
+load: control token: 151660 '<|fim_middle|>' is not marked as EOG
+load: control token: 151659 '<|fim_prefix|>' is not marked as EOG
+load: control token: 151653 '<|vision_end|>' is not marked as EOG
+load: control token: 151648 '<|box_start|>' is not marked as EOG
+load: control token: 151646 '<|object_ref_start|>' is not marked as EOG
+load: control token: 151649 '<|box_end|>' is not marked as EOG
+load: control-looking token: 128247 '</s>' was not control-type; this is probably a bug in the model. its type will be overridden
+load: control token: 151655 '<|image_pad|>' is not marked as EOG
+load: control token: 151651 '<|quad_end|>' is not marked as EOG
+load: control token: 151647 '<|object_ref_end|>' is not marked as EOG
+load: control token: 151652 '<|vision_start|>' is not marked as EOG
+load: control token: 151654 '<|vision_pad|>' is not marked as EOG
+load: control token: 151656 '<|video_pad|>' is not marked as EOG
+load: control token: 151644 '<|im_start|>' is not marked as EOG
+load: control token: 151661 '<|fim_suffix|>' is not marked as EOG
+load: control token: 151650 '<|quad_start|>' is not marked as EOG
+load: printing all EOG tokens:
+load:   - 128247 ('</s>')
+load:   - 151643 ('<|endoftext|>')
+load:   - 151645 ('<|im_end|>')
+load:   - 151662 ('<|fim_pad|>')
+load:   - 151663 ('<|repo_name|>')
+load:   - 151664 ('<|file_sep|>')
+load: special tokens cache size = 23
+load: token to piece cache size = 0.9310 MB
+print_info: arch                  = qwen2
+print_info: vocab_only            = 1
+print_info: no_alloc              = 0
+print_info: vocab type            = BPE
+print_info: n_vocab               = 151936
+print_info: n_merges              = 151387
+print_info: BOS token             = 151643 '<|endoftext|>'
+print_info: EOS token             = 151645 '<|im_end|>'
+print_info: EOT token             = 151645 '<|im_end|>'
+print_info: PAD token             = 151643 '<|endoftext|>'
+print_info: LF token              = 198 'Ċ'
+print_info: FIM PRE token         = 151659 '<|fim_prefix|>'
+print_info: FIM SUF token         = 151661 '<|fim_suffix|>'
+print_info: FIM MID token         = 151660 '<|fim_middle|>'
+print_info: FIM PAD token         = 151662 '<|fim_pad|>'
+print_info: FIM REP token         = 151663 '<|repo_name|>'
+print_info: FIM SEP token         = 151664 '<|file_sep|>'
+print_info: EOG token             = 128247 '</s>'
+print_info: EOG token             = 151643 '<|endoftext|>'
+print_info: EOG token             = 151645 '<|im_end|>'
+print_info: EOG token             = 151662 '<|fim_pad|>'
+print_info: EOG token             = 151663 '<|repo_name|>'
+print_info: EOG token             = 151664 '<|file_sep|>'
+print_info: max token length      = 256
+llama_model_load: vocab only - skipping tensors
+queue trie: quote_split=0, first child pieces: [billing] [technical] [sales] [feedback]
+full-path sale/sales paths: 32654:[sale] 1:["] | 29041:[sales] 1:["]
+END: 1018 tokens, MERGED: 2869 bases; the "," token: 497:[",]
+MERGED["\""] (47): 497:[",] 698:["\n] 756:[",\n] 1837:["\n\n] 2198:[","] 4723:[",\r\n] 5031:["\r\n] 7115:["},\n] 9207:["}] 14345:["},] 15620:["\n\n\n] 16707:["}\n] 17834:[",&] 17982:[",$] 18591:["\r\n\r\n] 23625:["})\n] 25897:[",\n\n] 26690:["};\n] 27316:["});\n] 30975:["}}] 36509:["},{"] 37366:[",@"] 38838:[",'] 43608:["\n\n\n\n] 44970:[",(] 45426:["},\r\n] 48085:["}},\n] 54256:[","\] 57126:[","+] 58324:[","#] 58640:["},"] 59859:[","","] 63159:["}\n\n] 65575:[",-] 67432:["}),\n] 74448:[",{] 75976:[","");\n] 76125:["}>\n] 77767:["\r\n\r\n\r\n] 78314:["};\n\n] 78427:[",__] 79939:["}}>\n] 80154:["})] 81390:[","",] 83498:[",[] 95642:["}}\n] 97937:["};\r\n]
+full-path queue leaves, MERGED sizes: 1:["]=47 1:["]=47 1:["]=47 1:["]=47
+full-path urgency leaves, MERGED sizes: 15:[0]=0 16:[1]=0 17:[2]=0 18:[3]=0
+full-path angry leaves, MERGED sizes: 830:[ true]=0 895:[ false]=0
+full-path plan region[0]: tokens after stem 38637:[billing] 1:["], rows at 4(node 0) 5(node 1) 6(node 2)
+full-path plan region[1]: tokens after stem 38637:[billing] 320:[ (] 38807:[EU] 9940:[)"], rows at 6(node 3) 7(node 4) 8(node 5)
+full-path plan region[2]: tokens after stem 38637:[billing] 320:[ (] 2034:[US] 9940:[)"], rows at 7(node 6) 8(node 7)
+full-path plan region[3]: tokens after stem 17785:[tech] 1:["], rows at 5(node 8) 6(node 9)
+context trie, lines 1, urgency (joint): stem = lines tokens + lines-free stem: yes; stem ends 5556:[urg] 2251:[ency] 788:[":] 220:[ ]
+context trie, lines 1, angry   (joint): stem = lines tokens + lines-free stem: yes; stem ends 330:[ "] 524:[ang] 884:[ry] 788:[":]
+context trie, lines 1, queue   (joint): stem = lines tokens + lines-free stem: yes; stem ends 330:[ "] 4584:[queue] 788:[":] 330:[ "]
+context trie, lines 1, q       (quote-split): stem = lines tokens + lines-free stem: yes; stem ends 330:[ "] 80:[q] 788:[":] 330:[ "]
+context trie, lines 2, urgency (joint): stem = lines tokens + lines-free stem: yes; stem ends 5556:[urg] 2251:[ency] 788:[":] 220:[ ]
+context trie, lines 2, angry   (joint): stem = lines tokens + lines-free stem: yes; stem ends 330:[ "] 524:[ang] 884:[ry] 788:[":]
+context trie, lines 2, queue   (joint): stem = lines tokens + lines-free stem: yes; stem ends 330:[ "] 4584:[queue] 788:[":] 330:[ "]
+context trie, lines 2, q       (quote-split): stem = lines tokens + lines-free stem: yes; stem ends 330:[ "] 80:[q] 788:[":] 330:[ "]
+context trie, lines 3, urgency (joint): stem = lines tokens + lines-free stem: no; stem ends 5556:[urg] 2251:[ency] 788:[":] 220:[ ]
+context trie, lines 3, angry   (joint): stem = lines tokens + lines-free stem: no; stem ends 330:[ "] 524:[ang] 884:[ry] 788:[":]
+context trie, lines 3, queue   (joint): stem = lines tokens + lines-free stem: no; stem ends 330:[ "] 4584:[queue] 788:[":] 330:[ "]
+context trie, lines 3, q       (quote-split): stem = lines tokens + lines-free stem: no; stem ends 330:[ "] 80:[q] 788:[":] 330:[ "]
+resplit survey: "Billing (EU)" path 82007:[Billing] 320:[ (] 38807:[EU] 9940:[)"] | with ",\n" 82007:[Billing] 320:[ (] 38807:[EU] 15752:[)",\n] -> resplit no, last token merged
+resplit survey: "a)"           path 64:[a] 9940:[)"] | with ",\n" 64:[a] 15752:[)",\n] -> resplit no, last token merged
+resplit survey: "Other."       path 11409:[Other] 1189:[."] | with ",\n" 11409:[Other] 10346:[.",\n] -> resplit no, last token merged
+resplit survey: "Inc."         path 39245:[Inc] 1189:[."] | with ",\n" 39245:[Inc] 10346:[.",\n] -> resplit no, last token merged
+resplit survey: "Urgent!"      path 52:[U] 1984:[rg] 306:[ent] 8958:[!"] | with ",\n" 52:[U] 1984:[rg] 306:[ent] 33436:[!",\n] -> resplit no, last token merged
+resplit survey: "Now!"         path 7039:[Now] 8958:[!"] | with ",\n" 7039:[Now] 33436:[!",\n] -> resplit no, last token merged
+resplit survey: "100%"         path 16:[1] 15:[0] 15:[0] 15794:[%"] | with ",\n" 16:[1] 15:[0] 15:[0] 20862:[%",\n] -> resplit no, last token merged
+resplit survey: "50%"          path 20:[5] 15:[0] 15794:[%"] | with ",\n" 20:[5] 15:[0] 20862:[%",\n] -> resplit no, last token merged
+resplit survey: "Tier 2"       path 70684:[Tier] 220:[ ] 17:[2] 1:["] | with ",\n" 70684:[Tier] 220:[ ] 17:[2] 756:[",\n] -> resplit no, last token merged
+resplit survey: "v1.2"         path 85:[v] 16:[1] 13:[.] 17:[2] 1:["] | with ",\n" 85:[v] 16:[1] 13:[.] 17:[2] 756:[",\n] -> resplit no, last token merged
+resplit survey: "Level 10"     path 4449:[Level] 220:[ ] 16:[1] 15:[0] 1:["] | with ",\n" 4449:[Level] 220:[ ] 16:[1] 15:[0] 756:[",\n] -> resplit no, last token merged
+resplit survey: "N/A"          path 45:[N] 10360:[/A] 1:["] | with ",\n" 45:[N] 10360:[/A] 756:[",\n] -> resplit no, last token merged
+test-decide-trie: OK (/home/marduk/.lmstudio/models/lmstudio-community/Qwen2.5-0.5B-Instruct-GGUF/Qwen2.5-0.5B-Instruct-Q8_0.gguf)
+ggml_cuda_init: found 1 CUDA devices (Total VRAM: 7839 MiB):
+  Device 0: NVIDIA GeForce RTX 3070 Ti Laptop GPU, compute capability 8.6, VMM: yes, VRAM: 7839 MiB
+llama_model_loader: loaded meta data with 49 key-value pairs and 666 tensors from ../../models/gemma-4-E4B-it-Q4_0.gguf (version GGUF V3 (latest))
+llama_model_loader: Dumping metadata keys/values. Note: KV overrides do not apply in this output.
+llama_model_loader: - kv   0:                       general.architecture str              = gemma4
+llama_model_loader: - kv   1:                               general.type str              = model
+llama_model_loader: - kv   2:                     general.sampling.top_k i32              = 64
+llama_model_loader: - kv   3:                     general.sampling.top_p f32              = 0.950000
+llama_model_loader: - kv   4:                      general.sampling.temp f32              = 1.000000
+llama_model_loader: - kv   5:                               general.name str              = gemma-4-E4B-it
+llama_model_loader: - kv   6:                         general.size_label str              = 7.5B
+llama_model_loader: - kv   7:                            general.license str              = apache-2.0
+llama_model_loader: - kv   8:                       general.license.link str              = https://ai.google.dev/gemma/docs/gemm...
+llama_model_loader: - kv   9:                   general.base_model.count u32              = 1
+llama_model_loader: - kv  10:                  general.base_model.0.name str              = Gemma 4 E4B It
+llama_model_loader: - kv  11:          general.base_model.0.organization str              = Google
+llama_model_loader: - kv  12:              general.base_model.0.repo_url str              = https://huggingface.co/google/gemma-4...
+llama_model_loader: - kv  13:                               general.tags arr[str,1]       = ["any-to-any"]
+llama_model_loader: - kv  14:                         gemma4.block_count u32              = 42
+llama_model_loader: - kv  15:                      gemma4.context_length u32              = 131072
+llama_model_loader: - kv  16:                    gemma4.embedding_length u32              = 2560
+llama_model_loader: - kv  17:                 gemma4.feed_forward_length u32              = 10240
+llama_model_loader: - kv  18:                gemma4.attention.head_count u32              = 8
+llama_model_loader: - kv  19:             gemma4.attention.head_count_kv u32              = 2
+llama_model_loader: - kv  20:                      gemma4.rope.freq_base f32              = 1000000.000000
+llama_model_loader: - kv  21:                  gemma4.rope.freq_base_swa f32              = 10000.000000
+llama_model_loader: - kv  22:    gemma4.attention.layer_norm_rms_epsilon f32              = 0.000001
+llama_model_loader: - kv  23:                gemma4.attention.key_length u32              = 512
+llama_model_loader: - kv  24:              gemma4.attention.value_length u32              = 512
+llama_model_loader: - kv  25:             gemma4.final_logit_softcapping f32              = 30.000000
+llama_model_loader: - kv  26:            gemma4.attention.sliding_window u32              = 512
+llama_model_loader: - kv  27:          gemma4.attention.shared_kv_layers u32              = 18
+llama_model_loader: - kv  28:    gemma4.embedding_length_per_layer_input u32              = 256
+llama_model_loader: - kv  29:    gemma4.attention.sliding_window_pattern arr[bool,42]     = [true, true, true, true, true, false,...
+llama_model_loader: - kv  30:            gemma4.attention.key_length_swa u32              = 256
+llama_model_loader: - kv  31:          gemma4.attention.value_length_swa u32              = 256
+llama_model_loader: - kv  32:                gemma4.rope.dimension_count u32              = 512
+llama_model_loader: - kv  33:            gemma4.rope.dimension_count_swa u32              = 256
+llama_model_loader: - kv  34:                       tokenizer.ggml.model str              = gemma4
+llama_model_loader: - kv  35:                      tokenizer.ggml.tokens arr[str,262144]  = ["<pad>", "<eos>", "<bos>", "<unk>", ...
+llama_model_loader: - kv  36:                      tokenizer.ggml.scores arr[f32,262144]  = [-1000.000000, -1000.000000, -1000.00...
+llama_model_loader: - kv  37:                  tokenizer.ggml.token_type arr[i32,262144]  = [3, 3, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, ...
+llama_model_loader: - kv  38:                      tokenizer.ggml.merges arr[str,514906]  = ["\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n \n", ...
+llama_model_loader: - kv  39:                tokenizer.ggml.bos_token_id u32              = 2
+llama_model_loader: - kv  40:                tokenizer.ggml.eos_token_id u32              = 1
+llama_model_loader: - kv  41:            tokenizer.ggml.unknown_token_id u32              = 3
+llama_model_loader: - kv  42:            tokenizer.ggml.padding_token_id u32              = 0
+llama_model_loader: - kv  43:               tokenizer.ggml.mask_token_id u32              = 4
+llama_model_loader: - kv  44:                    tokenizer.chat_template str              = {#\n  Template: Google Gemma 4 Canonic...
+llama_model_loader: - kv  45:            tokenizer.ggml.add_space_prefix bool             = false
+llama_model_loader: - kv  46:               tokenizer.ggml.add_bos_token bool             = true
+llama_model_loader: - kv  47:               general.quantization_version u32              = 2
+llama_model_loader: - kv  48:                          general.file_type u32              = 2
+llama_model_loader: - type  f32:  321 tensors
+llama_model_loader: - type q4_0:  343 tensors
+llama_model_loader: - type q8_0:    1 tensors
+llama_model_loader: - type bf16:    1 tensors
+print_info: file format = GGUF V3 (latest)
+print_info: file type   = Q4_0
+print_info: file size   = 4.26 GiB (4.90 BPW) 
+llama_prepare_model_devices: using device CUDA0 (NVIDIA GeForce RTX 3070 Ti Laptop GPU) (0000:01:00.0) - 7656 MiB free
+init_tokenizer: initializing tokenizer for type 2
+load: 0 unused tokens
+load: control token: 258884 '<|video|>' is not marked as EOG
+load: control token: 255999 '<|image>' is not marked as EOG
+load: control token: 258882 '<image|>' is not marked as EOG
+load: control token: 258883 '<audio|>' is not marked as EOG
+load: control token:     98 '<|think|>' is not marked as EOG
+load: control token:    105 '<|turn>' is not marked as EOG
+load: control token: 258880 '<|image|>' is not marked as EOG
+load: control token:      2 '<bos>' is not marked as EOG
+load: control-looking token:    212 '</s>' was not control-type; this is probably a bug in the model. its type will be overridden
+load: control token:      0 '<pad>' is not marked as EOG
+load: control-looking token:     50 '<|tool_response>' was not control-type; this is probably a bug in the model. its type will be overridden
+load: control token:     46 '<|tool>' is not marked as EOG
+load: control token:     47 '<tool|>' is not marked as EOG
+load: control token: 256000 '<|audio>' is not marked as EOG
+load: control token:      3 '<unk>' is not marked as EOG
+load: control token: 258881 '<|audio|>' is not marked as EOG
+load: control token:      4 '<mask>' is not marked as EOG
+load: printing all EOG tokens:
+load:   - 1 ('<eos>')
+load:   - 50 ('<|tool_response>')
+load:   - 106 ('<turn|>')
+load:   - 212 ('</s>')
+load: special_eog_ids contains '<|tool_response>', removing '</s>' token from EOG list
+load: special tokens cache size = 24
+load: token to piece cache size = 1.9445 MB
+print_info: arch                  = gemma4
+print_info: vocab_only            = 1
+print_info: no_alloc              = 0
+print_info: vocab type            = BPE
+print_info: n_vocab               = 262144
+print_info: n_merges              = 514906
+print_info: BOS token             = 2 '<bos>'
+print_info: EOS token             = 1 '<eos>'
+print_info: UNK token             = 3 '<unk>'
+print_info: PAD token             = 0 '<pad>'
+print_info: MASK token            = 4 '<mask>'
+print_info: LF token              = 107 '
+'
+print_info: EOG token             = 1 '<eos>'
+print_info: EOG token             = 50 '<|tool_response>'
+print_info: EOG token             = 106 '<turn|>'
+print_info: max token length      = 93
+llama_model_load: vocab only - skipping tensors
+queue trie: quote_split=0, first child pieces: [billing] [technical] [sales] [feedback]
+full-path sale/sales paths: 39654:[sale] 236775:["] | 26377:[sales] 236775:["]
+END: 631 tokens, MERGED: 532 bases; the "," token: 827:[",]
+MERGED["\""] (25): 827:[",] 4337:[","] 23179:["},] 25938:["}] 35505:[",[],] 37324:["};] 42052:[",[],"] 61660:[",&] 63890:["})] 69604:[",[(] 98059:["});] 102283:[","#] 112572:[",[] 112719:[",$] 116061:[",'] 127096:["}}] 142726:[",{] 148173:[",(] 157523:[","$] 178709:[","_] 180749:[","-] 182002:["},{"] 182827:[","/] 186316:["}}>] 206887:[","",]
+full-path queue leaves, MERGED sizes: 236775:["]=25 236775:["]=25 236775:["]=25 236775:["]=25
+full-path urgency leaves, MERGED sizes: 236771:[0]=0 236770:[1]=0 236778:[2]=0 236800:[3]=0
+full-path angry leaves, MERGED sizes: 1847:[ true]=0 2416:[ false]=0
+full-path plan region[0]: tokens after stem 103547:[billing] 236775:["], rows at 4(node 0) 5(node 1) 6(node 2)
+full-path plan region[1]: tokens after stem 103547:[billing] 568:[ (] 30722:[EU] 16291:[)"], rows at 6(node 3) 7(node 4) 8(node 5)
+full-path plan region[2]: tokens after stem 103547:[billing] 568:[ (] 3118:[US] 16291:[)"], rows at 7(node 6) 8(node 7)
+full-path plan region[3]: tokens after stem 17470:[tech] 236775:["], rows at 5(node 8) 6(node 9)
+context trie, lines 1, urgency (joint): stem = lines tokens + lines-free stem: yes; stem ends 4014:[urg] 1895:[ency] 1083:[":] 236743:[ ]
+context trie, lines 1, angry   (joint): stem = lines tokens + lines-free stem: yes; stem ends 138:[  ] 236775:["] 154920:[angry] 1083:[":]
+context trie, lines 1, queue   (joint): stem = lines tokens + lines-free stem: yes; stem ends 236775:["] 15204:[queue] 1083:[":] 623:[ "]
+context trie, lines 1, q       (quote-split): stem = lines tokens + lines-free stem: yes; stem ends 236775:["] 236809:[q] 1083:[":] 623:[ "]
+context trie, lines 2, urgency (joint): stem = lines tokens + lines-free stem: yes; stem ends 4014:[urg] 1895:[ency] 1083:[":] 236743:[ ]
+context trie, lines 2, angry   (joint): stem = lines tokens + lines-free stem: yes; stem ends 138:[  ] 236775:["] 154920:[angry] 1083:[":]
+context trie, lines 2, queue   (joint): stem = lines tokens + lines-free stem: yes; stem ends 236775:["] 15204:[queue] 1083:[":] 623:[ "]
+context trie, lines 2, q       (quote-split): stem = lines tokens + lines-free stem: yes; stem ends 236775:["] 236809:[q] 1083:[":] 623:[ "]
+context trie, lines 3, urgency (joint): stem = lines tokens + lines-free stem: no; stem ends 4014:[urg] 1895:[ency] 1083:[":] 236743:[ ]
+context trie, lines 3, angry   (joint): stem = lines tokens + lines-free stem: no; stem ends 139:[   ] 236775:["] 154920:[angry] 1083:[":]
+context trie, lines 3, queue   (joint): stem = lines tokens + lines-free stem: no; stem ends 236775:["] 15204:[queue] 1083:[":] 623:[ "]
+context trie, lines 3, q       (quote-split): stem = lines tokens + lines-free stem: no; stem ends 236775:["] 236809:[q] 1083:[":] 623:[ "]
+resplit survey: "Billing (EU)" path 119821:[Billing] 568:[ (] 30722:[EU] 16291:[)"] | with ",\n" 119821:[Billing] 568:[ (] 30722:[EU] 22730:[)",] 107:[\n] -> resplit no, last token merged
+resplit survey: "a)"           path 236746:[a] 16291:[)"] | with ",\n" 236746:[a] 22730:[)",] 107:[\n] -> resplit no, last token merged
+resplit survey: "Other."       path 13517:[Other] 1781:[."] | with ",\n" 13517:[Other] 10498:[.",] 107:[\n] -> resplit no, last token merged
+resplit survey: "Inc."         path 43208:[Inc] 1781:[."] | with ",\n" 43208:[Inc] 10498:[.",] 107:[\n] -> resplit no, last token merged
+resplit survey: "Urgent!"      path 38370:[Ur] 8628:[gent] 9332:[!"] | with ",\n" 38370:[Ur] 8628:[gent] 41218:[!",] 107:[\n] -> resplit no, last token merged
+resplit survey: "Now!"         path 6445:[Now] 9332:[!"] | with ",\n" 6445:[Now] 41218:[!",] 107:[\n] -> resplit no, last token merged
+resplit survey: "100%"         path 236770:[1] 236771:[0] 236771:[0] 38032:[%"] | with ",\n" 236770:[1] 236771:[0] 236771:[0] 70887:[%",] 107:[\n] -> resplit no, last token merged
+resplit survey: "50%"          path 236810:[5] 236771:[0] 38032:[%"] | with ",\n" 236810:[5] 236771:[0] 70887:[%",] 107:[\n] -> resplit no, last token merged
+resplit survey: "Tier 2"       path 110488:[Tier] 236743:[ ] 236778:[2] 236775:["] | with ",\n" 110488:[Tier] 236743:[ ] 236778:[2] 827:[",] 107:[\n] -> resplit no, last token merged
+resplit survey: "v1.2"         path 236766:[v] 236770:[1] 236761:[.] 236778:[2] 236775:["] | with ",\n" 236766:[v] 236770:[1] 236761:[.] 236778:[2] 827:[",] 107:[\n] -> resplit no, last token merged
+resplit survey: "Level 10"     path 9501:[Level] 236743:[ ] 236770:[1] 236771:[0] 236775:["] | with ",\n" 9501:[Level] 236743:[ ] 236770:[1] 236771:[0] 827:[",] 107:[\n] -> resplit no, last token merged
+resplit survey: "N/A"          path 236797:[N] 236786:[/] 236776:[A] 236775:["] | with ",\n" 236797:[N] 236786:[/] 236776:[A] 827:[",] 107:[\n] -> resplit no, last token merged
+test-decide-trie: OK (../../models/gemma-4-E4B-it-Q4_0.gguf)

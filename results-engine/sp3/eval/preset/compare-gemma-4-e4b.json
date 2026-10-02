@@ -1,0 +1,39 @@
+{
+  "a": "results-engine/sp3/eval/preset/tempered-baseline-test-gemma-4-e4b.jsonl",
+  "b": "results-engine/sp3/eval/preset/preds/decide-gemma-4-e4b-b5-keywords-t1.6947.jsonl",
+  "formats": [
+    "preds",
+    "preds"
+  ],
+  "n_tickets": 80,
+  "max_abs_diff": 1.9984014443252818e-15,
+  "fields": {
+    "queue": {
+      "median_abs_diff": 2.168404344971009e-19,
+      "max_abs_diff": 2.220446049250313e-16,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    },
+    "urgency": {
+      "median_abs_diff": 4.336808689942018e-19,
+      "max_abs_diff": 2.220446049250313e-16,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    },
+    "angry": {
+      "median_abs_diff": 4.336808689942018e-19,
+      "max_abs_diff": 1.9984014443252818e-15,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    }
+  },
+  "pass": true,
+  "max_diff_bound": 1e-09,
+  "within_bound": true
+}

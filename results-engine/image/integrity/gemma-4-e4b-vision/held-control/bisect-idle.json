@@ -1,0 +1,97 @@
+{
+ "model": "gemma-4-e4b-vision",
+ "ends": {
+  "lo answers 200": true,
+  "hi answers 200": false
+ },
+ "steps": [
+  {
+   "state_tokens": 4000,
+   "status": 200,
+   "error": null
+  },
+  {
+   "state_tokens": 16304,
+   "status": 500,
+   "error": "no KV cell space (rc=1)"
+  },
+  {
+   "state_tokens": 10152,
+   "status": 500,
+   "error": "no KV cell space (rc=1)"
+  },
+  {
+   "state_tokens": 7076,
+   "status": 200,
+   "error": null
+  },
+  {
+   "state_tokens": 8614,
+   "status": 200,
+   "error": null
+  },
+  {
+   "state_tokens": 9383,
+   "status": 500,
+   "error": "no KV cell space (rc=1)"
+  },
+  {
+   "state_tokens": 8998,
+   "status": 200,
+   "error": null
+  },
+  {
+   "state_tokens": 9190,
+   "status": 500,
+   "error": "no KV cell space (rc=1)"
+  },
+  {
+   "state_tokens": 9094,
+   "status": 200,
+   "error": null
+  },
+  {
+   "state_tokens": 9142,
+   "status": 200,
+   "error": null
+  },
+  {
+   "state_tokens": 9166,
+   "status": 500,
+   "error": "no KV cell space (rc=1)"
+  },
+  {
+   "state_tokens": 9154,
+   "status": 500,
+   "error": "no KV cell space (rc=1)"
+  },
+  {
+   "state_tokens": 9148,
+   "status": 200,
+   "error": null
+  }
+ ],
+ "boundary": {
+  "largest_200": 9148,
+  "smallest_not_200": 9154
+ },
+ "info": {
+  "n_ctx": 16384,
+  "n_batch": 2048,
+  "decide_seqs": 16,
+  "n_parallel": 1,
+  "kv_unified": true,
+  "memory": {
+   "recurrent": false,
+   "swa": true
+  },
+  "prefixes": [
+   {
+    "slot": 0,
+    "hash": "5deb132f0ff3d890",
+    "tokens": 53,
+    "valid": true
+   }
+  ]
+ }
+}

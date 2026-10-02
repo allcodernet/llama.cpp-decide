@@ -1,0 +1,66 @@
+{
+  "resp": "results-engine/sp3/checks/task-7/k2-gemma-4-e4b.jsonl",
+  "states": 5,
+  "statistic": {
+    "n_tickets": 5,
+    "max_abs_diff": 0.016800210457808495,
+    "fields": {
+      "queue": {
+        "median_abs_diff": 0.00032634755150463563,
+        "max_abs_diff": 0.016800210457808495,
+        "argmax_disagreements": 0,
+        "disagreements_over_margin": 0,
+        "pass": true
+      },
+      "urgency": {
+        "median_abs_diff": 0.00026731508681796033,
+        "max_abs_diff": 0.0048688437345763,
+        "argmax_disagreements": 0,
+        "disagreements_over_margin": 0,
+        "pass": true
+      },
+      "angry": {
+        "median_abs_diff": 5.786811343410478e-05,
+        "max_abs_diff": 0.0003282455902977599,
+        "argmax_disagreements": 0,
+        "disagreements_over_margin": 0,
+        "pass": true
+      }
+    },
+    "pass": true
+  },
+  "k2_engine": {
+    "scoring": "tree",
+    "order_debias": 2,
+    "temperature": 1.0,
+    "phases": 1,
+    "seqs_per_state": 8,
+    "states_per_round": 7,
+    "quote_split_fields": [],
+    "prefix_cache": {
+      "capacity": 8,
+      "entries": 1,
+      "hits": 1,
+      "misses": 0
+    }
+  },
+  "k2_usage": {
+    "prompt_tokens": 554,
+    "cached_tokens": 494,
+    "state_tokens": 167,
+    "scored_tokens": 30
+  },
+  "k2_timings": {
+    "prefill_ms": 162.25,
+    "prefix_ms": 1.979,
+    "scoring_ms": 81.241,
+    "total_ms": 246.905,
+    "rounds": 1,
+    "decodes": 2,
+    "retries": 0
+  },
+  "order_spread_vs_k0_max_abs_diff": 0.05436611103216005,
+  "problems": [],
+  "pass_structure": true,
+  "pass": true
+}

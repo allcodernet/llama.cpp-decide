@@ -1,0 +1,56 @@
+{
+  "lines": [
+    {
+      "prefix_cache": {
+        "capacity": 2,
+        "entries": 0,
+        "hits": 0,
+        "misses": 1
+      },
+      "cached_tokens": 0,
+      "prompt_tokens": 711,
+      "prefix_ms": 29.626
+    },
+    {
+      "prefix_cache": {
+        "capacity": 2,
+        "entries": 1,
+        "hits": 0,
+        "misses": 1
+      },
+      "cached_tokens": 0,
+      "prompt_tokens": 524,
+      "prefix_ms": 19.891
+    },
+    {
+      "prefix_cache": {
+        "capacity": 2,
+        "entries": 2,
+        "hits": 0,
+        "misses": 1
+      },
+      "cached_tokens": 0,
+      "prompt_tokens": 537,
+      "prefix_ms": 19.535
+    },
+    {
+      "prefix_cache": {
+        "capacity": 2,
+        "entries": 2,
+        "hits": 1,
+        "misses": 0
+      },
+      "cached_tokens": 435,
+      "prompt_tokens": 276,
+      "prefix_ms": 2.749
+    }
+  ],
+  "repeats": [
+    {
+      "line": 3,
+      "first": 0,
+      "max_abs_diff": 0.0,
+      "argmax_disagreements": 0
+    }
+  ]
+}

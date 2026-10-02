@@ -1,0 +1,78 @@
+{
+  "request_states": 5,
+  "first": {
+    "status": 500,
+    "body": {
+      "error": {
+        "message": "no KV cell space (rc=1)",
+        "code": "engine"
+      }
+    }
+  },
+  "info_after_first": {
+    "status": 200,
+    "body": {
+      "decide_seqs": 32,
+      "n_ctx": 4096,
+      "n_batch": 2048,
+      "kv_unified": true,
+      "n_parallel": 1,
+      "memory": {
+        "recurrent": true,
+        "swa": false
+      },
+      "prefix": {
+        "hash": "6462224defad50d8",
+        "tokens": 254,
+        "assistant_prefix": "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+        "valid": true
+      },
+      "prefixes": [
+        {
+          "slot": 0,
+          "hash": "6462224defad50d8",
+          "tokens": 254,
+          "valid": true
+        }
+      ],
+      "prefix_cache": {
+        "capacity": 8,
+        "entries": 1,
+        "bytes": 57119484
+      },
+      "temperature": 1.0,
+      "scoring_modes": [
+        "tree",
+        "full_path"
+      ]
+    }
+  },
+  "next": {
+    "status": 200,
+    "engine": {
+      "scoring": "tree",
+      "order_debias": 1,
+      "temperature": 1.0,
+      "phases": 1,
+      "seqs_per_state": 4,
+      "states_per_round": 7,
+      "quote_split_fields": [],
+      "prefix_cache": {
+        "capacity": 8,
+        "entries": 1,
+        "hits": 0,
+        "misses": 0
+      }
+    },
+    "timings": {
+      "prefill_ms": 164.746,
+      "prefix_ms": 0.147,
+      "scoring_ms": 107.491,
+      "total_ms": 273.78,
+      "rounds": 1,
+      "decodes": 2,
+      "retries": 0
+    }
+  },
+  "pass": true
+}

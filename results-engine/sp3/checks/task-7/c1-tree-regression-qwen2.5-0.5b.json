@@ -1,0 +1,39 @@
+{
+  "a": "results-engine/sp3/baseline/dump-qwen2.5-0.5b.jsonl",
+  "b": "results-engine/sp3/checks/task-7/c1-tree-regression-dump-qwen2.5-0.5b.jsonl",
+  "formats": [
+    "dump",
+    "dump"
+  ],
+  "n_tickets": 20,
+  "max_abs_diff": 0.0,
+  "fields": {
+    "queue": {
+      "median_abs_diff": 0.0,
+      "max_abs_diff": 0.0,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    },
+    "urgency": {
+      "median_abs_diff": 0.0,
+      "max_abs_diff": 0.0,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    },
+    "angry": {
+      "median_abs_diff": 0.0,
+      "max_abs_diff": 0.0,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    }
+  },
+  "pass": true,
+  "max_diff_bound": 1e-06,
+  "within_bound": true
+}

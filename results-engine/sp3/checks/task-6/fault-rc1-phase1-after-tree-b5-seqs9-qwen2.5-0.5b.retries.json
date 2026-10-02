@@ -1,0 +1,29 @@
+{
+  "resp": "results-engine/sp3/checks/task-6/fault-rc1-phase1-after-tree-b5-seqs9-qwen2.5-0.5b.jsonl",
+  "min": 1,
+  "retries": [
+    5,
+    5,
+    5,
+    5
+  ],
+  "rounds": [
+    5,
+    5,
+    5,
+    5
+  ],
+  "states_per_round": [
+    1,
+    1,
+    1,
+    1
+  ],
+  "decodes": [
+    26,
+    25,
+    25,
+    25
+  ],
+  "pass": true
+}

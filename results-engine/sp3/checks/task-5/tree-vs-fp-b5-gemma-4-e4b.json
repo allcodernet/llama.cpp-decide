@@ -1,0 +1,34 @@
+{
+  "ref": "results-engine/sp3/checks/task-5/tree-b5-gemma-4-e4b.jsonl",
+  "run": "results-engine/sp3/checks/task-5/fp-b5-gemma-4-e4b.jsonl",
+  "n_tickets": 20,
+  "max_abs_diff": 0.026719299061277957,
+  "fields": {
+    "queue": {
+      "median_abs_diff": 6.964081881113434e-06,
+      "max_abs_diff": 0.026719299061277957,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    },
+    "urgency": {
+      "median_abs_diff": 0.00012499592701667743,
+      "max_abs_diff": 0.015327529974319132,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    },
+    "angry": {
+      "median_abs_diff": 0.00015814608419965854,
+      "max_abs_diff": 0.019301742750588824,
+      "argmax_agreement": 1,
+      "argmax_disagreements": 0,
+      "disagreements_over_margin": 0,
+      "pass": true
+    }
+  },
+  "pass": true,
+  "pass_all": true
+}

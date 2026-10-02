@@ -1,0 +1,339 @@
+From 9684ecf7cf3d8959d2d33ef0f92c7b543ca90815 Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 14:31:58 +0200
+Subject: [PATCH 08/45] server: /v1/decide and /v1/decide/info backed by the
+ decide engine
+
+---
+ tools/server/CMakeLists.txt     |   2 +-
+ tools/server/server-context.cpp | 148 ++++++++++++++++++++++++++++++++
+ tools/server/server-context.h   |   2 +
+ tools/server/server-http.cpp    |   3 +-
+ tools/server/server-task.h      |  18 ++++
+ tools/server/server.cpp         |   5 ++
+ 6 files changed, 176 insertions(+), 2 deletions(-)
+
+diff --git a/tools/server/CMakeLists.txt b/tools/server/CMakeLists.txt
+index 4adaaceef..39a3ac6dc 100644
+--- a/tools/server/CMakeLists.txt
++++ b/tools/server/CMakeLists.txt
+@@ -31,7 +31,7 @@ endif()
+ 
+ target_include_directories(${TARGET} PRIVATE ../mtmd)
+ target_include_directories(${TARGET} PRIVATE ${PROJECT_SOURCE_DIR})
+-target_link_libraries(${TARGET} PUBLIC llama-common mtmd ${CMAKE_THREAD_LIBS_INIT})
++target_link_libraries(${TARGET} PUBLIC llama-common mtmd llama-decide ${CMAKE_THREAD_LIBS_INIT})
+ 
+ # llama-server-impl: server logic, reusable by app
+ 
+diff --git a/tools/server/server-context.cpp b/tools/server/server-context.cpp
+index b6835e434..0b843978d 100644
+--- a/tools/server/server-context.cpp
++++ b/tools/server/server-context.cpp
+@@ -16,6 +16,7 @@
+ #include "speculative.h"
+ #include "mtmd.h"
+ #include "mtmd-helper.h"
++#include "decide-api.h"
+ 
+ #include <algorithm>
+ #include <cstddef>
+@@ -47,6 +48,9 @@ static common_speculative_output_limits server_output_limits(const common_params
+     auto result = common_speculative_get_output_limits(
+             params.n_batch, params.n_parallel, common_speculative_n_max(&params.speculative));
+ 
++    // the decide engine requests one output row per reserved decision sequence
++    result.total  += params.decide_seqs;
++
+     result.total   = std::max<int32_t>(1, result.total);
+     result.per_seq = std::max<int32_t>(1, result.per_seq);
+     return result;
+@@ -895,6 +899,9 @@ private:
+ 
+     common_speculative_ptr spec;
+ 
++    // one-pass decision engine (--decide-seqs > 0); holds ctx_tgt, so it is reset before the context is freed
++    std::unique_ptr<decide::engine> decide_engine;
++
+     bool add_bos_token = true;
+ 
+     int32_t n_ctx; // total context for all clients / slots
+@@ -936,6 +943,8 @@ private:
+     int64_t t_last_load_progress_ms = 0;
+ 
+     void destroy() {
++        decide_engine.reset();
++
+         spec.reset();
+         spec_init.reset();
+ 
+@@ -1390,6 +1399,11 @@ private:
+             return init();
+         }
+ 
++        // on resume chat_params survives, so the engine is rebuilt on the new ctx_tgt here
++        if (!init_decide_engine()) {
++            return false;
++        }
++
+         if (callback_state) {
+             callback_state(SERVER_STATE_READY, {});
+         }
+@@ -1397,6 +1411,38 @@ private:
+         return true;
+     }
+ 
++    // needs ctx_tgt and chat_params.tmpls; no-op when --decide-seqs is 0
++    bool init_decide_engine() {
++        if (params_base.decide_seqs <= 0) {
++            return true;
++        }
++
++        decide::engine_config cfg;
++        cfg.decide_seqs = params_base.decide_seqs;
++        cfg.seq_base    = (llama_seq_id) params_base.n_parallel;
++        for (int i = 0; i < params_base.n_parallel; i++) {
++            cfg.slot_seqs.push_back((llama_seq_id) i);
++        }
++
++        try {
++            decide_engine = std::make_unique<decide::engine>(ctx_tgt, model_tgt, chat_params.tmpls.get(), cfg);
++        } catch (const decide::error & e) {
++            SRV_ERR("decide: %s\n", e.what());
++            return false;
++        }
++
++        SRV_INF("decide: %d sequences reserved above %d slots; memory recurrent=%d swa=%d\n",
++                params_base.decide_seqs, params_base.n_parallel,
++                (llama_model_is_recurrent(model_tgt) || llama_model_is_hybrid(model_tgt)) ? 1 : 0,
++                llama_model_n_swa(model_tgt) > 0 ? 1 : 0);
++        if (params_base.n_parallel > 1) {
++            SRV_WRN("decide: n_parallel = %d - slots and decisions share the %d cells of n_ctx\n",
++                    params_base.n_parallel, n_ctx);
++        }
++
++        return true;
++    }
++
+     // unlike load_model(), this is only called once during initialization
+     bool init() {
+         GGML_ASSERT(ctx_tgt   != nullptr);
+@@ -1514,6 +1560,10 @@ private:
+             }
+         }
+ 
++        if (!init_decide_engine()) {
++            return false;
++        }
++
+         return true;
+     }
+ 
+@@ -2722,6 +2772,27 @@ private:
+                     res->id = task.id;
+                     queue_results.send(std::move(res));
+                 } break;
++            case SERVER_TASK_TYPE_DECIDE:
++                {
++                    // runs the whole decision synchronously; slots are not advanced meanwhile
++                    auto res = std::make_unique<server_task_result_decide>();
++                    res->id = task.id;
++                    if (!decide_engine) {
++                        json err = json::object();
++                        err["message"] = "decide endpoint disabled (--decide-seqs 0)";
++                        err["code"]    = "disabled";
++                        res->status = 404;
++                        res->data   = json::object();
++                        res->data["error"] = err;
++                    } else {
++                        const decide::api_result r = task.decide_info
++                            ? decide::handle_info(*decide_engine, vocab, task.decide_request.is_null() ? nullptr : &task.decide_request)
++                            : decide::handle_decide(*decide_engine, vocab, task.decide_request, false);
++                        res->status = r.status;
++                        res->data   = r.body;
++                    }
++                    queue_results.send(std::move(res));
++                } break;
+         }
+ 
+         return true;
+@@ -5285,6 +5356,83 @@ void server_routes::init_routes() {
+         res->ok(result->to_json());
+         return res;
+     };
++
++    // decide routes: the status is set directly, since res->error() derives it from an integer "code"
++    // while decide errors carry string codes
++    const auto decide_error = [](server_res_generator & res, int status, const std::string & message, const std::string & code) {
++        json err = json::object();
++        err["message"] = message;
++        err["code"]    = code;
++        json body = json::object();
++        body["error"] = err;
++        res.status = status;
++        res.data   = safe_json_to_str(body);
++    };
++
++    const auto decide_run = [](server_res_generator & res, const server_http_req & req, json request, bool info) {
++        auto & rd = res.rd;
++        {
++            server_task task(SERVER_TASK_TYPE_DECIDE);
++            task.id             = rd.get_new_id();
++            task.decide_request = std::move(request);
++            task.decide_info    = info;
++            rd.post_task(std::move(task));
++        }
++
++        auto result = rd.next(req.should_stop);
++        if (!result) {
++            // connection was closed
++            GGML_ASSERT(req.should_stop());
++            return;
++        }
++
++        const auto * dres = dynamic_cast<server_task_result_decide *>(result.get());
++        if (dres == nullptr) {
++            GGML_ASSERT(result->is_error());
++            res.error(result->to_json());
++            return;
++        }
++        res.status = dres->status;
++        res.data   = safe_json_to_str(dres->data);
++    };
++
++    this->post_decide = [this, decide_error, decide_run](const server_http_req & req) {
++        auto res = create_response();
++        if (params.decide_seqs <= 0) {
++            decide_error(*res, 404, "decide endpoint disabled (--decide-seqs 0)", "disabled");
++            return res;
++        }
++
++        json body = json::parse_no_throw(req.body);
++        if (body.is_discarded()) {
++            decide_error(*res, 400, "request body is not valid JSON", "invalid_schema");
++            return res;
++        }
++
++        // validate here so that bad requests never reach the model
++        try {
++            decide::compile_request(body);
++            decide::states_of(body);
++        } catch (const decide::error & e) {
++            decide_error(*res, e.http, e.what(), e.code);
++            return res;
++        }
++
++        decide_run(*res, req, std::move(body), false);
++        return res;
++    };
++
++    this->get_decide_info = [this, decide_error, decide_run](const server_http_req & req) {
++        auto res = create_response();
++        if (params.decide_seqs <= 0) {
++            decide_error(*res, 404, "decide endpoint disabled (--decide-seqs 0)", "disabled");
++            return res;
++        }
++
++        // no schema: the engine renders the template-only assistant prefix
++        decide_run(*res, req, json(), true);
++        return res;
++    };
+ }
+ 
+ std::unique_ptr<server_res_generator> server_routes::handle_slots_save(const server_http_req & req, int id_slot) {
+diff --git a/tools/server/server-context.h b/tools/server/server-context.h
+index 0acbbffa9..2448c55ed 100644
+--- a/tools/server/server-context.h
++++ b/tools/server/server-context.h
+@@ -154,6 +154,8 @@ struct server_routes {
+     server_http_context::handler_t post_rerank;
+     server_http_context::handler_t get_lora_adapters;
+     server_http_context::handler_t post_lora_adapters;
++    server_http_context::handler_t post_decide;
++    server_http_context::handler_t get_decide_info;
+ 
+     // to be used in router mode
+     json get_model_info() const;
+diff --git a/tools/server/server-http.cpp b/tools/server/server-http.cpp
+index 2ec137aa0..38e51f883 100644
+--- a/tools/server/server-http.cpp
++++ b/tools/server/server-http.cpp
+@@ -143,7 +143,8 @@ bool server_http_context::init(const common_params & params) {
+     });
+ 
+     srv->set_error_handler([](const httplib::Request &, httplib::Response & res) {
+-        if (res.status == 404) {
++        // keep a 404 body a handler already wrote (e.g. /v1/decide with --decide-seqs 0)
++        if (res.status == 404 && res.body.empty()) {
+             res.set_content(
+                 safe_json_to_str(json {
+                     {"error", {
+diff --git a/tools/server/server-task.h b/tools/server/server-task.h
+index 9c99143f8..7ef643634 100644
+--- a/tools/server/server-task.h
++++ b/tools/server/server-task.h
+@@ -27,6 +27,7 @@ enum server_task_type {
+     SERVER_TASK_TYPE_SLOT_ERASE,
+     SERVER_TASK_TYPE_GET_LORA,
+     SERVER_TASK_TYPE_SET_LORA,
++    SERVER_TASK_TYPE_DECIDE,
+ };
+ 
+ // TODO: change this to more generic "response_format" to replace the "format_response_*" in server-common
+@@ -175,6 +176,10 @@ struct server_task {
+     // used by SERVER_TASK_TYPE_SET_LORA
+     std::map<int, float> set_lora; // mapping adapter ID -> scale
+ 
++    // used by SERVER_TASK_TYPE_DECIDE: the request body (null for /v1/decide/info)
++    json decide_request;
++    bool decide_info = false;
++
+     server_task() = default;
+ 
+     server_task(server_task_type type) : type(type) {}
+@@ -563,6 +568,19 @@ struct server_task_result_apply_lora : server_task_result {
+     virtual json to_json() override;
+ };
+ 
++// used by /v1/decide and /v1/decide/info; data is the response body, status its HTTP status
++struct server_task_result_decide : server_task_result {
++    json data;
++    int  status = 200;
++
++    virtual json to_json() override {
++        return data;
++    }
++    virtual bool is_error() override {
++        return status != 200;
++    }
++};
++
+ struct server_prompt {
+     server_tokens tokens;
+ 
+diff --git a/tools/server/server.cpp b/tools/server/server.cpp
+index 22378b38c..cc6287d34 100644
+--- a/tools/server/server.cpp
++++ b/tools/server/server.cpp
+@@ -229,6 +229,8 @@ int llama_server(common_params & params, int argc, char ** argv) {
+         routes.post_responses_tok_oai      = models_routes->proxy_post;
+         routes.get_lora_adapters           = models_routes->proxy_get;
+         routes.post_lora_adapters          = models_routes->proxy_post;
++        routes.post_decide                 = models_routes->proxy_post;
++        routes.get_decide_info             = models_routes->proxy_get;
+         routes.get_slots                   = models_routes->proxy_get;
+         routes.post_slots                  = models_routes->proxy_post;
+ 
+@@ -281,6 +283,9 @@ int llama_server(common_params & params, int argc, char ** argv) {
+     // LoRA adapters hotswap
+     ctx_http.get ("/lora-adapters",            ex_wrapper(routes.get_lora_adapters));
+     ctx_http.post("/lora-adapters",            ex_wrapper(routes.post_lora_adapters));
++    // one-pass decisions (--decide-seqs)
++    ctx_http.post("/v1/decide",                ex_wrapper(routes.post_decide));
++    ctx_http.get ("/v1/decide/info",           ex_wrapper(routes.get_decide_info));
+     // Save & load slots
+     ctx_http.get ("/slots",                    ex_wrapper(routes.get_slots));
+     ctx_http.post("/slots/:id_slot",           ex_wrapper(routes.post_slots));
+-- 
+2.55.0
+
