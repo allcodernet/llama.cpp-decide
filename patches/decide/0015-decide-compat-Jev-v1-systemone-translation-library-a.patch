@@ -1,7 +1,7 @@
-From 1d77d15bd4237c086e7803de54c609f0b3365017 Mon Sep 17 00:00:00 2001
+From b3daeada0495b12ba3f141ae3ebb78f60eeb12ab Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 25 Sep 2026 18:29:46 +0200
-Subject: [PATCH 15/45] decide-compat: Jev /v1/systemone translation library
+Subject: [PATCH 15/46] decide-compat: Jev /v1/systemone translation library
  and error.field
 
 Add decide-compat.{h,cpp} to llama-decide: pure functions that translate a
@@ -33,10 +33,10 @@ confidence values and the error mapping; no model needed.
  create mode 100644 tools/decide/decide-compat.h
 
 diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
-index ccff73d19..de125056e 100644
+index 1f87cda22..37ae9f8ce 100644
 --- a/tests/CMakeLists.txt
 +++ b/tests/CMakeLists.txt
-@@ -386,5 +386,8 @@ target_link_libraries(test-decide-schema PRIVATE llama-decide)
+@@ -385,5 +385,8 @@ target_link_libraries(test-decide-schema PRIVATE llama-decide)
  llama_build_and_test(test-decide-score.cpp)
  target_link_libraries(test-decide-score PRIVATE llama-decide)
  

@@ -67,6 +67,11 @@
 #              publish/recheck/: the text-run of the 27B regression on the new build, compared with the recorded
 #              publish/regression/ run of 185e9e0a7 (text-compare, max abs diff 0 required), and smoke.py server on
 #              PRESET; refuses to overwrite unless FORCE=1                                                       [server]
+#   upstream   the series moved to a newer upstream llama.cpp (built in another directory, NEW_BIN=<dir>/build/bin) ->
+#              results-engine/upstream/: the text-run of the 27B regression on that build, compared with the recorded
+#              publish/regression/ run (text-compare, recorded; another upstream changes the kernels, so the gate is
+#              text_stat.py, spec 8.3's statistic), and smoke.py server on PRESET; refuses to overwrite unless FORCE=1
+#                                                                                                                [server]
 set -euo pipefail
 export ENGINE_PRESETS=models-engine-3090.ini TRIAGE_DATA=data GPU_VRAM_MAX=1500 GPU_WAIT_MIN=20 \
     EVAL_DIR=results-engine/image LOGS=${LOGS:-/tmp/image-logs} LLAMA_MEDIA_MARKER='<__media__>'
@@ -79,12 +84,13 @@ source "$(dirname "$0")/../sp3/eval/run.sh"
 O=results-engine/image
 IMAGES=local/image/integrity
 OLD_BIN=engine-49785a95d/build/bin
+NEW_BIN=${NEW_BIN:-}  # the "new" build: engine/ unless set (the upstream step builds elsewhere)
 
 setting() {  # setting PRESET KEY: the key of models-engine-3090.ini ([*] overlaid with the preset)
     uv run python -c "from decide_client import _preset_settings; print(_preset_settings('$1')['$2'])"
 }
 start_on() {  # start_on old|new NAME PRESET: a fresh router of that build (engine-49785a95d or engine/) with PRESET loaded
-    if [ "$1" = old ]; then export ENGINE_BIN=$OLD_BIN; else unset ENGINE_BIN; fi
+    if [ "$1" = old ]; then export ENGINE_BIN=$OLD_BIN; elif [ -n "$NEW_BIN" ]; then export ENGINE_BIN=$NEW_BIN; else unset ENGINE_BIN; fi
     router_start "$2"
     router_load "$3"
 }
@@ -384,6 +390,26 @@ do_recheck() {
     stop "recheck-smoke-$P"
     if [ -e "$d/failures.txt" ]; then echo "recheck: failed checks:" >&2; cat "$d/failures.txt" >&2; return 1; fi
     echo "recheck: every check passed"
+}
+
+do_upstream() {
+    local d=results-engine/upstream
+    fresh "$d/qwen3.8-27b-new.jsonl" "$d/smoke-$P.json"
+    mkdir -p "$d"
+    rm -f "$d/failures.txt"
+    start_on new upstream-regression qwen3.8-27b
+    uv run $O/checks.py text-run --url "$URL" --model qwen3.8-27b --server-bin "$(server_bin)" --out "$d/qwen3.8-27b-new.jsonl" \
+        || note_fail "$d" "text-run new"
+    stop upstream-regression
+    uv run $O/checks.py text-compare $O/publish/regression/qwen3.8-27b-new.jsonl "$d/qwen3.8-27b-new.jsonl" \
+        --out "$d/qwen3.8-27b.json" || true  # recorded, not gated: the kernels of another upstream differ
+    uv run $d/text_stat.py $O/publish/regression/qwen3.8-27b-new.jsonl "$d/qwen3.8-27b-new.jsonl" \
+        --out "$d/qwen3.8-27b-stat.json" || note_fail "$d" text-stat
+    start_on new "upstream-smoke-$P" "$P"
+    uv run $O/smoke.py server --url "$URL" --model "$P" --images $IMAGES --out "$d/smoke-$P.json" || note_fail "$d" "smoke $P"
+    stop "upstream-smoke-$P"
+    if [ -e "$d/failures.txt" ]; then echo "upstream: failed checks:" >&2; cat "$d/failures.txt" >&2; return 1; fi
+    echo "upstream: every check passed"
 }
 
 do_swa_integrity() {

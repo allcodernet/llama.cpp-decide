@@ -1,7 +1,7 @@
-From 518540229ab69e37e27eb112694e0afd903dcec0 Mon Sep 17 00:00:00 2001
+From 3828d14896888b4b11578091a90d695a89864bf4 Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Sat, 26 Sep 2026 00:31:53 +0200
-Subject: [PATCH 29/45] decide: one value rule for answers, given and lines;
+Subject: [PATCH 29/46] decide: one value rule for answers, given and lines;
  keep join-check detail
 
 answer_option (the option an answer reports: bool true when p_true >= 0.5,

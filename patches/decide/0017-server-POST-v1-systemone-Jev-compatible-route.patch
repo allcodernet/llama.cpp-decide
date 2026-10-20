@@ -1,7 +1,7 @@
-From 9bdaa893294fb2682e65fada2b22e0bc593fbaca Mon Sep 17 00:00:00 2001
+From 80d90edb51306204e68e6dccf4b851feb9558a8d Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 25 Sep 2026 18:42:44 +0200
-Subject: [PATCH 17/45] server: POST /v1/systemone Jev-compatible route
+Subject: [PATCH 17/46] server: POST /v1/systemone Jev-compatible route
 
 Serve TypeSafe AI's System One request/response shape on top of the
 decide task. The decide_run lambda becomes decide_task, which returns
@@ -16,18 +16,22 @@ post-task 400s map through map_decide_error_body (budget stays 400,
 invalid_schema and other compile codes become 422); 200 bodies are
 translated with the request's questions and model; other statuses
 pass through unchanged. Router mode proxies the route by model.
+
+Upstream serves /v1/systemone for native decision models (PR #29818).
+That handler stays the registered route; where it answered 501 for a
+model without decision metadata it now calls post_systemone_decide, so
+ordinary chat models get the decide-engine translation instead.
 ---
- tools/server/server-context.cpp | 83 +++++++++++++++++++++++++++++----
+ tools/server/server-context.cpp | 89 ++++++++++++++++++++++++++++-----
  tools/server/server-context.h   |  1 +
  tools/server/server-task.h      |  2 +-
- tools/server/server.cpp         |  3 ++
- 4 files changed, 79 insertions(+), 10 deletions(-)
+ 3 files changed, 79 insertions(+), 13 deletions(-)
 
 diff --git a/tools/server/server-context.cpp b/tools/server/server-context.cpp
-index 0b843978d..3e6d2ecf1 100644
+index 6efc99f1c..fc82eec21 100644
 --- a/tools/server/server-context.cpp
 +++ b/tools/server/server-context.cpp
-@@ -17,12 +17,14 @@
+@@ -18,12 +18,14 @@
  #include "mtmd.h"
  #include "mtmd-helper.h"
  #include "decide-api.h"
@@ -42,7 +46,23 @@ index 0b843978d..3e6d2ecf1 100644
  #include <filesystem>
  #include <random>
  #include <utility>
-@@ -5369,7 +5371,11 @@ void server_routes::init_routes() {
+@@ -5948,12 +5950,12 @@ void server_routes::init_routes() {
+         return res;
+     };
+ 
+-    this->post_systemone = [this](const server_http_req & req) {
++    this->post_systemone = [this](const server_http_req & req) -> server_http_res_ptr {
+         auto res = create_response();
+         const auto & decision = ctx_server.decision;
+         if (decision.type == COMMON_DECISION_TYPE_NONE) {
+-            res->error(format_error_response("This model is not a decision model", ERROR_TYPE_NOT_SUPPORTED));
+-            return res;
++            // not a native decision model: answer with the decide engine (Jev-compatible translation)
++            return post_systemone_decide(req);
+         }
+ 
+         const json body = json::parse(req.body);
+@@ -6108,7 +6110,11 @@ void server_routes::init_routes() {
          res.data   = safe_json_to_str(body);
      };
  
@@ -55,7 +75,7 @@ index 0b843978d..3e6d2ecf1 100644
          auto & rd = res.rd;
          {
              server_task task(SERVER_TASK_TYPE_DECIDE);
-@@ -5383,20 +5389,19 @@ void server_routes::init_routes() {
+@@ -6122,20 +6128,19 @@ void server_routes::init_routes() {
          if (!result) {
              // connection was closed
              GGML_ASSERT(req.should_stop());
@@ -80,7 +100,7 @@ index 0b843978d..3e6d2ecf1 100644
          auto res = create_response();
          if (params.decide_seqs <= 0) {
              decide_error(*res, 404, "decide endpoint disabled (--decide-seqs 0)", "disabled");
-@@ -5418,11 +5423,14 @@ void server_routes::init_routes() {
+@@ -6157,11 +6162,14 @@ void server_routes::init_routes() {
              return res;
          }
  
@@ -97,7 +117,7 @@ index 0b843978d..3e6d2ecf1 100644
          auto res = create_response();
          if (params.decide_seqs <= 0) {
              decide_error(*res, 404, "decide endpoint disabled (--decide-seqs 0)", "disabled");
-@@ -5430,7 +5438,64 @@ void server_routes::init_routes() {
+@@ -6169,7 +6177,64 @@ void server_routes::init_routes() {
          }
  
          // no schema: the engine renders the template-only assistant prefix
@@ -111,7 +131,7 @@ index 0b843978d..3e6d2ecf1 100644
 +
 +    // Jev System One shape on top of the decide task; validation errors use FastAPI's
 +    // {"detail": [...]} body, 404 disabled and 500 engine keep the {"error": {...}} body
-+    this->post_systemone = [this, decide_error, decide_task](const server_http_req & req) {
++    this->post_systemone_decide = [this, decide_error, decide_task](const server_http_req & req) {
 +        auto res = create_response();
 +        if (params.decide_seqs <= 0) {
 +            decide_error(*res, 404, "decide endpoint disabled (--decide-seqs 0)", "disabled");
@@ -164,22 +184,22 @@ index 0b843978d..3e6d2ecf1 100644
      };
  }
 diff --git a/tools/server/server-context.h b/tools/server/server-context.h
-index 2448c55ed..db3f1f886 100644
+index 75c3ae63b..9cbc40f71 100644
 --- a/tools/server/server-context.h
 +++ b/tools/server/server-context.h
-@@ -156,6 +156,7 @@ struct server_routes {
+@@ -158,6 +158,7 @@ struct server_routes {
      server_http_context::handler_t post_lora_adapters;
      server_http_context::handler_t post_decide;
      server_http_context::handler_t get_decide_info;
-+    server_http_context::handler_t post_systemone;
++    server_http_context::handler_t post_systemone_decide;
  
      // to be used in router mode
      json get_model_info() const;
 diff --git a/tools/server/server-task.h b/tools/server/server-task.h
-index 7ef643634..05d73a557 100644
+index 651641d60..fd34eba93 100644
 --- a/tools/server/server-task.h
 +++ b/tools/server/server-task.h
-@@ -568,7 +568,7 @@ struct server_task_result_apply_lora : server_task_result {
+@@ -624,7 +624,7 @@ struct server_task_result_apply_lora : server_task_result {
      virtual json to_json() override;
  };
  
@@ -188,27 +208,6 @@ index 7ef643634..05d73a557 100644
  struct server_task_result_decide : server_task_result {
      json data;
      int  status = 200;
-diff --git a/tools/server/server.cpp b/tools/server/server.cpp
-index cc6287d34..cfc27fc91 100644
---- a/tools/server/server.cpp
-+++ b/tools/server/server.cpp
-@@ -231,6 +231,7 @@ int llama_server(common_params & params, int argc, char ** argv) {
-         routes.post_lora_adapters          = models_routes->proxy_post;
-         routes.post_decide                 = models_routes->proxy_post;
-         routes.get_decide_info             = models_routes->proxy_get;
-+        routes.post_systemone              = models_routes->proxy_post;
-         routes.get_slots                   = models_routes->proxy_get;
-         routes.post_slots                  = models_routes->proxy_post;
- 
-@@ -286,6 +287,8 @@ int llama_server(common_params & params, int argc, char ** argv) {
-     // one-pass decisions (--decide-seqs)
-     ctx_http.post("/v1/decide",                ex_wrapper(routes.post_decide));
-     ctx_http.get ("/v1/decide/info",           ex_wrapper(routes.get_decide_info));
-+    // Jev System One compatible shape on top of the decide engine
-+    ctx_http.post("/v1/systemone",             ex_wrapper(routes.post_systemone));
-     // Save & load slots
-     ctx_http.get ("/slots",                    ex_wrapper(routes.get_slots));
-     ctx_http.post("/slots/:id_slot",           ex_wrapper(routes.post_slots));
 -- 
 2.55.0
 

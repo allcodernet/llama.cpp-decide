@@ -1,7 +1,7 @@
-From 3c27888078b70ec48e2f370fe64c6bc69139763a Mon Sep 17 00:00:00 2001
+From 776c3585078fd00b5d2b456d532d74562dc09f44 Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 25 Sep 2026 13:51:24 +0200
-Subject: [PATCH 05/45] decide-trie: tokenisation boundary rule, sibling check,
+Subject: [PATCH 05/46] decide-trie: tokenisation boundary rule, sibling check,
  quote-split fallback
 
 Add decide-trie.{h,cpp}: build_trie tokenises stem_text(f) + each
@@ -49,10 +49,10 @@ genuine ambiguity); a 255-option choice field builds on both.
  create mode 100644 tools/decide/decide-trie.h
 
 diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
-index c733899b8..ccff73d19 100644
+index 3f5e8f8d1..1f87cda22 100644
 --- a/tests/CMakeLists.txt
 +++ b/tests/CMakeLists.txt
-@@ -385,3 +385,6 @@ target_link_libraries(test-decide-schema PRIVATE llama-decide)
+@@ -384,3 +384,6 @@ target_link_libraries(test-decide-schema PRIVATE llama-decide)
  
  llama_build_and_test(test-decide-score.cpp)
  target_link_libraries(test-decide-score PRIVATE llama-decide)

@@ -1,7 +1,7 @@
-From 12f4b149eef7f7da4dc7650e915f6bd38ce421bc Mon Sep 17 00:00:00 2001
+From e645f2a2e7c0b39b2600f8cedeb098299bc5deb1 Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 25 Sep 2026 13:30:06 +0200
-Subject: [PATCH 01/45] decide: schema compilation, validation, catalogue
+Subject: [PATCH 01/46] decide: schema compilation, validation, catalogue
  rendering, hash
 
 Adds tools/decide/decide-schema.{h,cpp}: JSON request compilation into a compiled_schema (choice/score/bool fields), full 400-level validation, the exact system-prompt catalogue renderer, stem/branch text helpers, and FNV-1a hashing. Covered by tests/test-decide-schema.cpp.
@@ -19,10 +19,10 @@ Adds tools/decide/decide-schema.{h,cpp}: JSON request compilation into a compile
  create mode 100644 tools/decide/decide-schema.h
 
 diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
-index 9b3a4fcc4..7ebb9bd16 100644
+index 991bf5479..47ba9e23b 100644
 --- a/tests/CMakeLists.txt
 +++ b/tests/CMakeLists.txt
-@@ -379,3 +379,6 @@ if (TARGET gguf-model-data)
+@@ -378,3 +378,6 @@ if (TARGET gguf-model-data)
      target_link_libraries(test-export-graph-ops PRIVATE gguf-model-data)
      target_compile_definitions(test-export-graph-ops PRIVATE LLAMA_HF_FETCH)
  endif()
@@ -166,7 +166,7 @@ index 000000000..f06368cc1
 +    return 0;
 +}
 diff --git a/tools/CMakeLists.txt b/tools/CMakeLists.txt
-index c8ad1db43..f5c3a0be0 100644
+index 6a6592c7b..ab2f14e8f 100644
 --- a/tools/CMakeLists.txt
 +++ b/tools/CMakeLists.txt
 @@ -15,6 +15,7 @@ llama_add_compile_flags()

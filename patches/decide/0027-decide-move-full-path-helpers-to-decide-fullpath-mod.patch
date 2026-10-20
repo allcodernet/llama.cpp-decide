@@ -1,7 +1,7 @@
-From a65ab3f7a9f2e97352b3bd8024a74c3482b4301c Mon Sep 17 00:00:00 2001
+From 6750695a72c53e5e03c383fd58e0b972298768bd Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 25 Sep 2026 23:26:04 +0200
-Subject: [PATCH 27/45] decide: move full-path helpers to decide-fullpath; mode
+Subject: [PATCH 27/46] decide: move full-path helpers to decide-fullpath; mode
  assert; +inf test
 
 leaf_merged_sets, full_path_row and the full-path dump entry move

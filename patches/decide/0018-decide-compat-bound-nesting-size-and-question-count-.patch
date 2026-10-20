@@ -1,7 +1,7 @@
-From 40fa331c0b36b9b7bb6ccc07d27eaaca1875581f Mon Sep 17 00:00:00 2001
+From fb1be8326c08ca1af6caab58ce566671eb114fc3 Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 25 Sep 2026 20:14:59 +0200
-Subject: [PATCH 18/45] decide-compat: bound nesting, size and question count;
+Subject: [PATCH 18/46] decide-compat: bound nesting, size and question count;
  status from map_decide_error
 
 systemone_to_decide checks the nesting depth of state, instructions and
@@ -366,10 +366,10 @@ index e825c9dfb..e4489540c 100644
  
  } // namespace decide
 diff --git a/tools/server/server-context.cpp b/tools/server/server-context.cpp
-index 3e6d2ecf1..28d8f53cb 100644
+index fc82eec21..cbebf9b9e 100644
 --- a/tools/server/server-context.cpp
 +++ b/tools/server/server-context.cpp
-@@ -5489,9 +5489,9 @@ void server_routes::init_routes() {
+@@ -6228,9 +6228,9 @@ void server_routes::init_routes() {
              res->data   = safe_json_to_str(decide::decide_to_systemone(data, body.at("questions"), body.at("model").get<std::string>()));
          } else if (status == 400) {
              // post-task errors: invalid_schema (sibling prefixes) is a validation error, budget stays 400

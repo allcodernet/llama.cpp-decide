@@ -1,7 +1,7 @@
-From 018eef0cb117f359666a0cf023159f973d82cb8b Mon Sep 17 00:00:00 2001
+From 668381652a51ddf6f775a9fd6b25cc80420aeea6 Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 25 Sep 2026 13:44:06 +0200
-Subject: [PATCH 04/45] decide-score: hard-validate node_scores coverage
+Subject: [PATCH 04/46] decide-score: hard-validate node_scores coverage
  against branch_nodes
 
 score_field is the normalization boundary between per-node logits and

@@ -1,7 +1,7 @@
-From 374a038b8b4eb3398c8af52d43fd3b176fa5610b Mon Sep 17 00:00:00 2001
+From 1fb142fa12f203af5fd9ab2f74756ebcc5ec853d Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 2 Oct 2026 13:26:11 +0200
-Subject: [PATCH 39/45] decide: states as text and image parts, strict
+Subject: [PATCH 39/46] decide: states as text and image parts, strict
  validation, vision status (no vision yet)
 
 ---
@@ -23,10 +23,10 @@ Subject: [PATCH 39/45] decide: states as text and image parts, strict
  create mode 100644 tools/decide/decide-image.h
 
 diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
-index 01569ea2e..bf6f3a0cc 100644
+index 7d533a144..16c49e5f1 100644
 --- a/tests/CMakeLists.txt
 +++ b/tests/CMakeLists.txt
-@@ -409,6 +409,10 @@ target_link_libraries(test-decide-fullpath PRIVATE llama-decide)
+@@ -408,6 +408,10 @@ target_link_libraries(test-decide-fullpath PRIVATE llama-decide)
  llama_build_and_test(test-decide-debias.cpp)
  target_link_libraries(test-decide-debias PRIVATE llama-decide)
  
@@ -911,10 +911,10 @@ index b922a0d19..131a7f69d 100644
  // highest field level (0 without "after")
  int         max_level(const compiled_schema & cs);
 diff --git a/tools/server/server-context.cpp b/tools/server/server-context.cpp
-index d6adadd03..968be527f 100644
+index ac01d6221..cccafef05 100644
 --- a/tools/server/server-context.cpp
 +++ b/tools/server/server-context.cpp
-@@ -20,6 +20,7 @@
+@@ -21,6 +21,7 @@
  #include "decide-compat.h"
  
  #include <algorithm>
@@ -922,7 +922,7 @@ index d6adadd03..968be527f 100644
  #include <cstddef>
  #include <cinttypes>
  #include <exception>
-@@ -846,6 +847,11 @@ public:
+@@ -954,6 +955,11 @@ public:
      llama_model * model_tgt = nullptr;
  
      mtmd_context * mctx = nullptr;
@@ -934,7 +934,7 @@ index d6adadd03..968be527f 100644
      // note: video_params.ffmpeg_bin_dir points into params_base, which outlives this struct
      mtmd_helper_init_opt init_opt = mtmd_helper_init_opt_default();
      const llama_vocab * vocab = nullptr;
-@@ -1427,6 +1433,7 @@ private:
+@@ -1576,6 +1582,7 @@ private:
          for (int i = 0; i < params_base.n_parallel; i++) {
              cfg.slot_seqs.push_back((llama_seq_id) i);
          }
@@ -942,7 +942,7 @@ index d6adadd03..968be527f 100644
  
          try {
              decide_engine = std::make_unique<decide::engine>(ctx_tgt, model_tgt, chat_params.tmpls.get(), cfg);
-@@ -5420,7 +5427,7 @@ void server_routes::init_routes() {
+@@ -6159,7 +6166,7 @@ void server_routes::init_routes() {
          // validate here so that bad requests never reach the model
          try {
              decide::compile_request(body);
@@ -951,7 +951,7 @@ index d6adadd03..968be527f 100644
          } catch (const decide::error & e) {
              decide_error(*res, e.http, e.what(), e.code, e.field);
              return res;
-@@ -5483,7 +5490,7 @@ void server_routes::init_routes() {
+@@ -6222,7 +6229,7 @@ void server_routes::init_routes() {
          try {
              request = decide::systemone_to_decide(body);
              decide::compile_request(request);

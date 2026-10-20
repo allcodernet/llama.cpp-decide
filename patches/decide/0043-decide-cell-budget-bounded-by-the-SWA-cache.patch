@@ -1,7 +1,7 @@
-From d35d46d3bbc123166364617e03ac009cff8b7e6a Mon Sep 17 00:00:00 2001
+From e3c57b8113ccd41276d413f7a642783744a33b60 Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 2 Oct 2026 15:22:01 +0200
-Subject: [PATCH 43/45] decide: cell budget bounded by the SWA cache
+Subject: [PATCH 43/46] decide: cell budget bounded by the SWA cache
 
 On a model with sliding-window attention layers the context has a second, smaller KV cache (src/llama-kv-cache-iswa.cpp:73). Every cell limit of the engine is now min(n_ctx, SWA cells) - 16, so a state over the SWA cache gets 400 budget naming it and --swa-full instead of a 500 (spec 5.3 rev 5). engine_config gains swa_full; info reports memory.swa_cells for such models.
 ---
@@ -270,10 +270,10 @@ index e8f9694ef..65283cff0 100644
  
  } // namespace decide
 diff --git a/tools/server/server-context.cpp b/tools/server/server-context.cpp
-index 66a3bd329..4b818f12c 100644
+index f5a283483..20b85cd23 100644
 --- a/tools/server/server-context.cpp
 +++ b/tools/server/server-context.cpp
-@@ -1431,6 +1431,7 @@ private:
+@@ -1580,6 +1580,7 @@ private:
          cfg.prefix_cache = params_base.decide_prefix_cache;
          cfg.temperature  = params_base.decide_temperature;
          cfg.mctx         = mctx;   // spec 4.1: null without --mmproj

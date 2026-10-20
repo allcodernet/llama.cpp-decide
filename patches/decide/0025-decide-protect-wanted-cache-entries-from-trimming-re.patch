@@ -1,7 +1,7 @@
-From 42137732cb33acd4a86afdd5a43d5b7f25a3e173 Mon Sep 17 00:00:00 2001
+From cf5ab2b53293a02421b9dfc3eee1117d7324a3f0 Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 25 Sep 2026 22:38:44 +0200
-Subject: [PATCH 25/45] decide: protect wanted cache entries from trimming;
+Subject: [PATCH 25/46] decide: protect wanted cache entries from trimming;
  restore fault mode
 
 fill_slot snapshotted the evicted slot before it looked up the wanted
@@ -29,10 +29,10 @@ mode, so "restore" never fired. llama-decide --help lists the mode.
  create mode 100644 tests/test-decide-cache.cpp
 
 diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
-index de125056e..c89d15909 100644
+index 37ae9f8ce..f99a69919 100644
 --- a/tests/CMakeLists.txt
 +++ b/tests/CMakeLists.txt
-@@ -391,3 +391,6 @@ target_link_libraries(test-decide-compat PRIVATE llama-decide)
+@@ -390,3 +390,6 @@ target_link_libraries(test-decide-compat PRIVATE llama-decide)
  
  llama_build_and_test(test-decide-trie.cpp)
  target_link_libraries(test-decide-trie PRIVATE llama-decide)

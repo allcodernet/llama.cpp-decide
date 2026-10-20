@@ -1,7 +1,7 @@
-From 2c166dbd2aae43d1a65c24abca15e033bd3e32ee Mon Sep 17 00:00:00 2001
+From 9df539cefe49c813eae26beb0370e4be096501a9 Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 2 Oct 2026 09:22:42 +0200
-Subject: [PATCH 38/45] decide: fault message suffix for tail-mismatch; header
+Subject: [PATCH 38/46] decide: fault message suffix for tail-mismatch; header
  note
 
 The tail-mismatch fault's 500 now ends in "(injected by

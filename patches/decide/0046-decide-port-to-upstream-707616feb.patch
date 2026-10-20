@@ -1,0 +1,74 @@
+From dfd8a01b3627de955bb3f2f7a9886e571db47427 Mon Sep 17 00:00:00 2001
+From: allcodernet <67543055+allcodernet@users.noreply.github.com>
+Date: Tue, 20 Oct 2026 12:58:27 +0200
+Subject: [PATCH 46/46] decide: port to upstream 707616feb
+
+common_chat_templates_apply() now returns the rendered prompt as parts
+(common_chat_prompt): take its str(). The llama_batch helpers
+common_batch_clear and common_batch_add left common.h with the extended
+batch API; the engine keeps llama_batch and carries the two one-liners
+itself.
+---
+ tools/decide/decide-engine.cpp | 26 +++++++++++++++++++++-----
+ 1 file changed, 21 insertions(+), 5 deletions(-)
+
+diff --git a/tools/decide/decide-engine.cpp b/tools/decide/decide-engine.cpp
+index e626ced6a..5ef670018 100644
+--- a/tools/decide/decide-engine.cpp
++++ b/tools/decide/decide-engine.cpp
+@@ -124,7 +124,7 @@ engine::rendered engine::render(const compiled_schema * cs, int variant, int var
+ 
+     std::string prompt;
+     try {
+-        prompt = common_chat_templates_apply(tmpls, in).prompt;
++        prompt = common_chat_templates_apply(tmpls, in).prompt.str();
+     } catch (const std::exception & e) {
+         throw error("engine", 500, std::string("chat template failed: ") + e.what());
+     }
+@@ -434,23 +434,39 @@ void engine::end_request() {
+     }
+ }
+ 
++// upstream removed the llama_batch helpers of common.h (common_batch_clear, common_batch_add) with its extended batch API;
++// the engine keeps llama_batch, so the two one-liners live here
++static void batch_clear(llama_batch & batch) {
++    batch.n_tokens = 0;
++}
++
++static void batch_add(llama_batch & batch, llama_token id, llama_pos pos, llama_seq_id seq, bool output) {
++    GGML_ASSERT(batch.seq_id[batch.n_tokens] && "llama_batch size exceeded");
++    batch.token   [batch.n_tokens]    = id;
++    batch.pos     [batch.n_tokens]    = pos;
++    batch.n_seq_id[batch.n_tokens]    = 1;
++    batch.seq_id  [batch.n_tokens][0] = seq;
++    batch.logits  [batch.n_tokens]    = output;
++    batch.n_tokens++;
++}
++
+ int engine::decode_chunked(const std::vector<entry> & entries, const std::function<void(size_t, size_t)> & on_chunk_done, stats & st,
+                            bool inject) {
+     // spec 4.4: one decode may not request more rows than llama_n_seq_max (n_outputs_max; the server sets it to that)
+     for (const auto & [begin, end] : decode_chunks(entries, n_batch, row_cap)) {
+-        common_batch_clear(batch);
++        batch_clear(batch);
+         for (size_t i = begin; i < end; ++i) {
+             const entry & e = entries[i];
+-            common_batch_add(batch, e.tok, e.pos, {e.seq}, e.tag >= 0);
++            batch_add(batch, e.tok, e.pos, e.seq, e.tag >= 0);
+         }
+         if (inject) {
+-            common_batch_clear(batch);
++            batch_clear(batch);
+             return 1;
+         }
+         const int rc = llama_decode(ctx, batch);
+         st.decodes++;
+         const int n_tokens = batch.n_tokens;
+-        common_batch_clear(batch);
++        batch_clear(batch);
+         if (rc == 1) {
+             return 1;
+         }
+-- 
+2.55.0
+

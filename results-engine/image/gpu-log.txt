@@ -232,3 +232,15 @@
 20:53:12 recheck-regression: 22318 MiB, 71 at stop
 20:53:14 recheck-smoke-qwen3.8-27b-vision: 612 MiB, 64 C before start
 20:53:23 recheck-smoke-qwen3.8-27b-vision: 16462 MiB, 73 at stop
+13:03:30 upstream-regression: 445 MiB, 38 C before start
+13:04:34 upstream-regression: 22160 MiB, 64 at stop
+13:04:37 upstream-smoke-qwen3.8-27b-vision: 445 MiB, 59 C before start
+13:04:46 upstream-smoke-qwen3.8-27b-vision: 16310 MiB, 65 at stop
+13:11:13 upstream-regression: 547 MiB, 52 C before start
+13:12:13 upstream-regression: 22262 MiB, 69 at stop
+13:12:16 upstream-smoke-qwen3.8-27b-vision: 547 MiB, 63 C before start
+13:12:25 upstream-smoke-qwen3.8-27b-vision: 16412 MiB, 71 at stop
+13:12:56 upstream-regression: 547 MiB, 56 C before start
+13:14:02 upstream-regression: 22262 MiB, 68 at stop
+13:14:05 upstream-smoke-qwen3.8-27b-vision: 547 MiB, 63 C before start
+13:14:18 upstream-smoke-qwen3.8-27b-vision: 16412 MiB, 69 at stop

@@ -1,7 +1,7 @@
-From 8139441ba6b5e4b1702c46e92b40daa479f3e282 Mon Sep 17 00:00:00 2001
+From 258b485f12d55acf90d9b066815548d8b91cb3cc Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 25 Sep 2026 15:52:48 +0200
-Subject: [PATCH 09/45] decide: runtime tokenisation-join self-check
+Subject: [PATCH 09/46] decide: runtime tokenisation-join self-check
 
 The engine tokenises prefix, state, tail and branch text as separate
 fragments. Check at engine construction (placeholder schema), at prefix

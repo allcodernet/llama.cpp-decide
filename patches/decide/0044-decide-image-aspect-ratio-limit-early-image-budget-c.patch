@@ -1,7 +1,7 @@
-From 581339239ba5c1317c7cfbe4dcc542951a0bfde9 Mon Sep 17 00:00:00 2001
+From 7a270a622368dd0bb042bf59f9b2b1af0e9b7f03 Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 2 Oct 2026 17:27:46 +0200
-Subject: [PATCH 44/45] decide: image aspect-ratio limit, early image budget
+Subject: [PATCH 44/46] decide: image aspect-ratio limit, early image budget
  check, small fixes
 
 Pass 1 rejects an image whose longer side is more than 200 times its shorter side (400 invalid_states); a projector pads the short side of an extreme strip up to its patch size, so the pixel limit alone did not bound the memory of the preprocessed image. Info reports vision.max_image_aspect_ratio. prepare_inputs checks a state's cells right after each image is tokenised and ends the request with the usual 400 budget before further images are loaded; it also rejects an image part itself when vision is not available. The image SHA-256 is computed only for a dump. Comments: the n_ubatch rule is unreachable while non-causal projectors are off; slot_seqs feeds n_parallel in info and the held-cell fallback without a callback (spec rev 6).

@@ -39,7 +39,7 @@ ROOT=$PWD
 [ -n "${REMOTE_DIR:-}" ] || { echo "remote-sync: set and export REMOTE_DIR (absolute path of the repository there)" >&2; exit 1; }
 while [ "${REMOTE_DIR%/}" != "$REMOTE_DIR" ]; do REMOTE_DIR=${REMOTE_DIR%/}; done
 SEED=${REMOTE_SEED:-https://github.com/ggml-org/llama.cpp}  # cloned there for a missing engine/; read only, must contain UPSTREAM_COMMIT
-UPSTREAM_COMMIT=60b06ab9a9eeec26f8125c9316ccbf4ee4713d1f
+UPSTREAM_COMMIT=707616feb5f379e99ff7442680a55b4a1704c7c9
 MANIFEST=remote-sync-overlay  # in the remote repository's git directory: "<hash or ->\t<path>\0" per overlaid path
 SOURCE_FILE=remote-sync-source  # in the remote repository's git directory: SOURCE of the checkout that pushes there
 SOURCE="$(uname -n) $(cat /etc/machine-id 2>/dev/null || echo -) $ROOT"

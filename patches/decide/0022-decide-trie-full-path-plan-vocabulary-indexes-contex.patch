@@ -1,7 +1,7 @@
-From 1551dccc87a4b5eccc8c12ec9080a5cbb6012114 Mon Sep 17 00:00:00 2001
+From 97b9df896ae2d6299f16556b23d9f3cb8f0940f4 Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 25 Sep 2026 21:41:41 +0200
-Subject: [PATCH 22/45] decide-trie: full-path plan, vocabulary indexes,
+Subject: [PATCH 22/46] decide-trie: full-path plan, vocabulary indexes,
  context tries
 
 decide-vocab: ends_value is the value-end predicate of spec 4.1;

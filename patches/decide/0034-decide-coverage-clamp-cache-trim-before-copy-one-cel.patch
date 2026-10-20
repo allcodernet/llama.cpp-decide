@@ -1,7 +1,7 @@
-From c854c839c9995e726a603b027aad5bfda66c116c Mon Sep 17 00:00:00 2001
+From 93ebb5bddeb82c862f89ee8eaafcefc442f38b08 Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 2 Oct 2026 08:19:00 +0200
-Subject: [PATCH 34/45] decide: coverage clamp, cache trim before copy, one
+Subject: [PATCH 34/46] decide: coverage clamp, cache trim before copy, one
  cell formula, info slots
 
 - A coverage in (1, 1 + 1e-6] (float log-probs) is reported as exactly 1,

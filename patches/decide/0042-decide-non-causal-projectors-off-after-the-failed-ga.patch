@@ -1,7 +1,7 @@
-From 15d01ac28ed82c0d3acd24ffc2d6c300a214990d Mon Sep 17 00:00:00 2001
+From 4eee5f4952464ead115ca5dbb5c2f634b075593e Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 2 Oct 2026 14:52:41 +0200
-Subject: [PATCH 42/45] decide: non-causal projectors off after the failed gate
+Subject: [PATCH 42/46] decide: non-causal projectors off after the failed gate
  (spec 9.5)
 
 ---

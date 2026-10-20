@@ -1,7 +1,7 @@
-From 39f3515320ba8afb44d0cb8ba05fee2bfd374b3b Mon Sep 17 00:00:00 2001
+From f9e5020e5ca97e486c1f412b38fafca5605de067 Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Sat, 26 Sep 2026 01:03:26 +0200
-Subject: [PATCH 31/45] decide: clamp free sequences in the budget message;
+Subject: [PATCH 31/46] decide: clamp free sequences in the budget message;
  cell message helper
 
 The spr = 0 message names max(0, D - K_eff) sequences left after the prefix
