@@ -1,7 +1,7 @@
-From e90de8c3514fb661240ec0317f6ba46bbfef7b42 Mon Sep 17 00:00:00 2001
+From 0073887f1f69407e2770b9ce3b8c80cda9309839 Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 25 Sep 2026 15:54:25 +0200
-Subject: [PATCH 12/45] common: reject --decide-seqs above the sequence limit
+Subject: [PATCH 12/46] common: reject --decide-seqs above the sequence limit
 
 n_parallel + decide_seqs above llama_max_parallel_sequences() failed
 later at context creation with a generic error. Check it after parsing,
@@ -11,10 +11,10 @@ so the order of -np and --decide-seqs does not matter.
  1 file changed, 8 insertions(+)
 
 diff --git a/common/arg.cpp b/common/arg.cpp
-index f88198219..39de43bfd 100644
+index 84d29b0bb..ab5638985 100644
 --- a/common/arg.cpp
 +++ b/common/arg.cpp
-@@ -889,6 +889,14 @@ static bool common_params_parse_ex(int argc, char ** argv, common_params_context
+@@ -895,6 +895,14 @@ static bool common_params_parse_ex(int argc, char ** argv, common_params_context
          params.mmproj_use_gpu = params.mmproj_device != nullptr;
      }
  

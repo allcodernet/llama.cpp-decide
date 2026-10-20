@@ -1,7 +1,7 @@
-From 820a1db2b6209083d144e942f085f9fe559dc371 Mon Sep 17 00:00:00 2001
+From 635d3a8ae8dc652702fa41c41019b7285c89bc03 Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 25 Sep 2026 23:56:50 +0200
-Subject: [PATCH 28/45] decide: sequential fields (after)
+Subject: [PATCH 28/46] decide: sequential fields (after)
 
 Fields are scored level by level (spec 5): one branch phase per
 "after" level in every round. A dependent field's branches start with
@@ -35,10 +35,10 @@ files.
  create mode 100644 tools/decide/decide-after.h
 
 diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
-index d5058974e..97a21428d 100644
+index 5662e86ab..76faa5bbb 100644
 --- a/tests/CMakeLists.txt
 +++ b/tests/CMakeLists.txt
-@@ -397,3 +397,9 @@ target_link_libraries(test-decide-cache PRIVATE llama-decide)
+@@ -396,3 +396,9 @@ target_link_libraries(test-decide-cache PRIVATE llama-decide)
  
  llama_build_and_test(test-decide-fullpath.cpp)
  target_link_libraries(test-decide-fullpath PRIVATE llama-decide)

@@ -1,7 +1,7 @@
-From 023d3ff3467bde8b9401009ad5243ece069df731 Mon Sep 17 00:00:00 2001
+From 8faaf5db5f3ee0f6ec4f8014f5d67a74a403b80b Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 2 Oct 2026 13:36:17 +0200
-Subject: [PATCH 40/45] decide: image states: stb_image pixels, mtmd trunks,
+Subject: [PATCH 40/46] decide: image states: stb_image pixels, mtmd trunks,
  cell budget, held cells from the server
 
 ---
@@ -633,10 +633,10 @@ index 000000000..89ead9b72
 +
 +} // namespace decide
 diff --git a/tools/server/server-context.cpp b/tools/server/server-context.cpp
-index 968be527f..66a3bd329 100644
+index cccafef05..f5a283483 100644
 --- a/tools/server/server-context.cpp
 +++ b/tools/server/server-context.cpp
-@@ -1430,6 +1430,15 @@ private:
+@@ -1579,6 +1579,15 @@ private:
          cfg.seq_base     = (llama_seq_id) params_base.n_parallel;
          cfg.prefix_cache = params_base.decide_prefix_cache;
          cfg.temperature  = params_base.decide_temperature;

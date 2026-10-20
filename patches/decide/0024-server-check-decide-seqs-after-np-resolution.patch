@@ -1,7 +1,7 @@
-From 93bb513f777b394bc070fc3d9d42c736a5ff11e0 Mon Sep 17 00:00:00 2001
+From a0fc4c04b43ed0385ab3a254d45842c492e4c48d Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 25 Sep 2026 22:12:33 +0200
-Subject: [PATCH 24/45] server: check --decide-seqs after -np resolution
+Subject: [PATCH 24/46] server: check --decide-seqs after -np resolution
 
 The argument parser counts -np -1 as one slot; the server turns it into
 4 later, before it loads the model. Check n_parallel + decide_seqs
@@ -12,10 +12,10 @@ against llama_max_parallel_sequences() again there, so
  1 file changed, 7 insertions(+)
 
 diff --git a/tools/server/server.cpp b/tools/server/server.cpp
-index cfc27fc91..5e4abfc86 100644
+index e15176e4a..7981a7f33 100644
 --- a/tools/server/server.cpp
 +++ b/tools/server/server.cpp
-@@ -155,6 +155,13 @@ int llama_server(common_params & params, int argc, char ** argv) {
+@@ -172,6 +172,13 @@ int llama_server(common_params & params, int argc, char ** argv, server_child &
              params.n_parallel = 4;
              params.kv_unified = true;
          }

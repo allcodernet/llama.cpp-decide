@@ -1,7 +1,7 @@
-From e82fc4ab54b6e34b3e46da971bcf99e1e8941b00 Mon Sep 17 00:00:00 2001
+From bc9ec7282e36ee801c61c3e4e8861e071e0fca01 Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 25 Sep 2026 13:36:30 +0200
-Subject: [PATCH 02/45] decide-schema: reject empty field names, split levels
+Subject: [PATCH 02/46] decide-schema: reject empty field names, split levels
  error message
 
 Empty-string field keys compiled successfully, contradicting the rule that field names are non-empty. Also split the SCORE branch's combined missing/wrong-type levels error into distinct messages.

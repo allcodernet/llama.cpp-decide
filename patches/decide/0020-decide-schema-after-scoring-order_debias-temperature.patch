@@ -1,7 +1,7 @@
-From 55959ff4060f4d84e7bdbc4dcc764b60525d9280 Mon Sep 17 00:00:00 2001
+From 55c9ff7e436eacd70d243fac3694e2981d236a25 Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 25 Sep 2026 20:57:38 +0200
-Subject: [PATCH 20/45] decide-schema: after, scoring/order_debias/temperature
+Subject: [PATCH 20/46] decide-schema: after, scoring/order_debias/temperature
  options, catalogue variants
 
 Fields accept "after": 1 to 8 distinct names of other fields. compile

@@ -1,0 +1,29 @@
+{
+  "preds_a": "results-engine/upstream/text-integrity/integrity/batch-invariance/preds/decide-qwen3.8-27b-b1-keywords.jsonl",
+  "preds_b": "results-engine/upstream/text-integrity/integrity/batch-invariance/decide-qwen3.8-27b-b5-keywords-first20.jsonl",
+  "n": 20,
+  "fields": {
+    "queue": {
+      "median_abs_diff": 1.7048880997664222e-05,
+      "max_abs_diff": 0.005580816768660762,
+      "argmax_agreement": 1,
+      "disagreements_over_margin": 0,
+      "argmax_abs_diff_median": 0.00022175872205021374
+    },
+    "urgency": {
+      "median_abs_diff": 0.0006850480051633304,
+      "max_abs_diff": 0.01748352183363705,
+      "argmax_agreement": 1,
+      "disagreements_over_margin": 0,
+      "argmax_abs_diff_median": 0.0027648854099323605
+    },
+    "angry": {
+      "median_abs_diff": 0.0016393624789972083,
+      "max_abs_diff": 0.018522246482611193,
+      "argmax_agreement": 1,
+      "disagreements_over_margin": 0,
+      "argmax_abs_diff_median": 0.0016393624789972083
+    }
+  },
+  "pass": true
+}

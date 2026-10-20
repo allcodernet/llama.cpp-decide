@@ -1,7 +1,7 @@
-From e699cfdd392039f3b54519af52d9f85ffaf5c8d3 Mon Sep 17 00:00:00 2001
+From d5b76e6c14cab3a68e7d3cd4f90d34745f9aaf9e Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 25 Sep 2026 15:52:56 +0200
-Subject: [PATCH 10/45] decide: check every state's cell budget before any
+Subject: [PATCH 10/46] decide: check every state's cell budget before any
  decode
 
 A 400 budget error could follow a prefix decode and earlier rounds.

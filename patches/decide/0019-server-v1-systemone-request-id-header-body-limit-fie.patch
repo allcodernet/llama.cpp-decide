@@ -1,7 +1,7 @@
-From f5c37862f32d54fc67d0af92b7a50e88f772b6d6 Mon Sep 17 00:00:00 2001
+From e4849360f4d5f7f93422ddd2c0070f667006460f Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 25 Sep 2026 20:17:41 +0200
-Subject: [PATCH 19/45] server: /v1/systemone request id header, body limit;
+Subject: [PATCH 19/46] server: /v1/systemone request id header, body limit;
  field in /v1/decide pre-task errors
 
 post_systemone sets x-typesafe-request-id ("llamacpp-" + a random id) on
@@ -18,10 +18,10 @@ errors.
  1 file changed, 13 insertions(+), 2 deletions(-)
 
 diff --git a/tools/server/server-context.cpp b/tools/server/server-context.cpp
-index 28d8f53cb..3e34da820 100644
+index cbebf9b9e..fbbd98c54 100644
 --- a/tools/server/server-context.cpp
 +++ b/tools/server/server-context.cpp
-@@ -5361,10 +5361,11 @@ void server_routes::init_routes() {
+@@ -6100,10 +6100,11 @@ void server_routes::init_routes() {
  
      // decide routes: the status is set directly, since res->error() derives it from an integer "code"
      // while decide errors carry string codes
@@ -34,7 +34,7 @@ index 28d8f53cb..3e34da820 100644
          json body = json::object();
          body["error"] = err;
          res.status = status;
-@@ -5419,7 +5420,7 @@ void server_routes::init_routes() {
+@@ -6158,7 +6159,7 @@ void server_routes::init_routes() {
              decide::compile_request(body);
              decide::states_of(body);
          } catch (const decide::error & e) {
@@ -43,16 +43,16 @@ index 28d8f53cb..3e34da820 100644
              return res;
          }
  
-@@ -5449,6 +5450,8 @@ void server_routes::init_routes() {
+@@ -6188,6 +6189,8 @@ void server_routes::init_routes() {
      // {"detail": [...]} body, 404 disabled and 500 engine keep the {"error": {...}} body
-     this->post_systemone = [this, decide_error, decide_task](const server_http_req & req) {
+     this->post_systemone_decide = [this, decide_error, decide_task](const server_http_req & req) {
          auto res = create_response();
 +        // the SDK reads this header for response.request_id
 +        res->headers["x-typesafe-request-id"] = "llamacpp-" + random_string();
          if (params.decide_seqs <= 0) {
              decide_error(*res, 404, "decide endpoint disabled (--decide-seqs 0)", "disabled");
              return res;
-@@ -5459,6 +5462,14 @@ void server_routes::init_routes() {
+@@ -6198,6 +6201,14 @@ void server_routes::init_routes() {
              res->data   = safe_json_to_str(decide::validation_body({e}));
          };
  

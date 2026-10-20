@@ -6,7 +6,7 @@ refers to the following.
 ## llama.cpp (the engine patches)
 
 `patches/decide/*.patch` is a patch series against upstream llama.cpp, https://github.com/ggml-org/llama.cpp, commit
-`60b06ab9a9eeec26f8125c9316ccbf4ee4713d1f`. llama.cpp is MIT-licensed, Copyright (c) 2023-2026 The ggml authors. The
+`707616feb5f379e99ff7442680a55b4a1704c7c9`. llama.cpp is MIT-licensed, Copyright (c) 2023-2026 The ggml authors. The
 patches modify and add files of that tree (mostly under `tools/decide/`, plus `common/`, `tools/server/` and
 `tests/`); the patched tree stays under llama.cpp's licence. `build-engine.sh` clones upstream at that commit and
 applies the series with `git am`; no llama.cpp source is stored in this repository apart from the context lines of the

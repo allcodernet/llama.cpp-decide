@@ -1,7 +1,7 @@
-From d5cdf773affbe337236279f1124f6349c86c6de2 Mon Sep 17 00:00:00 2001
+From bd8f0de3134c0b253aacc0d796edd7f5d920d0db Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 2 Oct 2026 18:42:18 +0200
-Subject: [PATCH 45/45] decide: sequence budget before prefix preparation
+Subject: [PATCH 45/46] decide: sequence budget before prefix preparation
 
 run_request checks the sequence budget (it needs only K and the branches per state) before it prepares the prefixes and before any image is loaded, so a text request with too few decide sequences and a chat template or join failure gets the 400 budget it got before patch 0044 instead of the 500. The image early-budget check, which needs the prefix numbers, is unchanged; an image request with too few sequences is now rejected before its images are decoded.
 ---

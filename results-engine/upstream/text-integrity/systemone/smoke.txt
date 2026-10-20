@@ -1,0 +1,89 @@
+== docs example
+{
+  "model": "qwen3.8-27b",
+  "answers": {
+    "is_urgent": {
+      "type": "noul",
+      "noul": 0.9962587933382558
+    },
+    "department": {
+      "type": "choice",
+      "choice": "billing",
+      "probabilities": {
+        "billing": 0.8697966703951984,
+        "technical": 0.13004229779361012,
+        "sales": 0.00016103181119145335
+      },
+      "confidence": 0.8046950055927975
+    },
+    "frustration": {
+      "type": "score",
+      "score": 1.1698321776821896,
+      "legend": {
+        "0": "Calm",
+        "1": {
+          "level": "Frustrated"
+        },
+        "2": "Very angry"
+      },
+      "probabilities": {
+        "0": 0.030292222340074424,
+        "1": 0.7695833776376618,
+        "2": 0.20012440002226387
+      },
+      "confidence": 0.6543750664564927
+    }
+  },
+  "usage": {
+    "input_tokens": 193,
+    "output_tokens": 0
+  }
+}
+max abs diff vs /v1/decide oracle body: 0
+== triage ticket 0
+{
+  "model": "qwen3.8-27b",
+  "answers": {
+    "queue": {
+      "type": "choice",
+      "choice": "billing",
+      "probabilities": {
+        "billing": 0.9817130380433297,
+        "technical": 0.0003527677794178783,
+        "sales": 0.0037786193386838496,
+        "feedback": 0.014155574838568816
+      },
+      "confidence": 0.9756173840577729
+    },
+    "urgency": {
+      "type": "score",
+      "score": 0.025784573238700058,
+      "legend": {
+        "0": "Can wait: praise, feature requests, idle questions, no problem",
+        "1": "Normal: a real problem for one user without time pressure",
+        "2": "Should be handled today: user is blocked, money wrongly taken, a deadline within days, or repeated contact",
+        "3": "Drop everything: outage affecting many users, security incident, data loss, or enterprise customer about to churn"
+      },
+      "probabilities": {
+        "0": 0.9785131779779839,
+        "1": 0.01748913003216991,
+        "2": 0.003697632763008743,
+        "3": 0.00030005922683755393
+      },
+      "confidence": 0.9713509039706452
+    },
+    "angry": {
+      "type": "noul",
+      "noul": 0.00060825141277474
+    }
+  },
+  "usage": {
+    "input_tokens": 309,
+    "output_tokens": 0
+  }
+}
+max abs diff vs /v1/decide oracle body: 0
+== limits
+depth 40: 422 in 1.5 ms: {"detail":[{"loc":["body","state"],"msg":"nesting deeper than 32 levels","type":"value_error"}]}
+follow-up docs example: 200; x-typesafe-request-id: ['llamacpp-tTNbKjXqczhOLegPGMaBl128FlsLbR3Q', 'llamacpp-DKNp29SMiOX3vMY7pnBEI1pu2PTv0fff']
+OK: identical probabilities through both endpoints (max abs diff 0); request id header and depth-40 422 checked

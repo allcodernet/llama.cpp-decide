@@ -1,7 +1,7 @@
-From 4cbdba0152c2975c3f44ad4233b7bb419cc3181f Mon Sep 17 00:00:00 2001
+From 97ce7a3a23b6a6f50b4b460811cc8c1483b18c78 Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 25 Sep 2026 21:15:11 +0200
-Subject: [PATCH 21/45] decide-score: full-path aggregation, temperature,
+Subject: [PATCH 21/46] decide-score: full-path aggregation, temperature,
  variant averaging
 
 score_field_full implements spec 4.1 from one node_logp row per trie

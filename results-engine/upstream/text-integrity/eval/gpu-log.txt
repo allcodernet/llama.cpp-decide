@@ -1,0 +1,8 @@
+13:04:49 dump-tree: 445 MiB, 56 C before start
+13:04:55 dump-fp: 445 MiB, 61 C before start
+13:05:03 replays: 541 MiB, 61 C before start
+13:07:01 replays: 22268 MiB, 66 at stop
+13:07:04 batch-b1: 547 MiB, 63 C before start
+13:07:12 batch-b1: 22276 MiB, 72 at stop
+13:07:14 systemone: 547 MiB, 61 C before start
+13:07:21 systemone: 22268 MiB, 64 at stop

@@ -1,7 +1,7 @@
-From bcc7174a04aaf22f93be1de4b9cf89486f508584 Mon Sep 17 00:00:00 2001
+From 5b0a6533c560280c79a18d4857b75441c464e64e Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 25 Sep 2026 18:32:23 +0200
-Subject: [PATCH 16/45] decide-compat: empty instructions fall back to the
+Subject: [PATCH 16/46] decide-compat: empty instructions fall back to the
  default description
 
 An instructions value that is an empty string now gets the per-type default, like null or absent, instead of an empty description that compile rejects. The compile-stamp test uses a one-option choice to raise the error inside a field.

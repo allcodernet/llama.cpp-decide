@@ -1,0 +1,41 @@
+{
+ "a": "results-engine/image/publish/regression/qwen3.8-27b-new.jsonl",
+ "b": "results-engine/upstream/qwen3.8-27b-new.jsonl",
+ "requests": 88,
+ "skipped": [],
+ "fields": {
+  "queue": {
+   "n": 1760,
+   "median_abs_diff": 3.687660143487218e-06,
+   "max_abs_diff": 0.029371743783940585
+  },
+  "urgency": {
+   "n": 1760,
+   "median_abs_diff": 0.00018381955280594582,
+   "max_abs_diff": 0.07627311087695188
+  },
+  "angry": {
+   "n": 880,
+   "median_abs_diff": 0.00025624766072790406,
+   "max_abs_diff": 0.03272311976241793
+  }
+ },
+ "flips": [
+  {
+   "label": "after",
+   "field": "angry",
+   "a": false,
+   "b": true,
+   "margin": 0.0010542169921388678
+  },
+  {
+   "label": "cache",
+   "field": "urgency",
+   "a": 0,
+   "b": 1,
+   "margin": 0.02369165177044391
+  }
+ ],
+ "flips_over_margin": 0,
+ "pass": true
+}

@@ -1,7 +1,7 @@
-From e6e42043192c0e8079de523593115b6871351af7 Mon Sep 17 00:00:00 2001
+From 2ad10281fb8e785654bc4704408eece0196e76ce Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 25 Sep 2026 15:55:15 +0200
-Subject: [PATCH 13/45] decide: option indices per branch child in
+Subject: [PATCH 13/46] decide: option indices per branch child in
  --dump-tokens
 
 An external checker needs to know which options pass through each child

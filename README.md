@@ -61,9 +61,9 @@ tail and branch separately and checks that the pieces join the way the whole pro
 
 ```bash
 git clone https://github.com/allcodernet/llama.cpp-decide && cd llama.cpp-decide
-./build-engine.sh          # clones upstream llama.cpp 60b06ab9a into engine/, applies patches/decide/*.patch with git am,
+./build-engine.sh          # clones upstream llama.cpp 707616feb into engine/, applies patches/decide/*.patch with git am,
                            # builds with CUDA (see "Build settings"); BUILD_CUDA=0 for a CPU-only build
-git -C engine rev-parse HEAD^{tree}    # must print c3daa53ab47099be8a69e6d81749f52072768fa7 (the patched tree)
+git -C engine rev-parse HEAD^{tree}    # must print 2f4ad7fa62ad161a842bcaf910062ef3ace47440 (the patched tree)
 ./test-engine.sh           # the 11 decide ctests, no model needed
 uv run pytest -q           # the Python tests, no model or server needed (the SDK test is skipped)
 ```
@@ -297,6 +297,11 @@ TypeSafeClient(api_key="local", base_url="http://127.0.0.1:8097", timeout=180,
 `retry=RetryPolicy(max_retries=0)` matters: the SDK's default policy retries 5xx responses and
 client timeouts twice, which re-sends the whole request while a cold model is still loading.
 
+Upstream llama.cpp serves the same route for native decision models (OpenJev, Laya, Granite Switch, ...; PR #29818).
+On this engine the upstream handler stays the registered route: a model with decision metadata is answered by it, and
+every other model (an ordinary chat model) falls through to the translation below, so both kinds answer at
+`POST /v1/systemone`.
+
 The request is translated to a `/v1/decide` body (spec
 `docs/specs/2026-09-25-systemone-compat-design.md`, section 3); `systemone_smoke.py`
 rebuilds that body in Python and checks that both endpoints give identical probabilities.
@@ -351,7 +356,7 @@ Known differences from Jev (documented, not bugs):
 ## Build settings, presets and environment
 
 - `build-engine.sh`: `BUILD_CUDA=0` (CPU-only), `TARGETS="a b"` / `EXTRA_TARGETS`, `LOCAL_SEED=path` (clone upstream
-  from a local llama.cpp clone that holds commit `60b06ab9a` instead of GitHub), `CUDA_BIN` (default `/opt/cuda/bin`),
+  from a local llama.cpp clone that holds commit `707616feb` instead of GitHub), `CUDA_BIN` (default `/opt/cuda/bin`),
   `CUDA_ARCH` (default `86`, the RTX 30 series; set yours, e.g. `89`), `CUDA_HOST_COMPILER` (default
   `/usr/bin/g++-15`); an empty value drops that setting. An existing `engine/` is left as it is and the patches are not
   applied again.
@@ -381,7 +386,7 @@ Known differences from Jev (documented, not bugs):
 
 ## What is in the repository
 
-- `patches/decide/` — the engine: 45 patches on ggml-org/llama.cpp `60b06ab9a` (new code under `tools/decide/`, the
+- `patches/decide/` — the engine: 46 patches on ggml-org/llama.cpp `707616feb` (new code under `tools/decide/`, the
   `/v1/decide`, `/v1/decide/info` and `/v1/systemone` routes in `tools/server/`, `--decide-seqs` and friends in
   `common/`, ctests under `tests/`). `build-engine.sh`, `test-engine.sh`, `serve-engine.sh`.
 - Phase 1: the baseline fork, a third-party llama.cpp fork with a `POST /v1/decision` endpoint, measured in an earlier
@@ -443,7 +448,8 @@ or the only implementation, and the upstream work below may supersede parts of i
 - llama.cpp [#29752](https://github.com/ggml-org/llama.cpp/pull/29752) (open): `POST /v1/decision` in llama-server,
   many contexts per request, one branch per field with `llama_memory_seq_cp`, trie scoring.
 - llama.cpp [#29818](https://github.com/ggml-org/llama.cpp/pull/29818) (merged 2026-10-02): `/v1/systemone`
-  for trained decision models (Laya, Julia-1, Lev, OpenJev with vision, Kev) through a decision head on the graph.
+  for trained decision models (Laya, Julia-1, Lev, OpenJev with vision, Kev) through a decision head on the graph; part
+  of the upstream this series sits on since 2026-10-20 (see "Jev compatibility" above).
 - llama.cpp [#29832](https://github.com/ggml-org/llama.cpp/pull/29832) (draft; its description says it is a
   demonstration with no intent to merge yet): a model-agnostic `/v1/systemone` for ordinary chat models, with image, audio and video input.
 - llama.cpp [#29321](https://github.com/ggml-org/llama.cpp/pull/29321) (draft): `llama-system-one`, a typed

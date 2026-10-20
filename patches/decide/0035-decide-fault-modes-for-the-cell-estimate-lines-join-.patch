@@ -1,7 +1,7 @@
-From 6cee9d5944361848b62ba4bc0c9ca3dd9828a219 Mon Sep 17 00:00:00 2001
+From 70c53e5e4f2f12e5a92b7b5aa2af4a060ebbb049 Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 2 Oct 2026 08:20:29 +0200
-Subject: [PATCH 35/45] decide: fault modes for the cell-estimate, lines-join
+Subject: [PATCH 35/46] decide: fault modes for the cell-estimate, lines-join
  and tail-mismatch paths
 
 LLAMA_DECIDE_FAULT gains three one-shot modes, armed at construction and

@@ -1,7 +1,7 @@
-From 9684ecf7cf3d8959d2d33ef0f92c7b543ca90815 Mon Sep 17 00:00:00 2001
+From 148309e5b867535c3db40334d51c3f3712423ac7 Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 25 Sep 2026 14:31:58 +0200
-Subject: [PATCH 08/45] server: /v1/decide and /v1/decide/info backed by the
+Subject: [PATCH 08/46] server: /v1/decide and /v1/decide/info backed by the
  decide engine
 
 ---
@@ -14,10 +14,10 @@ Subject: [PATCH 08/45] server: /v1/decide and /v1/decide/info backed by the
  6 files changed, 176 insertions(+), 2 deletions(-)
 
 diff --git a/tools/server/CMakeLists.txt b/tools/server/CMakeLists.txt
-index 4adaaceef..39a3ac6dc 100644
+index e0b9d0ec1..c8a19945e 100644
 --- a/tools/server/CMakeLists.txt
 +++ b/tools/server/CMakeLists.txt
-@@ -31,7 +31,7 @@ endif()
+@@ -33,7 +33,7 @@ endif()
  
  target_include_directories(${TARGET} PRIVATE ../mtmd)
  target_include_directories(${TARGET} PRIVATE ${PROJECT_SOURCE_DIR})
@@ -27,10 +27,10 @@ index 4adaaceef..39a3ac6dc 100644
  # llama-server-impl: server logic, reusable by app
  
 diff --git a/tools/server/server-context.cpp b/tools/server/server-context.cpp
-index b6835e434..0b843978d 100644
+index b2116b174..6efc99f1c 100644
 --- a/tools/server/server-context.cpp
 +++ b/tools/server/server-context.cpp
-@@ -16,6 +16,7 @@
+@@ -17,6 +17,7 @@
  #include "speculative.h"
  #include "mtmd.h"
  #include "mtmd-helper.h"
@@ -38,7 +38,7 @@ index b6835e434..0b843978d 100644
  
  #include <algorithm>
  #include <cstddef>
-@@ -47,6 +48,9 @@ static common_speculative_output_limits server_output_limits(const common_params
+@@ -48,6 +49,9 @@ static common_speculative_output_limits server_output_limits(const common_params
      auto result = common_speculative_get_output_limits(
              params.n_batch, params.n_parallel, common_speculative_n_max(&params.speculative));
  
@@ -48,7 +48,7 @@ index b6835e434..0b843978d 100644
      result.total   = std::max<int32_t>(1, result.total);
      result.per_seq = std::max<int32_t>(1, result.per_seq);
      return result;
-@@ -895,6 +899,9 @@ private:
+@@ -1005,6 +1009,9 @@ private:
  
      common_speculative_ptr spec;
  
@@ -58,7 +58,7 @@ index b6835e434..0b843978d 100644
      bool add_bos_token = true;
  
      int32_t n_ctx; // total context for all clients / slots
-@@ -936,6 +943,8 @@ private:
+@@ -1046,6 +1053,8 @@ private:
      int64_t t_last_load_progress_ms = 0;
  
      void destroy() {
@@ -67,7 +67,7 @@ index b6835e434..0b843978d 100644
          spec.reset();
          spec_init.reset();
  
-@@ -1390,6 +1399,11 @@ private:
+@@ -1539,6 +1548,11 @@ private:
              return init();
          }
  
@@ -79,7 +79,7 @@ index b6835e434..0b843978d 100644
          if (callback_state) {
              callback_state(SERVER_STATE_READY, {});
          }
-@@ -1397,6 +1411,38 @@ private:
+@@ -1546,6 +1560,38 @@ private:
          return true;
      }
  
@@ -118,7 +118,7 @@ index b6835e434..0b843978d 100644
      // unlike load_model(), this is only called once during initialization
      bool init() {
          GGML_ASSERT(ctx_tgt   != nullptr);
-@@ -1514,6 +1560,10 @@ private:
+@@ -1663,6 +1709,10 @@ private:
              }
          }
  
@@ -129,7 +129,7 @@ index b6835e434..0b843978d 100644
          return true;
      }
  
-@@ -2722,6 +2772,27 @@ private:
+@@ -3185,6 +3235,27 @@ private:
                      res->id = task.id;
                      queue_results.send(std::move(res));
                  } break;
@@ -157,7 +157,7 @@ index b6835e434..0b843978d 100644
          }
  
          return true;
-@@ -5285,6 +5356,83 @@ void server_routes::init_routes() {
+@@ -6024,6 +6095,83 @@ void server_routes::init_routes() {
          res->ok(result->to_json());
          return res;
      };
@@ -242,11 +242,11 @@ index b6835e434..0b843978d 100644
  
  std::unique_ptr<server_res_generator> server_routes::handle_slots_save(const server_http_req & req, int id_slot) {
 diff --git a/tools/server/server-context.h b/tools/server/server-context.h
-index 0acbbffa9..2448c55ed 100644
+index ed23f7d4e..75c3ae63b 100644
 --- a/tools/server/server-context.h
 +++ b/tools/server/server-context.h
-@@ -154,6 +154,8 @@ struct server_routes {
-     server_http_context::handler_t post_rerank;
+@@ -156,6 +156,8 @@ struct server_routes {
+     server_http_context::handler_t post_systemone;
      server_http_context::handler_t get_lora_adapters;
      server_http_context::handler_t post_lora_adapters;
 +    server_http_context::handler_t post_decide;
@@ -255,10 +255,10 @@ index 0acbbffa9..2448c55ed 100644
      // to be used in router mode
      json get_model_info() const;
 diff --git a/tools/server/server-http.cpp b/tools/server/server-http.cpp
-index 2ec137aa0..38e51f883 100644
+index 33cbb156c..f119c7b94 100644
 --- a/tools/server/server-http.cpp
 +++ b/tools/server/server-http.cpp
-@@ -143,7 +143,8 @@ bool server_http_context::init(const common_params & params) {
+@@ -197,7 +197,8 @@ bool server_http_context::init_listener(const common_params & params) {
      });
  
      srv->set_error_handler([](const httplib::Request &, httplib::Response & res) {
@@ -269,10 +269,10 @@ index 2ec137aa0..38e51f883 100644
                  safe_json_to_str(json {
                      {"error", {
 diff --git a/tools/server/server-task.h b/tools/server/server-task.h
-index 9c99143f8..7ef643634 100644
+index e7bb04398..651641d60 100644
 --- a/tools/server/server-task.h
 +++ b/tools/server/server-task.h
-@@ -27,6 +27,7 @@ enum server_task_type {
+@@ -28,6 +28,7 @@ enum server_task_type {
      SERVER_TASK_TYPE_SLOT_ERASE,
      SERVER_TASK_TYPE_GET_LORA,
      SERVER_TASK_TYPE_SET_LORA,
@@ -280,7 +280,7 @@ index 9c99143f8..7ef643634 100644
  };
  
  // TODO: change this to more generic "response_format" to replace the "format_response_*" in server-common
-@@ -175,6 +176,10 @@ struct server_task {
+@@ -209,6 +210,10 @@ struct server_task {
      // used by SERVER_TASK_TYPE_SET_LORA
      std::map<int, float> set_lora; // mapping adapter ID -> scale
  
@@ -291,7 +291,7 @@ index 9c99143f8..7ef643634 100644
      server_task() = default;
  
      server_task(server_task_type type) : type(type) {}
-@@ -563,6 +568,19 @@ struct server_task_result_apply_lora : server_task_result {
+@@ -619,6 +624,19 @@ struct server_task_result_apply_lora : server_task_result {
      virtual json to_json() override;
  };
  
@@ -312,10 +312,10 @@ index 9c99143f8..7ef643634 100644
      server_tokens tokens;
  
 diff --git a/tools/server/server.cpp b/tools/server/server.cpp
-index 22378b38c..cc6287d34 100644
+index b16824107..e15176e4a 100644
 --- a/tools/server/server.cpp
 +++ b/tools/server/server.cpp
-@@ -229,6 +229,8 @@ int llama_server(common_params & params, int argc, char ** argv) {
+@@ -261,6 +261,8 @@ int llama_server(common_params & params, int argc, char ** argv, server_child &
          routes.post_responses_tok_oai      = models_routes->proxy_post;
          routes.get_lora_adapters           = models_routes->proxy_get;
          routes.post_lora_adapters          = models_routes->proxy_post;
@@ -324,7 +324,7 @@ index 22378b38c..cc6287d34 100644
          routes.get_slots                   = models_routes->proxy_get;
          routes.post_slots                  = models_routes->proxy_post;
  
-@@ -281,6 +283,9 @@ int llama_server(common_params & params, int argc, char ** argv) {
+@@ -314,6 +316,9 @@ int llama_server(common_params & params, int argc, char ** argv, server_child &
      // LoRA adapters hotswap
      ctx_http.get ("/lora-adapters",            ex_wrapper(routes.get_lora_adapters));
      ctx_http.post("/lora-adapters",            ex_wrapper(routes.post_lora_adapters));

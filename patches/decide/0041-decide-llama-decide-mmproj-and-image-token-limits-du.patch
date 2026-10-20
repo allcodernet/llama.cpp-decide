@@ -1,7 +1,7 @@
-From 9eb177cce8f3304e0264b6f1a5a2a573ae401ab2 Mon Sep 17 00:00:00 2001
+From 380cc713e964ebd7d53b387bea404c4cb83e792b Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 2 Oct 2026 13:51:43 +0200
-Subject: [PATCH 41/45] decide: llama-decide --mmproj and image-token limits;
+Subject: [PATCH 41/46] decide: llama-decide --mmproj and image-token limits;
  dump of image states for string replays
 
 stb_image failure reasons are made printable ASCII before they enter a 400 message (an unknown PNG chunk type carries raw file bytes); the CLI catches any std::exception. Tests: an unknown critical chunk with non-ASCII type bytes, a real 1x1 BMP rejected by pass 1 and by the pixel decoder.
@@ -16,10 +16,10 @@ stb_image failure reasons are made printable ASCII before they enter a 400 messa
  7 files changed, 169 insertions(+), 14 deletions(-)
 
 diff --git a/common/arg.cpp b/common/arg.cpp
-index 965b7ad36..bcc492648 100644
+index 5f6760748..5d8eddd11 100644
 --- a/common/arg.cpp
 +++ b/common/arg.cpp
-@@ -2617,7 +2617,7 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
+@@ -2624,7 +2624,7 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
          [](common_params & params, const std::string & value) {
              params.mmproj.path = value;
          }
@@ -28,7 +28,7 @@ index 965b7ad36..bcc492648 100644
      add_opt(common_arg(
          {"-mmu", "--mmproj-url"}, "URL",
          "URL to a multimodal projector file. see tools/mtmd/README.md",
-@@ -2676,14 +2676,14 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
+@@ -2683,14 +2683,14 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
          [](common_params & params, int value) {
              params.image_min_tokens = value;
          }

@@ -1,7 +1,7 @@
-From f989ecdeaea9d6377075374cd927f853504712af Mon Sep 17 00:00:00 2001
+From b50f2728af25ccf2573af76153bc05b9d574647f Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Sat, 26 Sep 2026 03:47:28 +0200
-Subject: [PATCH 32/45] tests: run test-decide-trie on the in-repo vocab files
+Subject: [PATCH 32/46] tests: run test-decide-trie on the in-repo vocab files
 
 test-decide-trie reads its tokenizer from DECIDE_TEST_MODEL and prints SKIP
 (exit 0) without one, so the plain registration passed without running the
@@ -13,10 +13,10 @@ and test-decide-trie-gemma-4 on models/ggml-vocab-{qwen2,gemma-4}.gguf
  1 file changed, 9 insertions(+), 1 deletion(-)
 
 diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
-index e239ecbb0..01569ea2e 100644
+index 8fa20d7f1..7d533a144 100644
 --- a/tests/CMakeLists.txt
 +++ b/tests/CMakeLists.txt
-@@ -389,8 +389,16 @@ target_link_libraries(test-decide-score PRIVATE llama-decide)
+@@ -388,8 +388,16 @@ target_link_libraries(test-decide-score PRIVATE llama-decide)
  llama_build_and_test(test-decide-compat.cpp)
  target_link_libraries(test-decide-compat PRIVATE llama-decide)
  

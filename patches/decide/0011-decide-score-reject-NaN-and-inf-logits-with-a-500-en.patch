@@ -1,7 +1,7 @@
-From bf65e97c3a25cbf9c71a9b36cd6561dade719e74 Mon Sep 17 00:00:00 2001
+From bf377bf7663052fbe24520e12653975fcd942e5b Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 25 Sep 2026 15:53:20 +0200
-Subject: [PATCH 11/45] decide-score: reject NaN and +inf logits with a 500
+Subject: [PATCH 11/46] decide-score: reject NaN and +inf logits with a 500
  engine error
 
 A NaN logit made every probability NaN, which serialised as null with

@@ -1,7 +1,7 @@
-From ad161554f6cbe6a7b0cc3b1db25489b6b1fdaeb1 Mon Sep 17 00:00:00 2001
+From b7ed9105ffc021a292e621353ce0daed15affc9e Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 25 Sep 2026 16:02:03 +0200
-Subject: [PATCH 14/45] decide: cut join error text at UTF-8 boundaries
+Subject: [PATCH 14/46] decide: cut join error text at UTF-8 boundaries
 
 The join self-check quotes up to 24 bytes of the text around the join.
 A cut inside a multi-byte character made the message invalid UTF-8,

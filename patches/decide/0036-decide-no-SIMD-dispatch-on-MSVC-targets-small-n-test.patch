@@ -1,7 +1,7 @@
-From f660f7075bb48763d567abc779427fb3df86358d Mon Sep 17 00:00:00 2001
+From b1b872a9b1776b4c7b4d14ae4185ba299e3a675a Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 2 Oct 2026 08:21:57 +0200
-Subject: [PATCH 36/45] decide: no SIMD dispatch on MSVC targets; small-n tests
+Subject: [PATCH 36/46] decide: no SIMD dispatch on MSVC targets; small-n tests
 
 clang targeting MSVC defines __clang__ and __x86_64__, but its linker
 does not pull in compiler-rt's __cpu_model for __builtin_cpu_supports:

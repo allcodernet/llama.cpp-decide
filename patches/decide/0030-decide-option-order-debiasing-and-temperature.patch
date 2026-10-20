@@ -1,7 +1,7 @@
-From 77e456ec9b75570be2c4b3083108f816627fb8d4 Mon Sep 17 00:00:00 2001
+From 19652abfb89e125dfb097f368191ca3fc8a07f18 Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Sat, 26 Sep 2026 00:43:36 +0200
-Subject: [PATCH 30/45] decide: option-order debiasing and temperature
+Subject: [PATCH 30/46] decide: option-order debiasing and temperature
 
 A request with order_debias K gets K_eff = effective_variants catalogue
 variants: slot v holds variant v's prefix (resident, restored from the prefix
@@ -35,10 +35,10 @@ variant combination) with test-decide-debias.
  create mode 100644 tools/decide/decide-debias.h
 
 diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
-index 97a21428d..e239ecbb0 100644
+index 76faa5bbb..8fa20d7f1 100644
 --- a/tests/CMakeLists.txt
 +++ b/tests/CMakeLists.txt
-@@ -398,6 +398,9 @@ target_link_libraries(test-decide-cache PRIVATE llama-decide)
+@@ -397,6 +397,9 @@ target_link_libraries(test-decide-cache PRIVATE llama-decide)
  llama_build_and_test(test-decide-fullpath.cpp)
  target_link_libraries(test-decide-fullpath PRIVATE llama-decide)
  

@@ -1,7 +1,7 @@
-From 96416ec463e31b538ce5ea4212fcd58c690d18a0 Mon Sep 17 00:00:00 2001
+From 500f23f1131fd5255c2d2e6b2f67b89c0506ca49 Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 25 Sep 2026 23:06:59 +0200
-Subject: [PATCH 26/45] decide: full-path scoring
+Subject: [PATCH 26/46] decide: full-path scoring
 
 Full-path branch phase (spec 4): one sequence per option from
 full_path_plan, rows tagged per trie node, decode chunks flushed at
@@ -28,10 +28,10 @@ split, row values, budget counts); leaf MERGED sets in test-decide-trie.
  create mode 100644 tests/test-decide-fullpath.cpp
 
 diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
-index c89d15909..d5058974e 100644
+index f99a69919..5662e86ab 100644
 --- a/tests/CMakeLists.txt
 +++ b/tests/CMakeLists.txt
-@@ -394,3 +394,6 @@ target_link_libraries(test-decide-trie PRIVATE llama-decide)
+@@ -393,3 +393,6 @@ target_link_libraries(test-decide-trie PRIVATE llama-decide)
  
  llama_build_and_test(test-decide-cache.cpp)
  target_link_libraries(test-decide-cache PRIVATE llama-decide)

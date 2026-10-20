@@ -1,7 +1,7 @@
-From bf7c9e8dd5e124fd0c99b6bfa0b9efd35c5cb9d0 Mon Sep 17 00:00:00 2001
+From 061eb755cd5f98735ff1e1c5b673855fdd58a4d2 Mon Sep 17 00:00:00 2001
 From: allcodernet <67543055+allcodernet@users.noreply.github.com>
 Date: Fri, 25 Sep 2026 13:39:35 +0200
-Subject: [PATCH 03/45] decide: aggregation of node logits into option
+Subject: [PATCH 03/46] decide: aggregation of node logits into option
  distributions
 
 Add decide-score.{h,cpp}: score_field aggregates per-branch-node
@@ -21,10 +21,10 @@ renders the CHOICE/SCORE/BOOL answer shapes from a field_answer.
  create mode 100644 tools/decide/decide-score.h
 
 diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
-index 7ebb9bd16..c733899b8 100644
+index 47ba9e23b..3f5e8f8d1 100644
 --- a/tests/CMakeLists.txt
 +++ b/tests/CMakeLists.txt
-@@ -382,3 +382,6 @@ endif()
+@@ -381,3 +381,6 @@ endif()
  
  llama_build_and_test(test-decide-schema.cpp)
  target_link_libraries(test-decide-schema PRIVATE llama-decide)
